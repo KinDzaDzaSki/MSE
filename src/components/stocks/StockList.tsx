@@ -1,11 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
 import { Stock } from '@/lib/types'
-import { StockCard } from './StockCard'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Search, SortAsc, SortDesc } from 'lucide-react'
+import { TrendingUp, TrendingDown } from 'lucide-react'
+import { memo } from 'react'
 
 interface StockListProps {
   stocks: Stock[]
@@ -13,138 +10,162 @@ interface StockListProps {
   isLoading?: boolean
 }
 
-type SortField = 'symbol' | 'price' | 'change' | 'volume'
-type SortDirection = 'asc' | 'desc'
+function StockList({ stocks, onStockClick, isLoading }: StockListProps) {
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('mk-MK', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price)
+  }
 
-export function StockList({ stocks, onStockClick, isLoading }: StockListProps) {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sortField, setSortField] = useState<SortField>('symbol')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const formatChange = (change: number) => {
+    const sign = change >= 0 ? '+' : ''
+    return `${sign}${change.toFixed(2)}%`
+  }
 
-  const filteredAndSortedStocks = useMemo(() => {
-    let filtered = stocks.filter(stock =>
-      stock.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      stock.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+  const formatVolume = (volume: number) => {
+    if (volume >= 1000000) {
+      return `${(volume / 1000000).toFixed(1)}М`
+    } else if (volume >= 1000) {
+      return `${(volume / 1000).toFixed(1)}К`
+    }
+    return volume.toString()
+  }
 
-    filtered.sort((a, b) => {
-      let aValue: number | string
-      let bValue: number | string
-
-      switch (sortField) {
-        case 'symbol':
-          aValue = a.symbol
-          bValue = b.symbol
-          break
-        case 'price':
-          aValue = a.price
-          bValue = b.price
-          break
-        case 'change':
-          aValue = a.changePercent
-          bValue = b.changePercent
-          break
-        case 'volume':
-          aValue = a.volume
-          bValue = b.volume
-          break
-        default:
-          aValue = a.symbol
-          bValue = b.symbol
-      }
-
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' 
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue)
-      }
-
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
-      }
-
-      return 0
-    })
-
-    return filtered
-  }, [stocks, searchTerm, sortField, sortDirection])
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDirection('asc')
+  const handleStockClick = (stock: Stock) => {
+    if (onStockClick) {
+      onStockClick(stock)
     }
   }
 
-  const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => handleSort(field)}
-      className="h-8 px-2 flex items-center gap-1"
-    >
-      {children}
-      {sortField === field && (
-        sortDirection === 'asc' ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />
-      )}
-    </Button>
-  )
-
-  if (isLoading) {
+  if (isLoading && stocks.length === 0) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="h-32 bg-gray-200 rounded-lg animate-pulse" />
-        ))}
+      <div className="bg-white rounded-lg overflow-hidden">
+        <div className="animate-pulse">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          </div>
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                  <div className="h-3 bg-gray-200 rounded w-32"></div>
+                </div>
+                <div className="flex items-center space-x-8">
+                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (stocks.length === 0) {
+    return (
+      <div className="bg-white rounded-lg p-8 text-center">
+        <p className="text-gray-500">Нема достапни податоци за акции.</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      {/* Search and Sort Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            placeholder="Пребарај акции..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <div className="flex gap-1">
-          <SortButton field="symbol">Симбол</SortButton>
-          <SortButton field="price">Цена</SortButton>
-          <SortButton field="change">Промена</SortButton>
-          <SortButton field="volume">Волумен</SortButton>
+    <div className="overflow-hidden">
+      {/* Table Header */}
+      <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+        <div className="grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <div className="col-span-4">Симбол / Компанија</div>
+          <div className="col-span-2 text-right">Цена</div>
+          <div className="col-span-2 text-right">Промена</div>
+          <div className="col-span-2 text-right">Промена %</div>
+          <div className="col-span-2 text-right">Волумен</div>
         </div>
       </div>
 
-      {/* Results Summary */}
-      <div className="text-sm text-gray-600">
-        Прикажани {filteredAndSortedStocks.length} од {stocks.length} акции
+      {/* Table Body */}
+      <div className="divide-y divide-gray-100">
+        {stocks.map((stock, index) => (
+          <div
+            key={stock.id}
+            onClick={() => handleStockClick(stock)}
+            className={`px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+              index % 2 === 0 ? 'bg-white' : 'bg-gray-25'
+            }`}
+          >
+            <div className="grid grid-cols-12 gap-4 items-center">
+              {/* Symbol and Company */}
+              <div className="col-span-4">
+                <div className="flex items-center space-x-3">
+                  <div>
+                    <div className="font-semibold text-blue-600 hover:text-blue-800">
+                      {stock.symbol}
+                    </div>
+                    <div className="text-sm text-gray-600 truncate max-w-48">
+                      {stock.name}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price */}
+              <div className="col-span-2 text-right">
+                <div className="font-semibold text-gray-900">
+                  {formatPrice(stock.price)} ден
+                </div>
+              </div>
+
+              {/* Change Amount */}
+              <div className="col-span-2 text-right">
+                <div className={`font-medium ${
+                  stock.change >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {stock.change >= 0 ? '+' : ''}{formatPrice(stock.change)}
+                </div>
+              </div>
+
+              {/* Change Percentage */}
+              <div className="col-span-2 text-right">
+                <div className={`flex items-center justify-end space-x-1 ${
+                  stock.changePercent >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {stock.changePercent >= 0 ? (
+                    <TrendingUp className="w-3 h-3" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3" />
+                  )}
+                  <span className="font-medium">
+                    {formatChange(stock.changePercent)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Volume */}
+              <div className="col-span-2 text-right">
+                <div className="text-gray-900 font-medium">
+                  {formatVolume(stock.volume)}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Stock Grid */}
-      {filteredAndSortedStocks.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">Не се пронајдени акции што се совпаѓаат со вашето пребарување.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredAndSortedStocks.map((stock) => (
-            <StockCard
-              key={stock.id}
-              stock={stock}
-              onClick={() => onStockClick?.(stock)}
-            />
-          ))}
+      {/* Footer */}
+      {stocks.length > 0 && (
+        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
+          <div className="text-sm text-gray-600">
+            Прикажани {stocks.length} акции
+          </div>
         </div>
       )}
     </div>
   )
 }
+
+export const MemoizedStockList = memo(StockList)
+export { MemoizedStockList as StockList }
+export default MemoizedStockList
