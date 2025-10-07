@@ -1,197 +1,261 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Stock } from '@/lib/types'
 import { useStocks } from '@/hooks/useStocks'
-import { StockList } from '@/components/stocks/StockList'
+import { EnhancedStockList } from '@/components/stocks/EnhancedStockList'
 import { MarketOverview } from '@/components/market/MarketOverview'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, Search, Menu, TrendingUp } from 'lucide-react'
+import { RefreshCw, Menu, TrendingUp } from 'lucide-react'
+import { uiTextMK } from '@/lib/localization'
+import { announceToScreenReader, createLiveRegion, updateLiveRegion } from '@/lib/accessibility'
 
 export default function HomePage() {
   const { stocks, marketStatus, lastUpdated, isLoading, error, refetch } = useStocks()
   const [view, setView] = useState<'overview' | 'list'>('overview')
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
+
+  // Create live region for stock updates
+  useEffect(() => {
+    createLiveRegion('stock-updates', 'polite')
+  }, [])
+
+  // Announce stock updates to screen readers
+  useEffect(() => {
+    if (stocks.length > 0 && !isLoading) {
+      const message = `Податоците за акциите се ажурирани. ${stocks.length} листирани компании.`
+      updateLiveRegion('stock-updates', message)
+    }
+  }, [stocks, isLoading])
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
+    announceToScreenReader('Се освежуваат податоците за акциите...')
     await refetch()
     setIsRefreshing(false)
+    announceToScreenReader('Податоците за акциите се успешно освежени.')
   }
 
   const handleStockClick = (stock: Stock) => {
     window.location.href = `/stock/${stock.symbol}`
   }
 
+  const handleViewChange = (newView: 'overview' | 'list') => {
+    setView(newView)
+    const message = newView === 'overview' 
+      ? 'Прегледот на пазарот е активен' 
+      : 'Листата со сите акции е активна'
+    announceToScreenReader(message)
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Yahoo Finance Style Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div className="min-h-screen bg-slate-50">
+      {/* Skip to main content link for keyboard users */}
+      <a 
+        href="#main-content" 
+        className="skip-link"
+        onFocus={() => announceToScreenReader('Користете Enter за да прескокнете до главната содржина')}
+      >
+        Скокни до главната содржина
+      </a>
+
+      {/* MSE Header with proper semantic structure */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm" role="banner">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between h-16 px-4">
             {/* Logo and Navigation */}
             <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-white" />
+                <div 
+                  className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center"
+                  role="img"
+                  aria-label="Лого на Македонската берза"
+                >
+                  <TrendingUp className="w-5 h-5 text-white" aria-hidden="true" />
                 </div>
-                <div className="text-xl font-bold text-gray-900">MSE</div>
+                <h1 className="text-xl font-bold text-slate-900">{uiTextMK.stockExchange}</h1>
               </div>
               
-              <nav className="hidden md:flex space-x-8">
+              <nav className="hidden md:flex space-x-8" role="navigation" aria-label="Главна навигација">
                 <button 
-                  onClick={() => setView('overview')}
-                  className={`text-sm font-medium transition-colors ${
+                  onClick={() => handleViewChange('overview')}
+                  className={`text-sm font-medium transition-colors btn-accessible ${
                     view === 'overview' 
-                      ? 'text-blue-600 border-b-2 border-blue-600 pb-4' 
-                      : 'text-gray-700 hover:text-blue-600'
+                      ? 'text-indigo-600 border-b-2 border-indigo-600 pb-4' 
+                      : 'text-slate-700 hover:text-indigo-600'
                   }`}
+                  aria-pressed={view === 'overview'}
+                  aria-describedby="overview-description"
                 >
-                  Преглед на пазарот
+                  {uiTextMK.marketOverview}
                 </button>
+                <div id="overview-description" className="sr-only">
+                  Прикажува преглед на пазарот со најважни статистики и трендови
+                </div>
+                
                 <button 
-                  onClick={() => setView('list')}
-                  className={`text-sm font-medium transition-colors ${
+                  onClick={() => handleViewChange('list')}
+                  className={`text-sm font-medium transition-colors btn-accessible ${
                     view === 'list' 
-                      ? 'text-blue-600 border-b-2 border-blue-600 pb-4' 
-                      : 'text-gray-700 hover:text-blue-600'
+                      ? 'text-indigo-600 border-b-2 border-indigo-600 pb-4' 
+                      : 'text-slate-700 hover:text-indigo-600'
                   }`}
+                  aria-pressed={view === 'list'}
+                  aria-describedby="list-description"
                 >
-                  Сите акции
+                  {uiTextMK.allStocks}
                 </button>
+                <div id="list-description" className="sr-only">
+                  Прикажува детална листа со сите акции и компании
+                </div>
               </nav>
             </div>
 
-            {/* Search and Actions */}
+            {/* Actions */}
             <div className="flex items-center space-x-4">
-              {/* Search Bar */}
-              <div className="hidden md:flex items-center">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder="Пребарај акции..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm w-64"
-                  />
-                </div>
-              </div>
-
               {/* Refresh Button */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="flex items-center space-x-2 text-sm"
+                className="flex items-center space-x-2 text-sm btn-accessible border-slate-300 text-slate-700 hover:bg-slate-50"
+                aria-describedby="refresh-help"
+                aria-live="polite"
+                aria-label={isRefreshing ? 'Се освежуваат податоците...' : 'Освежи ги податоците за акциите'}
               >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Освежи</span>
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
+                <span className="hidden sm:inline">{uiTextMK.refresh}</span>
               </Button>
+              <div id="refresh-help" className="sr-only">
+                Освежува ги податоците за акциите од Македонската берза
+              </div>
 
               {/* Mobile Menu */}
-              <button className="md:hidden p-2">
-                <Menu className="w-5 h-5 text-gray-700" />
+              <button 
+                className="md:hidden p-2 btn-accessible"
+                aria-label="Отвори мобилно мени"
+                aria-expanded="false"
+              >
+                <Menu className="w-5 h-5 text-slate-700" aria-hidden="true" />
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Market Status Bar */}
-      <div className="bg-white border-b border-gray-200">
+      {/* Market Status Bar with accessibility */}
+      <section className="bg-white border-b border-slate-200" role="region" aria-label="Статус на пазарот">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  marketStatus === 'open' ? 'bg-green-500' : 'bg-red-500'
-                }`} />
-                <span className="text-sm font-medium text-gray-900">
-                  Пазарот е {marketStatus === 'open' ? 'отворен' : 'затворен'}
+                <div 
+                  className={`w-2 h-2 rounded-full ${
+                    marketStatus.isOpen ? 'bg-green-500' : 'bg-red-500'
+                  }`}
+                  role="img"
+                  aria-label={marketStatus.isOpen ? 'Пазарот е отворен' : 'Пазарот е затворен'}
+                />
+                <span className="text-sm font-medium text-slate-900">
+                  {marketStatus.isOpen ? uiTextMK.marketOpen : uiTextMK.marketClosed}
                 </span>
               </div>
               
               {lastUpdated && (
-                <div className="text-sm text-gray-600">
-                  Последно ажурирање: {new Date(lastUpdated).toLocaleTimeString('mk-MK')}
+                <div className="text-sm text-slate-600" aria-live="polite">
+                  <span className="sr-only">Податоците се </span>
+                  {uiTextMK.lastUpdated}: <time dateTime={lastUpdated}>{new Date(lastUpdated).toLocaleTimeString('mk-MK')}</time>
                 </div>
               )}
               
-              <div className="text-sm text-gray-600">
-                {stocks.length} листирани компании
+              <div className="text-sm text-slate-600" aria-live="polite">
+                <span aria-label={`Вкупно ${stocks.length} листирани компании`}>
+                  {stocks.length} листирани {uiTextMK.companies}
+                </span>
               </div>
             </div>
           </div>
         </div>
-      </div>      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Error Message */}
+      </section>
+
+      {/* Main Content with landmark */}
+      <main id="main-content" className="max-w-7xl mx-auto px-4 py-6" role="main">
+        {/* Error Message with accessibility */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+          <div 
+            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between"
+            role="alert"
+            aria-live="assertive"
+          >
             <div>
-              <h3 className="text-sm font-medium text-red-800">Грешка при вчитувањето на податоците</h3>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
+              <h3 className="text-sm font-medium text-red-800">
+                {uiTextMK.errorOccurred} при вчитувањето на податоците
+              </h3>
+              <p className="text-sm text-red-700 mt-1" id="error-message">
+                {error}
+              </p>
             </div>
             <Button 
               variant="outline" 
               size="sm" 
               onClick={handleRefresh}
-              className="text-red-700 border-red-300 hover:bg-red-50"
+              className="text-red-700 border-red-300 hover:bg-red-50 btn-accessible"
+              aria-describedby="error-message"
             >
-              Обиди се повторно
+              {uiTextMK.tryAgain}
             </Button>
           </div>
         )}
 
-        {/* Loading State */}
+        {/* Loading State with accessibility */}
         {isLoading && stocks.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-12" role="status" aria-live="polite">
             <div className="text-center">
-              <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-              <p className="text-gray-600">Се вчитуваат податоците за акциите...</p>
+              <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" aria-hidden="true" />
+              <p className="text-gray-600">{uiTextMK.dataUpdating}</p>
+              <span className="sr-only">Се вчитуваат податоците за акциите, ве молиме почекајте</span>
             </div>
           </div>
         ) : (
           <>
             {view === 'overview' ? (
-              <MarketOverview
-                stocks={stocks}
-                marketStatus={marketStatus}
-                lastUpdated={lastUpdated || new Date().toISOString()}
-              />
-            ) : (
-              <div className="bg-white rounded-lg shadow">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-lg font-semibold text-gray-900">Сите акции на МСЕ</h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Преглед на сите {stocks.length} листирани компании
-                  </p>
-                </div>
-                
-                <StockList
-                  stocks={stocks.filter(stock => 
-                    searchQuery === '' || 
-                    stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    stock.name.toLowerCase().includes(searchQuery.toLowerCase())
-                  )}
-                  onStockClick={handleStockClick}
-                  isLoading={isLoading}
+              <section aria-label="Преглед на пазарот">
+                <h2 className="sr-only">Преглед на пазарот</h2>
+                <MarketOverview
+                  stocks={stocks}
+                  marketStatus={marketStatus}
+                  lastUpdated={lastUpdated || new Date().toISOString()}
                 />
-              </div>
+              </section>
+            ) : (
+              <section aria-label="Листа со сите акции">
+                <div className="space-y-6">
+                  <div className="bg-white rounded-lg shadow-sm border p-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                      {uiTextMK.allStocks} на МСЕ
+                    </h2>
+                    <p className="text-sm text-gray-600">
+                      Преглед на {uiTextMK.allCompanies} {stocks.length} листирани {uiTextMK.companies}
+                    </p>
+                  </div>
+                  
+                  <EnhancedStockList
+                    onStockClick={handleStockClick}
+                  />
+                </div>
+              </section>
             )}
           </>
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-12">
+      {/* Footer with proper semantic structure */}
+      <footer className="bg-white border-t border-gray-200 mt-12" role="contentinfo">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="text-center text-sm text-gray-500">
             <p className="mb-2">
-              © 2025 MSE Stock Tracker. Податоци преземени од Македонската берза.
+              © 2025 MSE Stock Tracker. Податоци преземени од {uiTextMK.stockExchange}.
             </p>
             <p>
               Оваа апликација не е поврзана со МСЕ. Изградено со Next.js и TypeScript.
@@ -199,6 +263,9 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Live region for announcements */}
+      <div id="stock-updates" aria-live="polite" aria-atomic="true" className="sr-only"></div>
     </div>
   )
 }

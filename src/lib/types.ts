@@ -69,6 +69,14 @@ export interface ScrapingResult {
 
 export type MarketStatus = 'open' | 'closed' | 'pre-market' | 'after-hours'
 
+export interface MarketStatusInfo {
+  isOpen: boolean
+  status: MarketStatus
+  nextOpen: string
+  nextClose: string
+  timezone: string
+}
+
 export interface AppState {
   stocks: Stock[]
   selectedStock: StockDetail | null
@@ -76,5 +84,5 @@ export interface AppState {
   isLoading: boolean
   error: string | null
   lastUpdated: string | null
-  marketStatus: MarketStatus
+  marketStatus: MarketStatusInfo
 }

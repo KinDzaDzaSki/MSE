@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Stock, MarketStatus, ApiResponse } from '@/lib/types'
+import { Stock, MarketStatusInfo, ApiResponse } from '@/lib/types'
 import { deduplicateStocks } from '@/lib/utils'
 
 interface UseStocksReturn {
   stocks: Stock[]
-  marketStatus: MarketStatus
+  marketStatus: MarketStatusInfo
   lastUpdated: string | null
   isLoading: boolean
   error: string | null
@@ -15,7 +15,13 @@ interface UseStocksReturn {
 
 export function useStocks(autoRefresh: boolean = true): UseStocksReturn {
   const [stocks, setStocks] = useState<Stock[]>([])
-  const [marketStatus, setMarketStatus] = useState<MarketStatus>('closed')
+  const [marketStatus, setMarketStatus] = useState<MarketStatusInfo>({
+    isOpen: false,
+    status: 'closed',
+    nextOpen: '',
+    nextClose: '',
+    timezone: 'Europe/Skopje'
+  })
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -39,8 +45,9 @@ export function useStocks(autoRefresh: boolean = true): UseStocksReturn {
       
       const result: ApiResponse<{
         stocks: Stock[]
-        marketStatus: MarketStatus
+        marketStatus: MarketStatusInfo
         lastUpdated: string
+        databaseStatus?: any
       }> = await response.json()
 
       if (result.success && result.data) {

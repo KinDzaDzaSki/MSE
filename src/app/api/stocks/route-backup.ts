@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { MSEScraper, isMarketOpen } from '@/lib/scraper'
-import { Stock, ApiResponse, MarketStatusInfo } from '@/lib/types'
+import { Stock, ApiResponse, MarketStatus } from '@/lib/types'
 import { deduplicateStocks } from '@/lib/utils'
 import { generateMockStocks } from '@/lib/mock-data'
 
@@ -12,7 +12,7 @@ const CACHE_DURATION = 30000 // 30 seconds
 
 export async function GET(): Promise<NextResponse<ApiResponse<{
   stocks: Stock[]
-  marketStatus: MarketStatusInfo
+  marketStatus: MarketStatus
   lastUpdated: string
   databaseStatus?: any
 }>>> {
@@ -102,10 +102,8 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
     }
 
     // Determine market status
-    const isMarketCurrentlyOpen = isMarketOpen()
-    const marketStatus: MarketStatusInfo = {
-      isOpen: isMarketCurrentlyOpen,
-      status: isMarketCurrentlyOpen ? 'open' : 'closed',
+    const marketStatus: MarketStatus = {
+      isOpen: isMarketOpen(),
       nextOpen: getNextMarketOpen(),
       nextClose: getNextMarketClose(),
       timezone: 'Europe/Skopje'
@@ -124,69 +122,86 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
     }
 
     return NextResponse.json(response)
+          
+          // Log potential data issues
+          const potentialIssues = cachedStocks.filter(s => 
+            Math.abs(s.changePercent) > 20 || // Change > ±20%
+            s.price > 50000 || // Extremely high price
+            s.price < 10 // Very low price
+          )
+          
+          if (potentialIssues.length > 0) {
+            console.log(`Potential data anomalies detected in ${potentialIssues.length} stocks:`, 
+              potentialIssues.map(s => `${s.symbol}: price=${s.price}, change=${s.changePercent}%`).join('; ')
+            )
+          }
+        } else {
+          const errorMessage = result.errors?.join('; ') || 'No stocks found'
+          lastError = errorMessage
+          console.error('Scraping returned no data:', errorMessage)
+          
+          // If we have cached data, continue using it
+          if (cachedStocks.length === 0) {
+            // Use mock data as absolute fallback
+            console.log('Using mock data as fallback due to scraping failure')
+            cachedStocks = generateMockStocks()
+            lastUpdate = now
+            lastError = `No data found: ${errorMessage}`
+          }
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown scraping error'
+        lastError = errorMessage
+        console.error('Scraping error:', errorMessage)
+        
+        // If we have no cached data and scraping fails, return error
+        if (cachedStocks.length === 0) {
+          // Use mock data as absolute fallback for development
+          console.log('Using mock data as fallback')
+          cachedStocks = generateMockStocks()
+          lastUpdate = now
+          lastError = `Scraping failed, using mock data: ${errorMessage}`
+        }
+        
+        // Otherwise, use cached data with warning
+        console.log('Using cached data due to scraping error')
+      } finally {
+        if (scraper) {
+          await scraper.close()
+        }
+      }
+    }
+
+    const marketStatus: MarketStatus = isMarketOpen() ? 'open' : 'closed'
+
+    const response = {
+      success: true,
+      data: {
+        stocks: cachedStocks,
+        marketStatus,
+        lastUpdated: lastUpdate?.toISOString() || now.toISOString()
+      },
+      // Include warning if using stale data
+      ...(lastError && { warning: `Using cached data: ${lastError}` })
+    }
+
+    return NextResponse.json(response)
 
   } catch (error) {
-    console.error('❌ API Error:', error)
+    console.error('API Error:', error)
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch stock data'
     
-    return NextResponse.json({
+    // Return cached data if available, even on error
+    const response = {
       success: false,
       error: errorMessage,
-      timestamp: new Date().toISOString(),
       data: {
-        stocks: cachedStocks.length > 0 ? cachedStocks : generateMockStocks(),
-        marketStatus: {
-          isOpen: isMarketOpen(),
-          status: isMarketOpen() ? 'open' : 'closed',
-          nextOpen: getNextMarketOpen(),
-          nextClose: getNextMarketClose(),
-          timezone: 'Europe/Skopje'
-        },
+        stocks: cachedStocks,
+        marketStatus: 'closed' as MarketStatus,
         lastUpdated: lastUpdate?.toISOString() || new Date().toISOString()
       }
-    }, { status: 500 })
-  }
-}
-
-// Utility functions for market timing
-function getNextMarketOpen(): string {
-  const now = new Date()
-  const macedoniaTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Skopje"}))
-  
-  // Set to 9:00 AM Macedonia time
-  const nextOpen = new Date(macedoniaTime)
-  nextOpen.setHours(9, 0, 0, 0)
-  
-  // If it's already past 9 AM today, set for tomorrow
-  if (macedoniaTime.getHours() >= 9) {
-    nextOpen.setDate(nextOpen.getDate() + 1)
-  }
-  
-  // Skip weekends
-  while (nextOpen.getDay() === 0 || nextOpen.getDay() === 6) {
-    nextOpen.setDate(nextOpen.getDate() + 1)
-  }
-  
-  return nextOpen.toISOString()
-}
-
-function getNextMarketClose(): string {
-  const now = new Date()
-  const macedoniaTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Skopje"}))
-  
-  // Set to 4:00 PM Macedonia time
-  const nextClose = new Date(macedoniaTime)
-  nextClose.setHours(16, 0, 0, 0)
-  
-  // If it's already past 4 PM today or before 9 AM, set for next trading day
-  if (macedoniaTime.getHours() >= 16 || macedoniaTime.getHours() < 9) {
-    nextClose.setDate(nextClose.getDate() + 1)
-    
-    // Skip weekends
-    while (nextClose.getDay() === 0 || nextClose.getDay() === 6) {
-      nextClose.setDate(nextClose.getDate() + 1)
     }
+    
+    return NextResponse.json(response, { status: cachedStocks.length > 0 ? 200 : 500 })
   }
-  
-  return nextClose.toISOString()
 }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { MSEScraper } from '@/lib/scraper'
 import { generateMockStocks, validateUniqueStocks } from '@/lib/mock-data'
 
