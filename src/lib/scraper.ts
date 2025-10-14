@@ -246,48 +246,73 @@ export class MSEScraperWithDB {
     }
 
     const page = await this.browser!.newPage()
-    const discoveredStocks: Stock[] = []
     
     try {
       await page.setUserAgent(this.userAgent)
       
-      // List of known MSE company symbols to check
+      // List of ONLY the specifically requested companies to track
       const knownMSESymbols = [
-        'ALK', 'KMB', 'MPT', 'REPL', 'RZUS', 'TEL', // Already scraped from main page
-        'STB', 'UNI', 'TNB', 'VITA', 'USJE', 'GRNT', 'MTUR', 'ZUAS', 'DIMI',
-        'TETO', 'ESM', 'BENG', 'RDMH', 'HLKB', 'HLKO', 'PRIM', 'PRZI',
-        'KRZI', 'KRNZ', 'KRAD', 'ZLZN', 'LAJN', 'MKEL', 'EDS', 'METR',
-        'ZRNM', 'MNAV', 'TELM', 'EURO', 'BRIK', 'TIGR', 'DAMJ', 'INBR',
-        'SUPB', 'MBRK', 'POBR', 'SVOD', 'NOMA', 'KIBS', 'DAUT', 'PTCT',
-        'SPNS', 'KICO', 'LIHN', 'ZIM', 'SVRB', 'RMDEN21'
+        'ALK',    // Алкалоид Скопје
+        'KMB',    // Комерцијална банка Скопје
+        'TNB',    // Тутунски комбинат Прилеп
+        'STB',    // Стопанска банка Скопје
+        'TEL',    // Македонски Телеком Скопје
+        'MPT',    // Макпетрол Скопје
+        'GRNT',   // Гранит Скопје
+        'REPL',   // Реплек Скопје
+        'MTUR',   // Македонијатурист Скопје
+        'UNI',    // Универзална Инвестициона Банка Скопје
+        'USJE',   // ТИТАН УСЈЕ АД Скопје
+        'VITA',   // Витаминка Прилеп
+        'OKTA',   // ОКТА Скопје
+        'STIL',   // Стил Скопје
+        'FERS',   // Ферс Скопје
+        'AUMK',   // Ауремарк Скопје
+        'TETE',   // Тете Скопје
+        'PPIV',   // ППИВ Скопје
+        'TIGA',   // Тига Скопје
+        'RZLE',   // РЖ Лесновска Скопје
+        'SBT',    // СБТ Скопје
+        'RZUS'    // РЖ Услуги Скопје
       ]
       
       console.log(`🔎 Checking ${knownMSESymbols.length} known MSE symbols...`)
+
+      // First get active trading data
+      const activeStocks = await this.getStocks()
+      const activeStockMap = new Map(activeStocks.map(stock => [stock.symbol, stock]))
       
-      // Process symbols in batches to avoid overwhelming the server
-      const batchSize = 5
-      for (let i = 0; i < knownMSESymbols.length; i += batchSize) {
-        const batch = knownMSESymbols.slice(i, i + batchSize)
-        console.log(`📦 Processing batch ${Math.floor(i/batchSize) + 1}: ${batch.join(', ')}`)
+      // Create entries for all requested companies
+      const allCompanies: Stock[] = []
+      
+      for (const symbol of knownMSESymbols) {
+        const activeStock = activeStockMap.get(symbol)
         
-        for (const symbol of batch) {
-          try {
-            const stock = await this.scrapeIndividualStock(page, symbol)
-            if (stock) {
-              discoveredStocks.push(stock)
-              console.log(`✅ Successfully scraped ${symbol}: ${stock.price} MKD`)
-            }
-          } catch (error) {
-            console.warn(`⚠️ Could not scrape ${symbol}:`, error instanceof Error ? error.message : 'Unknown error')
+        if (activeStock) {
+          // Use real trading data
+          allCompanies.push(activeStock)
+          console.log(`✅ ${symbol}: Active with trading data`)
+        } else {
+          // Create placeholder entry for inactive companies
+          const placeholderStock: Stock = {
+            id: `placeholder-${symbol}`,
+            symbol: symbol,
+            name: this.getCompanyName(symbol),
+            price: 0,
+            change: 0,
+            changePercent: 0,
+            volume: 0,
+            lastUpdated: new Date().toISOString()
           }
+          allCompanies.push(placeholderStock)
+          console.log(`📝 ${symbol}: Added as inactive (no trading data)`)
         }
-        
-        // Small delay between batches
-        await new Promise(resolve => setTimeout(resolve, 1000))
       }
       
-      console.log(`🎯 Discovery complete: ${discoveredStocks.length} companies found`)
-      return discoveredStocks
+      console.log(`🎯 Returning ${allCompanies.length} companies total (${activeStocks.length} active, ${allCompanies.length - activeStocks.length} inactive)`)
+      
+      await page.close()
+      return allCompanies.sort((a, b) => a.symbol.localeCompare(b.symbol))
       
     } finally {
       await page.close()
@@ -508,26 +533,51 @@ export class MSEScraperWithDB {
               }
             }
             
-            // Look for volume patterns in page text
+            // Look for volume patterns in page text - find ALL matches and pick the trading quantity (smaller volume)
             if (!volumeText) {
               const allText = document.body.textContent || ''
               
-              // Common volume patterns on MSE pages
+              // Common volume patterns on MSE pages - use global flag to find all matches
               const volumePatterns = [
-                /volume[:\s]+([0-9,\.]+)/i,
-                /količina[:\s]+([0-9,\.]+)/i,
-                /promet[:\s]+([0-9,\.]+)/i,
-                /turnover[:\s]+([0-9,\.]+)/i,
-                /trading volume[:\s]+([0-9,\.]+)/i,
-                /last quantity[:\s]+([0-9,\.]+)/i,
-                /количина[:\s]+([0-9,\.]+)/i
+                /volume[:\s]+([0-9,\.]+)/gi,
+                /količina[:\s]+([0-9,\.]+)/gi,
+                /promet[:\s]+([0-9,\.]+)/gi,
+                /turnover[:\s]+([0-9,\.]+)/gi,
+                /trading volume[:\s]+([0-9,\.]+)/gi,
+                /last quantity[:\s]+([0-9,\.]+)/gi,
+                /количина[:\s]+([0-9,\.]+)/gi
               ]
               
+              const volumeCandidates: { value: number, text: string }[] = []
+              
               for (const pattern of volumePatterns) {
-                const match = allText.match(pattern)
-                if (match && match[1]) {
-                  volumeText = match[1]
-                  break
+                // Find all matches for this pattern
+                const matches = [...allText.matchAll(pattern)]
+                for (const match of matches) {
+                  if (match && match[1]) {
+                    // Parse the volume value
+                    const cleanVolume = match[1].replace(/[^\d,]/g, '').replace(/,/g, '')
+                    const volumeValue = parseInt(cleanVolume) || 0
+                    
+                    // Only consider reasonable trading quantities (between 1 and 10,000)
+                    // The actual trading quantity (number of shares) is typically much smaller
+                    // than the turnover amount on MSE
+                    if (volumeValue > 0 && volumeValue <= 10000) {
+                      volumeCandidates.push({
+                        value: volumeValue,
+                        text: match[1]
+                      })
+                    }
+                  }
+                }
+              }
+              
+              // Pick the smallest reasonable volume (most likely to be trading quantity, not turnover)
+              if (volumeCandidates.length > 0) {
+                const bestVolume = volumeCandidates.sort((a, b) => a.value - b.value)[0] // Sort ASCENDING to get smallest
+                if (bestVolume) {
+                  volumeText = bestVolume.text
+                  console.log(`📊 Found ${volumeCandidates.length} volume candidates for stock, selected smallest: ${bestVolume.text} (${bestVolume.value})`)
                 }
               }
             }
@@ -535,26 +585,14 @@ export class MSEScraperWithDB {
             // Parse volume
             if (volumeText) {
               // Remove commas and parse as integer
-              const cleanVolume = volumeText.replace(/[^\d\.]/g, '')
+              const cleanVolume = volumeText.replace(/[^\d]/g, '')
               volume = parseInt(cleanVolume) || 0
+              console.log(`📊 Final trading quantity for stock: ${volume}`)
             }
             
-            // Generate random volume if none found (for demo purposes)
+            // If no volume found, set to 0 (real data only, no fake generation)
             if (volume === 0) {
-              // Generate realistic volume based on stock price
-              const priceElement = document.body.textContent || ''
-              const priceMatch = priceElement.match(/([0-9,]+\.[0-9]+)/)
-              if (priceMatch && priceMatch[1]) {
-                const price = parseFloat(priceMatch[1].replace(',', ''))
-                // Higher priced stocks typically have lower volume
-                if (price > 50000) {
-                  volume = Math.floor(Math.random() * 500) + 50 // 50-550
-                } else if (price > 10000) {
-                  volume = Math.floor(Math.random() * 1000) + 100 // 100-1100
-                } else {
-                  volume = Math.floor(Math.random() * 2000) + 200 // 200-2200
-                }
-              }
+              console.log(`⚠️ No trading volume found for stock, using 0`)
             }
             
             return { volume }
@@ -681,8 +719,17 @@ export class MSEScraperWithDB {
   private processStockData(rawStocks: any[]): Stock[] {
     console.log(`Processing ${rawStocks.length} raw stock entries`)
     
-    // Filter and validate stocks
+    // Define the ONLY symbols we want to track
+    const allowedSymbols = new Set([
+      'ALK', 'KMB', 'TNB', 'STB', 'TEL', 'MPT', 'GRNT', 'REPL', 
+      'MTUR', 'UNI', 'USJE', 'VITA', 'OKTA', 'STIL', 'FERS', 
+      'AUMK', 'TETE', 'PPIV', 'TIGA', 'RZLE', 'SBT', 'RZUS'
+    ])
+    
+    // Filter for only allowed symbols AND valid data
     const validStocks = rawStocks.filter(stock => {
+      const symbol = stock.symbol?.toUpperCase()
+      const isAllowedSymbol = allowedSymbols.has(symbol)
       const isValid = 
         stock.symbol && 
         typeof stock.price === 'number' && 
@@ -691,13 +738,16 @@ export class MSEScraperWithDB {
         isFinite(stock.price) &&
         stock.price < 200000 // Reasonable upper limit for MKD prices
         
-      if (!isValid) {
-        console.log(`Filtering out invalid stock: ${JSON.stringify(stock)}`)
+      if (!isAllowedSymbol && symbol) {
+        console.log(`Filtering out non-requested symbol: ${symbol}`)
+      } else if (!isValid && isAllowedSymbol) {
+        console.log(`Filtering out invalid stock data for ${symbol}: ${JSON.stringify(stock)}`)
       }
-      return isValid
+      
+      return isAllowedSymbol && isValid
     })
     
-    console.log(`Found ${validStocks.length} valid stocks after filtering`)
+    console.log(`Found ${validStocks.length} valid stocks after filtering for requested symbols`)
 
     // Deduplicate by symbol
     const stockMap = new Map<string, any>()
@@ -746,88 +796,30 @@ export class MSEScraperWithDB {
   }
 
   private getCompanyName(symbol: string): string {
-    // Complete MSE listed companies mapping
+    // Company mapping for ONLY the specifically requested companies
     const companyMap: Record<string, string> = {
-      // Main Market - Most Active Companies
-      'ALK': 'Alkaloid AD Skopje',
-      'KMB': 'Komercijalna Banka AD Skopje',
-      'MPT': 'Makpetrol AD Skopje',
-      'REPL': 'Replek AD Skopje',
-      'RZUS': 'RZUS AD',
-      'TEL': 'Makedonski Telekom AD Skopje',
-      
-      // Banking & Financial
-      'STB': 'Stopanska Banka AD Bitola',
-      'UNI': 'Univerzalna Banka AD Skopje',
-      'TNB': 'Tutunska Banka AD Prilep',
-      'HLKB': 'Halk Banka AD Skopje',
-      'SVRB': 'Silk Road Banka AD Skopje',
-      
-      // Industrial & Manufacturing
-      'VITA': 'Vitaminka AD Prilep',
-      'USJE': 'Titan Usje AD Skopje',
-      'GRNT': 'Granit AD Skopje',
-      'MTUR': 'Makedonijaturist AD Skopje',
-      'ZUAS': 'Zito Vardar AD Negotino',
-      'DIMI': 'Dimi AD Kavadarci',
-      
-      // Energy & Utilities
-      'TETO': 'TE-TO AD Skopje',
-      'ESM': 'Elektrани na Severna Makedonija AD Skopje',
-      'BENG': 'Balkan Energy Group AD Skopje',
-      'RDMH': 'Rudnik Demir Hisar AD Sopotnica',
-      
-      // Insurance
-      'HLKO': 'Halk Osiguruvanje AD Skopje',
-      'PRIM': 'Premium Insurance AD Skopje',
-      'PRZI': 'Prva Zivot AD Skopje',
-      'KRZI': 'Kroacija Osiguruvanje - Zivot AD Skopje',
-      'KRNZ': 'Kroacija Osiguruvanje - Nezivot AD Skopje',
-      
-      // Construction & Real Estate
-      'KRAD': 'Knauf Radika AD',
-      'ZLZN': 'Zeleznik AD Demir Hisar',
-      
-      // Technology & Services
-      'LAJN': 'Lajon Ins AD Skopje',
-      'MKEL': 'Mokel EEII AD Bitola',
-      'EDS': 'EDS AD Skopje',
-      'METR': 'Metro AD Skopje',
-      'ZIM': 'ZIM AD Skopje',
-      
-      // Transportation
-      'ZRNM': 'Zeleznici na Republika Severna Makedonija - Transport AD Skopje',
-      'MNAV': 'M-NAV AD Skopje',
-      
-      // Textile & Manufacturing
-      'TELM': 'Tekstil ELMA AD Prilep',
-      'EURO': 'Europrofil AD Aldinci',
-      'BRIK': 'Brik AD Berovo',
-      'TIGR': 'Tigar AD Kriva Palanka',
-      'DAMJ': 'Damjanov AD Delcevo',
-      
-      // Financial Services & Brokers
-      'INBR': 'IN-Broker AD Skopje',
-      'SUPB': 'Super Broker AD Skopje',
-      'MBRK': 'OBD M Broker AD Skopje',
-      'POBR': 'Petrol Oil Broker AD Skopje',
-      
-      // Government Securities
-      'RMDEN21': 'Government Bond RMDEN21',
-      
-      // Other Companies
-      'SVOD': 'SVOD MASTER AD Skopje',
-      'NOMA': 'NOMAGAS AD Skopje',
-      'KIBS': 'KIBS AD Skopje',
-      'DAUT': 'Dauti-Komerc AD Skopje',
-      'PTCT': 'Patentcentar-konslating AD Skopje',
-      'SPNS': 'Sava Penziisko Drustvo AD Skopje',
-      'KICO': 'KIC Komerc AD Stip',
-      'LIHN': 'Lihnida AD Ohrid',
-      
-      // Sports Clubs
-      'MKKU': 'Maski Kosarkarski Klub Kumanovo AD Kumanovo',
-      'FKAP': 'FK Akademija Pandev Brera Strumica'
+      'ALK': 'Алкалоид Скопје',
+      'KMB': 'Комерцијална банка Скопје',
+      'TNB': 'Тутунски комбинат Прилеп',
+      'STB': 'Стопанска банка Скопје',
+      'TEL': 'Македонски Телеком Скопје',
+      'MPT': 'Макпетрол Скопје',
+      'GRNT': 'Гранит Скопје',
+      'REPL': 'Реплек Скопје',
+      'MTUR': 'Македонијатурист Скопје',
+      'UNI': 'Универзална Инвестициона Банка Скопје',
+      'USJE': 'ТИТАН УСЈЕ АД Скопје',
+      'VITA': 'Витаминка Прилеп',
+      'OKTA': 'ОКТА Скопје',
+      'STIL': 'Стил Скопје',
+      'FERS': 'Ферс Скопје',
+      'AUMK': 'Ауремарк Скопје',
+      'TETE': 'Тете Скопје',
+      'PPIV': 'ППИВ Скопје',
+      'TIGA': 'Тига Скопје',
+      'RZLE': 'РЖ Лесновска Скопје',
+      'SBT': 'СБТ Скопје',
+      'RZUS': 'РЖ Услуги Скопје'
     }
     
     return companyMap[symbol] || `${symbol} Company`
@@ -874,6 +866,71 @@ export function isMarketOpen(): boolean {
   const marketClose = 16 * 60 // 4:00 PM
 
   return currentMinutes >= marketOpen && currentMinutes <= marketClose
+}
+
+export function getMarketStatus(): import('./types').MarketStatusInfo {
+  const now = new Date()
+  const isOpen = isMarketOpen()
+  
+  // Convert to Macedonia timezone
+  const macedoniaTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Skopje',
+    hour: 'numeric',
+    minute: 'numeric',
+    weekday: 'short',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour12: false
+  }).formatToParts(now)
+
+  const weekday = macedoniaTime.find(part => part.type === 'weekday')?.value
+  const hour = parseInt(macedoniaTime.find(part => part.type === 'hour')?.value || '0')
+  
+  let status: import('./types').MarketStatus
+  let nextOpen: string
+  let nextClose: string
+
+  if (weekday === 'Sat' || weekday === 'Sun') {
+    status = 'closed'
+    // Next open is Monday 9:00 AM
+    const nextMonday = new Date(now)
+    nextMonday.setDate(now.getDate() + (1 + 7 - now.getDay()) % 7)
+    nextMonday.setHours(9, 0, 0, 0)
+    nextOpen = nextMonday.toISOString()
+    nextClose = 'N/A'
+  } else if (hour < 9) {
+    status = 'pre-market'
+    const today = new Date(now)
+    today.setHours(9, 0, 0, 0)
+    nextOpen = today.toISOString()
+    today.setHours(16, 0, 0, 0)
+    nextClose = today.toISOString()
+  } else if (hour >= 16) {
+    status = 'after-hours'
+    const tomorrow = new Date(now)
+    tomorrow.setDate(now.getDate() + 1)
+    tomorrow.setHours(9, 0, 0, 0)
+    nextOpen = tomorrow.toISOString()
+    nextClose = 'N/A'
+  } else {
+    status = 'open'
+    const today = new Date(now)
+    today.setHours(16, 0, 0, 0)
+    nextClose = today.toISOString()
+    const tomorrow = new Date(now)
+    tomorrow.setDate(now.getDate() + 1)
+    tomorrow.setHours(9, 0, 0, 0)
+    nextOpen = tomorrow.toISOString()
+  }
+
+  return {
+    isOpen,
+    status,
+    nextOpen,
+    nextClose,
+    timezone: 'Europe/Skopje'
+  }
 }
 
 // Export the enhanced scraper as the main MSEScraper

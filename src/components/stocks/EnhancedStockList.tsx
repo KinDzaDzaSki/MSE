@@ -1,18 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Stock } from '@/lib/types'
 import { StockList } from './StockList'
 import { Button } from '@/components/ui/button'
 import { uiTextMK } from '@/lib/localization'
+import { ChevronDown } from 'lucide-react'
+
+type SortOption = 
+  | 'name-asc'
+  | 'name-desc'
+  | 'price-asc'
+  | 'price-desc'
+  | 'change-asc'
+  | 'change-desc'
+  | 'volume-asc'
+  | 'volume-desc'
+  | 'symbol-asc'
+  | 'symbol-desc'
 
 interface EnhancedStockListProps {
   onStockClick?: (stock: Stock) => void
+  initialViewMode?: 'all' // Keep for compatibility but always use 'all'
 }
 
 export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
-  const [viewMode, setViewMode] = useState<'active' | 'all'>('active')
-  const [activeStocks, setActiveStocks] = useState<Stock[]>([])
   const [allStocks, setAllStocks] = useState<Stock[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
@@ -21,102 +33,195 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
     totalCompanies: number
     activeCompanies: number
   } | null>(null)
+  const [sortBy, setSortBy] = useState<SortOption>('name-asc')
+  const [showSortDropdown, setShowSortDropdown] = useState(false)
+  const sortDropdownRef = useRef<HTMLDivElement>(null)
 
-  // Fetch active stocks (currently scraped)
-  const fetchActiveStocks = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      
-      const response = await fetch('/api/stocks')
-      const result = await response.json()
-      
-      if (result.success) {
-        setActiveStocks(result.data.stocks)
-        setLastUpdated(result.data.lastUpdated)
-      } else {
-        setError(result.error || 'Неуспешно преземање на активни акции')
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setShowSortDropdown(false)
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : uiTextMK.networkError)
-    } finally {
-      setIsLoading(false)
     }
+
+    if (showSortDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+    
+    return undefined
+  }, [showSortDropdown])
+
+  // Sort options configuration
+  const sortOptions: { value: SortOption; label: string; description: string }[] = [
+    { value: 'name-asc', label: 'Име (А-Ш)', description: 'Азбучен редослед по име' },
+    { value: 'name-desc', label: 'Име (Ш-А)', description: 'Обратен азбучен редослед по име' },
+    { value: 'symbol-asc', label: 'Симбол (А-Ш)', description: 'Азбучен редослед по симбол' },
+    { value: 'symbol-desc', label: 'Симбол (Ш-А)', description: 'Обратен азбучен редослед по симбол' },
+    { value: 'price-desc', label: 'Цена (висока-ниска)', description: 'Највисока цена прво' },
+    { value: 'price-asc', label: 'Цена (ниска-висока)', description: 'Најниска цена прво' },
+    { value: 'change-desc', label: 'Промена (висока-ниска)', description: 'Најголема промена прво' },
+    { value: 'change-asc', label: 'Промена (ниска-висока)', description: 'Најмала промена прво' },
+    { value: 'volume-desc', label: 'Волумен (висок-низок)', description: 'Највисок волумен прво' },
+    { value: 'volume-asc', label: 'Волумен (низок-висок)', description: 'Најнизок волумен прво' },
+  ]
+
+  // Get current sort label
+  const getCurrentSortLabel = () => {
+    const currentOption = sortOptions.find(option => option.value === sortBy)
+    return currentOption ? currentOption.label : 'Подреди'
   }
 
-  // Fetch all MSE companies (comprehensive list)
-  const fetchAllCompanies = async () => {
+  // Sort function
+  const sortStocks = (stocks: Stock[], sortOption: SortOption): Stock[] => {
+    const sorted = [...stocks].sort((a, b) => {
+      switch (sortOption) {
+        case 'name-asc':
+          return a.name.localeCompare(b.name, 'mk-MK')
+        case 'name-desc':
+          return b.name.localeCompare(a.name, 'mk-MK')
+        case 'symbol-asc':
+          return a.symbol.localeCompare(b.symbol)
+        case 'symbol-desc':
+          return b.symbol.localeCompare(a.symbol)
+        case 'price-asc':
+          return a.price - b.price
+        case 'price-desc':
+          return b.price - a.price
+        case 'change-asc':
+          return a.changePercent - b.changePercent
+        case 'change-desc':
+          return b.changePercent - a.changePercent
+        case 'volume-asc':
+          return a.volume - b.volume
+        case 'volume-desc':
+          return b.volume - a.volume
+        default:
+          return 0
+      }
+    })
+    return sorted
+  }
+
+  // Fetch stocks (enhanced endpoint with comprehensive data)
+  const fetchStocks = async (showLoadingSpinner = true) => {
     try {
+      if (showLoadingSpinner) {
+        setIsLoading(true)
+      }
+      setError(null)
       
+      // Use the /all endpoint to get all configured companies, not just active ones
       const response = await fetch('/api/stocks/all')
       const result = await response.json()
       
       if (result.success) {
-        setAllStocks(result.data.stocks)
+        const stocks = result.data.stocks || []
+        
+        // Calculate stats for all stocks
+        const activeStocks = stocks.filter((stock: Stock) => stock.changePercent !== 0 || stock.volume > 0 || stock.price > 0)
+        
+        setAllStocks(stocks)
         setStats({
-          totalCompanies: result.data.totalCompanies,
-          activeCompanies: result.data.activeCompanies
+          totalCompanies: stocks.length,
+          activeCompanies: activeStocks.length
         })
-        setLastUpdated(result.data.discoveryTimestamp)
+        setLastUpdated(result.data.discoveryTimestamp || result.data.lastUpdated)
+        
+        // Show data source in console for debugging
+        console.log(`📊 All companies loaded: ${stocks.length} total, ${activeStocks.length} active`)
       } else {
-        setError(result.error || 'Неуспешно преземање на сите компании')
+        setError(result.error || 'Неуспешно преземање на акции')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : uiTextMK.networkError)
     } finally {
-      setIsLoading(false)
+      if (showLoadingSpinner) {
+        setIsLoading(false)
+      }
     }
   }
 
-  // Initial load
+  // Initial load - fetch real data (which now comes from database/cache)
   useEffect(() => {
-    fetchActiveStocks()
+    fetchStocks()
   }, [])
 
-  // Fetch data when view mode changes
-  useEffect(() => {
-    if (viewMode === 'all' && allStocks.length === 0) {
-      fetchAllCompanies()
-    }
-  }, [viewMode, allStocks.length])
-
-  const currentStocks = viewMode === 'active' ? activeStocks : allStocks
-  const isActiveMode = viewMode === 'active'
+  const currentStocks = sortStocks(allStocks, sortBy)
 
   return (
     <div className="space-y-6">
-      {/* View Mode Toggle */}
+      {/* Sort Controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={isActiveMode ? 'default' : 'outline'}
-            onClick={() => setViewMode('active')}
-            className={`min-w-fit font-semibold ${
-              isActiveMode 
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600' 
-                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:text-slate-900'
-            }`}
-          >
-            📊 {uiTextMK.activeStocks} ({activeStocks.length})
-          </Button>
-          <Button
-            variant={!isActiveMode ? 'default' : 'outline'}
-            onClick={() => setViewMode('all')}
-            className={`min-w-fit font-semibold ${
-              !isActiveMode 
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600' 
-                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:text-slate-900'
-            }`}
-          >
-            🏢 {uiTextMK.allCompanies} {stats ? `(${stats.totalCompanies})` : ''}
-          </Button>
+        {/* Current View Info */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-slate-600">
+            🏢 Сите компании
+          </span>
+          <span className="text-sm text-slate-500">
+            ({stats?.totalCompanies || allStocks.length})
+          </span>
         </div>
         
-        <div className="flex gap-2">
+        {/* Sort and Refresh Controls */}
+        <div className="flex gap-2 flex-wrap">
+          {/* Sort Dropdown */}
+          <div className="relative" ref={sortDropdownRef}>
+            <Button
+              variant="outline"
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setShowSortDropdown(false)
+                }
+              }}
+              className="bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2"
+              aria-expanded={showSortDropdown}
+              aria-haspopup="true"
+            >
+              📊 {getCurrentSortLabel()}
+              <ChevronDown className={`w-4 h-4 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
+            </Button>
+            
+            {showSortDropdown && (
+              <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
+                <div className="p-2 border-b border-slate-100">
+                  <p className="text-sm font-medium text-slate-700">Подреди акции по:</p>
+                </div>
+                <div className="max-h-80 overflow-y-auto" role="menu" aria-label="Опции за подредување">
+                  {sortOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setSortBy(option.value)
+                        setShowSortDropdown(false)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          setShowSortDropdown(false)
+                        }
+                      }}
+                      className={`w-full text-left px-3 py-2 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none transition-colors ${
+                        sortBy === option.value ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-slate-700'
+                      }`}
+                      role="menuitem"
+                      aria-selected={sortBy === option.value}
+                    >
+                      <div className="font-medium text-sm">{option.label}</div>
+                      <div className="text-xs text-slate-500">{option.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Refresh Button */}
           <Button
             variant="outline"
             size="sm"
-            onClick={isActiveMode ? fetchActiveStocks : fetchAllCompanies}
+            onClick={() => fetchStocks(true)}
             disabled={isLoading}
             className="bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:text-slate-900 disabled:bg-slate-100 disabled:text-slate-500"
           >
@@ -126,7 +231,7 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
       </div>
 
       {/* Statistics */}
-      {stats && viewMode === 'all' && (
+      {stats && (
         <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm">
           <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
             📈 Преглед на МСЕ
@@ -158,17 +263,14 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
       <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm">
         <div className="flex items-start gap-3">
           <div className="text-2xl">
-            {isActiveMode ? '🔥' : '📋'}
+            📋
           </div>
           <div>
             <h3 className="font-semibold text-slate-900">
-              {isActiveMode ? 'Активни акции во тргување' : 'Комплетен МСЕ директориум'}
+              Комплетен МСЕ директориум
             </h3>
             <p className="text-sm text-slate-600 mt-1">
-              {isActiveMode 
-                ? 'Податоци во реално време од активно тргуваните акции со тековни цени и промени'
-                : 'Сеопфатна листа на сите компании листирани на Македонската берза'
-              }
+              Сеопфатна листа на сите компании листирани на Македонската берза
             </p>
           </div>
         </div>
@@ -182,7 +284,7 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
             variant="outline" 
             size="sm" 
             className="mt-2"
-            onClick={isActiveMode ? fetchActiveStocks : fetchAllCompanies}
+            onClick={() => fetchStocks(true)}
           >
             {uiTextMK.tryAgain}
           </Button>

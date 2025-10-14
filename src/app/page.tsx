@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Stock } from '@/lib/types'
 import { useStocks } from '@/hooks/useStocks'
 import { EnhancedStockList } from '@/components/stocks/EnhancedStockList'
@@ -13,7 +13,26 @@ import { announceToScreenReader, createLiveRegion, updateLiveRegion } from '@/li
 export default function HomePage() {
   const { stocks, marketStatus, lastUpdated, isLoading, error, refetch } = useStocks()
   const [view, setView] = useState<'overview' | 'list'>('overview')
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdowns when clicking outside (but not when hovering)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Only handle click outside for mobile menu
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        setShowMobileMenu(false)
+      }
+    }
+
+    if (showMobileMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+    
+    return undefined
+  }, [showMobileMenu])
 
   // Create live region for stock updates
   useEffect(() => {
@@ -47,7 +66,6 @@ export default function HomePage() {
       : 'Листата со сите акции е активна'
     announceToScreenReader(message)
   }
-
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Skip to main content link for keyboard users */}
@@ -92,21 +110,22 @@ export default function HomePage() {
                 <div id="overview-description" className="sr-only">
                   Прикажува преглед на пазарот со најважни статистики и трендови
                 </div>
-                
+
+                {/* All Companies Button */}
                 <button 
                   onClick={() => handleViewChange('list')}
                   className={`text-sm font-medium transition-colors btn-accessible ${
-                    view === 'list' 
+                    view === 'list'
                       ? 'text-indigo-600 border-b-2 border-indigo-600 pb-4' 
                       : 'text-slate-700 hover:text-indigo-600'
                   }`}
                   aria-pressed={view === 'list'}
-                  aria-describedby="list-description"
+                  aria-describedby="all-companies-description"
                 >
-                  {uiTextMK.allStocks}
+                  Сите компании
                 </button>
-                <div id="list-description" className="sr-only">
-                  Прикажува детална листа со сите акции и компании
+                <div id="all-companies-description" className="sr-only">
+                  Прикажува комплетен директориум на сите компании листирани на МСЕ
                 </div>
               </nav>
             </div>
@@ -132,13 +151,47 @@ export default function HomePage() {
               </div>
 
               {/* Mobile Menu */}
-              <button 
-                className="md:hidden p-2 btn-accessible"
-                aria-label="Отвори мобилно мени"
-                aria-expanded="false"
-              >
-                <Menu className="w-5 h-5 text-slate-700" aria-hidden="true" />
-              </button>
+              <div className="relative md:hidden" ref={mobileMenuRef}>
+                <button 
+                  onClick={() => setShowMobileMenu(!showMobileMenu)}
+                  className="p-2 btn-accessible"
+                  aria-label="Отвори мобилно мени"
+                  aria-expanded={showMobileMenu}
+                >
+                  <Menu className="w-5 h-5 text-slate-700" aria-hidden="true" />
+                </button>
+
+                {/* Mobile Menu Dropdown */}
+                {showMobileMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
+                    <div className="py-2">
+                      <button
+                        onClick={() => {
+                          handleViewChange('overview')
+                          setShowMobileMenu(false)
+                        }}
+                        className={`w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition-colors ${
+                          view === 'overview' ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-slate-700'
+                        }`}
+                      >
+                        📊 {uiTextMK.marketOverview}
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          handleViewChange('list')
+                          setShowMobileMenu(false)
+                        }}
+                        className={`w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition-colors ${
+                          view === 'list' ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-slate-700'
+                        }`}
+                      >
+                        🏢 Сите компании
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -168,12 +221,6 @@ export default function HomePage() {
                   {uiTextMK.lastUpdated}: <time dateTime={lastUpdated}>{new Date(lastUpdated).toLocaleTimeString('mk-MK')}</time>
                 </div>
               )}
-              
-              <div className="text-sm text-slate-600" aria-live="polite">
-                <span aria-label={`Вкупно ${stocks.length} листирани компании`}>
-                  {stocks.length} листирани {uiTextMK.companies}
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -229,19 +276,20 @@ export default function HomePage() {
                 />
               </section>
             ) : (
-              <section aria-label="Листа со сите акции">
+              <section aria-label="Сите компании">
                 <div className="space-y-6">
                   <div className="bg-white rounded-lg shadow-sm border p-6">
                     <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                      {uiTextMK.allStocks} на МСЕ
+                      Сите компании на МСЕ
                     </h2>
                     <p className="text-sm text-gray-600">
-                      Преглед на {uiTextMK.allCompanies} {stocks.length} листирани {uiTextMK.companies}
+                      Преглед на комплетниот МСЕ директориум со сите {stocks.length} листирани {uiTextMK.companies}
                     </p>
                   </div>
                   
                   <EnhancedStockList
                     onStockClick={handleStockClick}
+                    initialViewMode="all"
                   />
                 </div>
               </section>

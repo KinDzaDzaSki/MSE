@@ -8,6 +8,7 @@ export interface Stock {
   volume: number
   marketCap?: number
   lastUpdated: string
+  sector?: string
 }
 
 export interface StockDetail extends Stock {

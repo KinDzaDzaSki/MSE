@@ -119,7 +119,6 @@ export const uiTextMK = {
   companies: 'компании',
   totalCompanies: 'Вкупно компании',
   activeCompanies: 'Активни компании',
-  activeStocks: 'Активни акции',
   allCompanies: 'Сите компании',
   companyDetails: 'Детали за компанијата',
   

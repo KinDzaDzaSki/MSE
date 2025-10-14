@@ -1,14 +1,78 @@
 import { NextResponse } from 'next/server'
-import { MSEScraper, isMarketOpen } from '@/lib/scraper'
+import { MSEScraper, getMarketStatus } from '@/lib/scraper'
 import { Stock, ApiResponse, MarketStatusInfo } from '@/lib/types'
 import { deduplicateStocks } from '@/lib/utils'
-import { generateMockStocks } from '@/lib/mock-data'
+import { StockService } from '@/lib/db/services'
+import { DatabaseService } from '@/lib/db/connection'
+// Initialize database on server start
+import '@/lib/db-init'
 
 // Simple in-memory cache for development (fallback when database is not available)
 let cachedStocks: Stock[] = []
 let lastUpdate: Date | null = null
 let lastError: string | null = null
-const CACHE_DURATION = 30000 // 30 seconds
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes for better performance
+const STALE_CACHE_DURATION = 15 * 60 * 1000 // 15 minutes before cache is completely stale
+const DB_SYNC_INTERVAL = 2 * 60 * 1000 // Sync database every 2 minutes
+
+// Background sync state
+let isBackgroundSyncRunning = false
+let lastDatabaseSync: Date | null = null
+
+// Background database sync function
+async function backgroundDatabaseSync() {
+  if (isBackgroundSyncRunning) {
+    console.log('🔄 Background sync already running, skipping...')
+    return
+  }
+
+  isBackgroundSyncRunning = true
+  console.log('🔄 Starting background database sync...')
+  
+  try {
+    const scraper = new MSEScraper()
+    const freshStocks = await scraper.getStocks()
+    
+    if (freshStocks.length > 0) {
+      // Update in-memory cache with real data only
+      const deduplicatedStocks = deduplicateStocks(freshStocks)
+      cachedStocks = deduplicatedStocks
+      lastUpdate = new Date()
+
+      // Try to save to database
+      try {
+        const dbAvailable = await DatabaseService.testConnection()
+        if (dbAvailable) {
+          // Convert to database format and save
+          const dbStocks = freshStocks.map(stock => StockService.appStockToDbStock(stock))
+          await StockService.bulkUpsertStocks(dbStocks)
+          lastDatabaseSync = new Date()
+          console.log('✅ Background sync: Database updated successfully')
+        } else {
+          console.log('📋 Background sync: Database not available, cache updated')
+        }
+      } catch (dbError) {
+        console.warn('⚠️ Background sync: Database update failed, cache updated:', dbError)
+      }
+    }
+    
+    await scraper.close()
+  } catch (error) {
+    console.error('❌ Background sync failed:', error)
+  } finally {
+    isBackgroundSyncRunning = false
+  }
+}
+
+// Start periodic background sync
+setInterval(() => {
+  const now = new Date()
+  const shouldSync = !lastDatabaseSync || (now.getTime() - lastDatabaseSync.getTime()) > DB_SYNC_INTERVAL
+  
+  if (shouldSync) {
+    backgroundDatabaseSync()
+  }
+}, DB_SYNC_INTERVAL)
 
 export async function GET(): Promise<NextResponse<ApiResponse<{
   stocks: Stock[]
@@ -24,6 +88,78 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
     let stocks: Stock[] = []
     let databaseStatus: any = null
 
+    // 1. First priority: Try to get fresh data from database
+    try {
+      const dbAvailable = await DatabaseService.testConnection()
+      if (dbAvailable) {
+        const dbStocks = await StockService.getAllStocks()
+        if (dbStocks.length > 0) {
+          // Convert database stocks to app format - real data only
+          const appStocks = dbStocks.map(dbStock => StockService.dbStockToAppStock(dbStock))
+          
+          console.log(`📋 Using database data: ${appStocks.length} stocks`)
+          
+          // Start background sync if needed (don't await)
+          if (shouldFetchFresh) {
+            console.log('� Starting background sync for fresh data')
+            backgroundDatabaseSync()
+          }
+          
+          return NextResponse.json({
+            success: true,
+            data: {
+              stocks: appStocks,
+              marketStatus: getMarketStatus(),
+              lastUpdated: dbStocks[0]?.updatedAt?.toISOString() || new Date().toISOString(),
+              databaseStatus: 'database'
+            },
+            message: 'Successfully retrieved stocks from database'
+          })
+        }
+      }
+    } catch (dbError) {
+      console.warn('⚠️ Database not available, falling back to cache/scraping:', dbError)
+      databaseStatus = { error: 'Database unavailable', fallback: true }
+    }
+
+    // 2. Second priority: Use cached data if available
+    const hasRecentData = cachedStocks.length > 0 && lastUpdate && (now.getTime() - lastUpdate.getTime()) < STALE_CACHE_DURATION
+
+    if (hasRecentData && !shouldFetchFresh) {
+      console.log('📋 Using cached stock data')
+      return NextResponse.json({
+        success: true,
+        data: {
+          stocks: cachedStocks,
+          marketStatus: getMarketStatus(),
+          lastUpdated: lastUpdate?.toISOString() || new Date().toISOString(),
+          databaseStatus: 'cached'
+        },
+        message: 'Successfully retrieved stocks from cache'
+      })
+    }
+
+    // 3. Third priority: Return stale cached data while refreshing
+    if (cachedStocks.length > 0 && shouldFetchFresh) {
+      console.log('� Using cached stock data (refreshing in background)')
+      
+      // Start background refresh (don't await)
+      backgroundDatabaseSync()
+      
+      return NextResponse.json({
+        success: true,
+        data: {
+          stocks: cachedStocks,
+          marketStatus: getMarketStatus(),
+          lastUpdated: lastUpdate?.toISOString() || new Date().toISOString(),
+          databaseStatus: 'cached-refreshing'
+        },
+        message: 'Successfully retrieved stocks from cache (refreshing data)'
+      })
+    }
+
+    // 4. Last resort: Live scraping (for first-time users or complete cache miss)
+    console.log('🔄 No cached data available, performing live scraping...')
     try {
       scraper = new MSEScraper()
       
@@ -37,13 +173,16 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
         stocks = await scraper.getStocks()
         
         if (stocks.length > 0) {
-          // Apply additional deduplication as safety measure
-          cachedStocks = deduplicateStocks(stocks)
+          // Apply deduplication to ensure clean data
+          const deduplicatedStocks = deduplicateStocks(stocks)
+          // Use only real scraped data
+          cachedStocks = deduplicatedStocks
           lastUpdate = now
           lastError = null
           
           // Log detailed diagnostic information about scraped stocks
           console.log(`✅ Successfully retrieved ${cachedStocks.length} unique stocks`)
+          console.log(`📊 All stocks are from real MSE data`)
           
           // Log price statistics to detect anomalies
           const prices = cachedStocks.map(s => s.price)
@@ -67,15 +206,18 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
             console.log('⚠️ Potential data anomalies detected in', anomalousStocks.length, 'stocks:', 
               anomalousStocks.map(s => `${s.symbol}: price=${s.price}, change=${s.changePercent}%`).join(', '))
           }
+          
+          // Use the real stock data only
+          stocks = cachedStocks
         } else {
-          // Fallback to cached data or mock data
+          // No fallback to mock data - return empty if no real data available
           if (cachedStocks.length > 0) {
             console.log('⚠️ No fresh data available, using cached stocks')
             stocks = cachedStocks
           } else {
-            console.log('⚠️ No data available, generating mock stocks for development')
-            stocks = generateMockStocks()
-            lastError = 'No real data available - using mock data'
+            console.log('❌ No real data available')
+            stocks = []
+            lastError = 'No real data available from MSE'
           }
         }
       } else {
@@ -87,13 +229,13 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
       console.error('❌ Scraping error:', scrapingError)
       lastError = scrapingError instanceof Error ? scrapingError.message : 'Unknown scraping error'
       
-      // Fallback to cached data or mock data
+      // Fallback to cached data only - no mock data
       if (cachedStocks.length > 0) {
         console.log('🔄 Using cached data due to scraping error')
         stocks = cachedStocks
       } else {
-        console.log('🔄 Generating mock data due to scraping error')
-        stocks = generateMockStocks()
+        console.log('❌ No real data available due to scraping error')
+        stocks = []
       }
     } finally {
       if (scraper) {
@@ -101,15 +243,8 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
       }
     }
 
-    // Determine market status
-    const isMarketCurrentlyOpen = isMarketOpen()
-    const marketStatus: MarketStatusInfo = {
-      isOpen: isMarketCurrentlyOpen,
-      status: isMarketCurrentlyOpen ? 'open' : 'closed',
-      nextOpen: getNextMarketOpen(),
-      nextClose: getNextMarketClose(),
-      timezone: 'Europe/Skopje'
-    }
+    // Get market status
+    const marketStatus = getMarketStatus()
 
     const response = {
       success: true,
@@ -134,59 +269,10 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
       error: errorMessage,
       timestamp: new Date().toISOString(),
       data: {
-        stocks: cachedStocks.length > 0 ? cachedStocks : generateMockStocks(),
-        marketStatus: {
-          isOpen: isMarketOpen(),
-          status: isMarketOpen() ? 'open' : 'closed',
-          nextOpen: getNextMarketOpen(),
-          nextClose: getNextMarketClose(),
-          timezone: 'Europe/Skopje'
-        },
+        stocks: cachedStocks.length > 0 ? cachedStocks : [],
+        marketStatus: getMarketStatus(),
         lastUpdated: lastUpdate?.toISOString() || new Date().toISOString()
       }
     }, { status: 500 })
   }
-}
-
-// Utility functions for market timing
-function getNextMarketOpen(): string {
-  const now = new Date()
-  const macedoniaTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Skopje"}))
-  
-  // Set to 9:00 AM Macedonia time
-  const nextOpen = new Date(macedoniaTime)
-  nextOpen.setHours(9, 0, 0, 0)
-  
-  // If it's already past 9 AM today, set for tomorrow
-  if (macedoniaTime.getHours() >= 9) {
-    nextOpen.setDate(nextOpen.getDate() + 1)
-  }
-  
-  // Skip weekends
-  while (nextOpen.getDay() === 0 || nextOpen.getDay() === 6) {
-    nextOpen.setDate(nextOpen.getDate() + 1)
-  }
-  
-  return nextOpen.toISOString()
-}
-
-function getNextMarketClose(): string {
-  const now = new Date()
-  const macedoniaTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Skopje"}))
-  
-  // Set to 4:00 PM Macedonia time
-  const nextClose = new Date(macedoniaTime)
-  nextClose.setHours(16, 0, 0, 0)
-  
-  // If it's already past 4 PM today or before 9 AM, set for next trading day
-  if (macedoniaTime.getHours() >= 16 || macedoniaTime.getHours() < 9) {
-    nextClose.setDate(nextClose.getDate() + 1)
-    
-    // Skip weekends
-    while (nextClose.getDay() === 0 || nextClose.getDay() === 6) {
-      nextClose.setDate(nextClose.getDate() + 1)
-    }
-  }
-  
-  return nextClose.toISOString()
 }
