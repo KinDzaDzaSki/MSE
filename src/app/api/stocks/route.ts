@@ -170,7 +170,45 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
         console.log('🔄 Fetching stock data...')
         
         // Use the enhanced scraper's getStocks method which handles database integration
-        stocks = await scraper.getStocks()
+        // Add a timeout to prevent the request from hanging indefinitely
+        try {
+          stocks = await Promise.race([
+            scraper.getStocks(),
+            new Promise<Stock[]>((_, reject) => 
+              setTimeout(() => reject(new Error('Scraper timeout after 40 seconds')), 40000)
+            )
+          ])
+        } catch (timeoutError) {
+          console.error('❌ Scraper timeout:', timeoutError)
+          lastError = 'Scraper timeout - could not connect to MSE'
+          
+          // If we have cached data, return it with a warning
+          if (cachedStocks.length > 0) {
+            return NextResponse.json({
+              success: true,
+              data: {
+                stocks: cachedStocks,
+                marketStatus: getMarketStatus(),
+                lastUpdated: lastUpdate?.toISOString() || new Date().toISOString(),
+                databaseStatus: 'cached-stale'
+              },
+              message: 'Stock scraper timed out, returning cached data'
+            })
+          }
+          
+          // No cached data, return error
+          return NextResponse.json({
+            success: false,
+            data: {
+              stocks: [],
+              marketStatus: getMarketStatus(),
+              lastUpdated: new Date().toISOString(),
+              databaseStatus: 'error'
+            },
+            message: 'Could not fetch stock data - scraper timeout',
+            error: lastError
+          }, { status: 503 })
+        }
         
         if (stocks.length > 0) {
           // Apply deduplication to ensure clean data

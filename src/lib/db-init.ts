@@ -58,7 +58,6 @@ export async function initializeDatabase() {
   }
 }
 
-// Auto-initialize when this module is imported
-if (typeof window === 'undefined') { // Server-side only
-  initializeDatabase().catch(console.error)
-}
+// Note: Removed auto-initialization to prevent hanging during server startup
+// Database will be accessed on-demand in API routes instead
+// If auto-initialization is needed, use a background task with timeout handling

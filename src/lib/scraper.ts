@@ -66,15 +66,43 @@ export class MSEScraperWithDB {
       
       console.log('🔄 Starting MSE stock scraping...')
       
-      // Navigate to MSE main page
-      await page.goto('https://www.mse.mk/en', {
-        waitUntil: 'networkidle2',
-        timeout: 30000
-      })
+      // Navigate to MSE main page with timeout
+      let navigationSuccess = false
+      try {
+        await Promise.race([
+          page.goto('https://www.mse.mk/en', {
+            waitUntil: 'networkidle2',
+            timeout: 30000
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Navigation timeout')), 35000)
+          )
+        ])
+        navigationSuccess = true
+        console.log('✅ Successfully navigated to MSE main page')
+      } catch (navError) {
+        console.error('❌ Failed to navigate to MSE:', navError)
+        errors.push(`Navigation error: ${navError instanceof Error ? navError.message : String(navError)}`)
+        navigationSuccess = false
+      }
+
+      if (!navigationSuccess) {
+        console.log('⚠️ Could not navigate to MSE, returning empty results')
+        return {
+          stocks: [],
+          timestamp: new Date().toISOString(),
+          source: 'mse.mk',
+          errors: ['Failed to reach MSE website']
+        }
+      }
 
       // Wait for content to load
-      await page.waitForSelector('body', { timeout: 10000 })
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      try {
+        await page.waitForSelector('body', { timeout: 10000 })
+      } catch (e) {
+        console.warn('⚠️ Could not find body element, continuing anyway')
+      }
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
       // Extract stocks using the stock symbol links on the main page
       const rawStocks = await page.evaluate(() => {
@@ -719,17 +747,9 @@ export class MSEScraperWithDB {
   private processStockData(rawStocks: any[]): Stock[] {
     console.log(`Processing ${rawStocks.length} raw stock entries`)
     
-    // Define the ONLY symbols we want to track
-    const allowedSymbols = new Set([
-      'ALK', 'KMB', 'TNB', 'STB', 'TEL', 'MPT', 'GRNT', 'REPL', 
-      'MTUR', 'UNI', 'USJE', 'VITA', 'OKTA', 'STIL', 'FERS', 
-      'AUMK', 'TETE', 'PPIV', 'TIGA', 'RZLE', 'SBT', 'RZUS'
-    ])
-    
-    // Filter for only allowed symbols AND valid data
+    // Filter for valid data - accept ALL symbols (no hardcoded whitelist)
     const validStocks = rawStocks.filter(stock => {
       const symbol = stock.symbol?.toUpperCase()
-      const isAllowedSymbol = allowedSymbols.has(symbol)
       const isValid = 
         stock.symbol && 
         typeof stock.price === 'number' && 
@@ -738,16 +758,14 @@ export class MSEScraperWithDB {
         isFinite(stock.price) &&
         stock.price < 200000 // Reasonable upper limit for MKD prices
         
-      if (!isAllowedSymbol && symbol) {
-        console.log(`Filtering out non-requested symbol: ${symbol}`)
-      } else if (!isValid && isAllowedSymbol) {
+      if (!isValid && symbol) {
         console.log(`Filtering out invalid stock data for ${symbol}: ${JSON.stringify(stock)}`)
       }
       
-      return isAllowedSymbol && isValid
+      return isValid
     })
     
-    console.log(`Found ${validStocks.length} valid stocks after filtering for requested symbols`)
+    console.log(`Found ${validStocks.length} valid stocks (all symbols accepted)`)
 
     // Deduplicate by symbol
     const stockMap = new Map<string, any>()
