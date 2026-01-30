@@ -21,23 +21,23 @@ export function formatPrice(price: number, options: {
   if (!isFinite(price) || isNaN(price)) {
     return '0.00'
   }
-  
+
   // Use adaptive precision based on price value unless overridden
   let minFractionDigits = options.minimumFractionDigits ?? 2
   let maxFractionDigits = options.maximumFractionDigits ?? 2
-  
+
   if (options.adaptivePrecision !== false) {
     // For smaller prices (under 10), show more decimal places
     if (Math.abs(price) < 10) {
       maxFractionDigits = Math.max(maxFractionDigits, 3)
     }
-    
+
     // For very small prices, show even more precision
     if (Math.abs(price) < 1) {
       maxFractionDigits = Math.max(maxFractionDigits, 4)
     }
   }
-  
+
   return new Intl.NumberFormat('mk-MK', {
     minimumFractionDigits: minFractionDigits,
     maximumFractionDigits: maxFractionDigits,
@@ -54,7 +54,7 @@ export function formatChange(change: number): string {
   if (!isFinite(change) || isNaN(change)) {
     return '+0.00'
   }
-  
+
   // Use adaptive precision based on change value
   let decimals = 2
   if (Math.abs(change) < 1) {
@@ -63,7 +63,7 @@ export function formatChange(change: number): string {
   if (Math.abs(change) < 0.1) {
     decimals = 4
   }
-  
+
   const formatted = Math.abs(change).toFixed(decimals)
   return change >= 0 ? `+${formatted}` : `-${formatted}`
 }
@@ -78,7 +78,7 @@ export function formatPercent(percent: number): string {
   if (!isFinite(percent) || isNaN(percent)) {
     return '+0.00%'
   }
-  
+
   // Use adaptive precision based on percentage value
   let decimals = 2
   if (Math.abs(percent) < 1) {
@@ -87,7 +87,7 @@ export function formatPercent(percent: number): string {
   if (Math.abs(percent) < 0.1) {
     decimals = 4
   }
-  
+
   const formatted = Math.abs(percent).toFixed(decimals)
   return `${percent >= 0 ? '+' : '-'}${formatted}%`
 }
@@ -127,42 +127,42 @@ export function deduplicateStocks(stocks: Stock[]): Stock[] {
   // First, validate and filter out any invalid data
   const validStocks = stocks.filter(stock => {
     // Basic validation for required fields
-    if (!stock.symbol || 
-        typeof stock.price !== 'number' || 
-        !isFinite(stock.price) || 
-        isNaN(stock.price) ||
-        stock.price <= 0) {
+    if (!stock.symbol ||
+      typeof stock.price !== 'number' ||
+      !isFinite(stock.price) ||
+      isNaN(stock.price) ||
+      stock.price <= 0) {
       console.warn(`Filtered invalid stock data: ${JSON.stringify(stock)}`)
       return false
     }
-    
+
     // Check for unreasonable values
     if (stock.price > 1000000) { // Unreasonably high price
       console.warn(`Filtered stock with unreasonable price: ${stock.symbol} at ${stock.price}`)
       return false
     }
-    
-    if (Math.abs(stock.changePercent) > 50) { // Change over ±50% is likely an error
-      console.warn(`Filtered stock with unreasonable change: ${stock.symbol} at ${stock.changePercent}%`)
+
+    if (Math.abs(stock.changePercent) > 100) { // Change over ±100% is likely an error
+      console.warn(`Filtered stock with extreme change: ${stock.symbol} at ${stock.changePercent}%`)
       return false
     }
-    
+
     return true
   })
-  
+
   // Group by symbol
   const stockMap = new Map<string, Stock[]>()
-  
+
   validStocks.forEach(stock => {
     const symbol = stock.symbol.toUpperCase()
     const existingGroup = stockMap.get(symbol) || []
     existingGroup.push(stock)
     stockMap.set(symbol, existingGroup)
   })
-  
+
   // Select the best stock from each group
   const result: Stock[] = []
-  
+
   stockMap.forEach((stocksForSymbol) => {
     if (stocksForSymbol.length === 1) {
       // Only one entry, use it if not undefined
@@ -172,18 +172,18 @@ export function deduplicateStocks(stocks: Stock[]): Stock[] {
       }
     } else {
       // Multiple entries for this symbol, need to select the best one
-      
+
       // Sort by data quality metrics (non-zero volume first, then by recency)
       stocksForSymbol.sort((a, b) => {
         // Prefer stocks with non-zero volume
         if ((a.volume > 0) !== (b.volume > 0)) {
           return a.volume > 0 ? -1 : 1
         }
-        
+
         // Then by recency
         return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
       })
-      
+
       // Take the best one, but check for undefined
       const bestStock = stocksForSymbol[0]
       if (bestStock) {
@@ -191,7 +191,7 @@ export function deduplicateStocks(stocks: Stock[]): Stock[] {
       }
     }
   })
-  
+
   // Sort alphabetically by symbol
   return result.sort((a, b) => a.symbol.localeCompare(b.symbol))
 }

@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
+import { MSEScraperWithDB } from '@/lib/scraper'
 import { Stock, ApiResponse } from '@/lib/types'
 
 let cachedAllStocks: Stock[] = []
 let lastDiscoveryUpdate: Date | null = null
-const DISCOVERY_CACHE_DURATION = 30 * 60 * 1000 // 30 minutes cache
+const DISCOVERY_CACHE_DURATION = 6 * 60 * 60 * 1000 // 6 hours cache for comprehensive discovery
 
 export async function GET(): Promise<NextResponse<ApiResponse<{
   stocks: Stock[]
@@ -19,95 +20,56 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
     let stocks: Stock[] = []
 
     if (shouldRunDiscovery || cachedAllStocks.length === 0) {
-      console.log('🔍 Building complete company list with active trading data...')
+      console.log('🔍 Discovering all MSE companies via scraper...')
       
-      // List of all 22 configured companies
-      const allConfiguredSymbols = [
-        'ALK', 'KMB', 'TNB', 'STB', 'TEL', 'MPT', 'GRNT', 'REPL',
-        'MTUR', 'UNI', 'USJE', 'VITA', 'OKTA', 'STIL', 'FERS',
-        'AUMK', 'TETE', 'PPIV', 'TIGA', 'RZLE', 'SBT', 'RZUS'
-      ]
-      
-      // Company name mapping
-      const companyNames: Record<string, string> = {
-        'ALK': 'Алкалоид Скопје',
-        'KMB': 'Комерцијална банка Скопје',
-        'TNB': 'Тутунски комбинат Прилеп',
-        'STB': 'Стопанска банка Скопје',
-        'TEL': 'Македонски Телеком Скопје',
-        'MPT': 'Макпетрол Скопје',
-        'GRNT': 'Гранит Скопје',
-        'REPL': 'Реплек Скопје',
-        'MTUR': 'Македонијатурист Скопје',
-        'UNI': 'Универзална Инвестициона Банка Скопје',
-        'USJE': 'ТИТАН УСЈЕ АД Скопје',
-        'VITA': 'Витаминка Прилеп',
-        'OKTA': 'ОКТА Скопје',
-        'STIL': 'Стил Скопје',
-        'FERS': 'Ферс Скопје',
-        'AUMK': 'Ауремарк Скопје',
-        'TETE': 'Тете Скопје',
-        'PPIV': 'ППИВ Скопје',
-        'TIGA': 'Тига Скопје',
-        'RZLE': 'РЖ Лесновска Скопје',
-        'SBT': 'СБТ Скопје',
-        'RZUS': 'РЖ Услуги Скопје'
-      }
-
       try {
-        // Get active trading data from the regular endpoint
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/stocks`)
-        const result = await response.json()
+        // Use the scraper's discovery method to find all companies
+        const scraper = new MSEScraperWithDB()
+        stocks = await scraper.discoverAllMSECompanies()
         
-        const activeStocks: Stock[] = result.success ? result.data.stocks : []
-        const activeStockMap = new Map(activeStocks.map(stock => [stock.symbol, stock]))
+        console.log(`🎯 Discovery complete: Found ${stocks.length} companies`)
         
-        console.log(`📊 Found ${activeStocks.length} active stocks from trading data`)
-        
-        // Create complete list with active + inactive companies
-        stocks = allConfiguredSymbols.map(symbol => {
-          const activeStock = activeStockMap.get(symbol)
-          
-          if (activeStock) {
-            console.log(`✅ ${symbol}: Active with trading data`)
-            return activeStock
-          } else {
-            console.log(`� ${symbol}: Added as inactive (no trading data)`)
-            return {
-              id: `placeholder-${symbol}`,
-              symbol: symbol,
-              name: companyNames[symbol] || `${symbol} Company`,
-              price: 0,
-              change: 0,
-              changePercent: 0,
-              volume: 0,
-              lastUpdated: new Date().toISOString()
-            }
-          }
-        })
+        if (stocks.length === 0) {
+          console.warn('⚠️ No companies discovered, using fallback list')
+          stocks = await getFallbackCompanyList()
+        }
         
         cachedAllStocks = stocks
         lastDiscoveryUpdate = now
         
-      } catch (error) {
-        console.error('❌ Error fetching active stock data:', error)
+        await scraper.close()
         
-        // Create list with all companies as inactive
-        stocks = allConfiguredSymbols.map(symbol => ({
-          id: `placeholder-${symbol}`,
-          symbol: symbol,
-          name: companyNames[symbol] || `${symbol} Company`,
-          price: 0,
-          change: 0,
-          changePercent: 0,
-          volume: 0,
-          lastUpdated: new Date().toISOString()
-        }))
+      } catch (error) {
+        console.error('❌ Error during company discovery:', error)
+        
+        // Fallback to hardcoded list if discovery fails
+        console.log('📋 Using fallback company list')
+        stocks = await getFallbackCompanyList()
+        cachedAllStocks = stocks
+        lastDiscoveryUpdate = now
       }
       
     } else {
       console.log('📋 Using cached complete company list')
       stocks = cachedAllStocks
+    }
+
+    // Helper function for fallback company list
+    async function getFallbackCompanyList(): Promise<Stock[]> {
+      // Try to get at least the active trading data
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/stocks`)
+        const result = await response.json()
+        
+        if (result.success && result.data.stocks.length > 0) {
+          return result.data.stocks
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not fetch fallback data:', error)
+      }
+      
+      // Last resort: return empty array
+      return []
     }
 
     // Calculate statistics

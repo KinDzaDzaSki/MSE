@@ -7,30 +7,30 @@ import { MSEScraper } from './scraper'
 
 export async function initializeDatabase() {
   console.log('🔧 Initializing database...')
-  
+
   try {
     // Test database connection
     const dbAvailable = await DatabaseService.testConnection()
-    
+
     if (!dbAvailable) {
       console.log('📝 Database not configured - running in memory mode')
       return false
     }
-    
+
     console.log('✅ Database connection successful')
-    
+
     // Check if we have any stocks in the database
     const existingStocks = await StockService.getAllStocks()
-    
+
     if (existingStocks.length === 0) {
       console.log('📊 Database is empty, performing initial data population...')
-      
+
       try {
         // Try to scrape fresh data for initial population
-        const scraper = new MSEScraper()
+        const scraper = MSEScraper.createSync()
         const freshStocks = await scraper.getStocks()
         await scraper.close()
-        
+
         if (freshStocks.length > 0) {
           // Convert and save to database
           const dbStocks = freshStocks.map((stock: any) => StockService.appStockToDbStock(stock))
@@ -42,22 +42,32 @@ export async function initializeDatabase() {
         }
       } catch (scrapingError) {
         console.warn('⚠️ Initial scraping failed:', scrapingError)
-        
+
         // No fallback to mock data - database remains empty until real data is available
         console.log(`⚠️ Database initialization skipped - waiting for real MSE data`)
       }
     } else {
       console.log(`📊 Database already contains ${existingStocks.length} stocks`)
     }
-    
+
     return true
-    
+
   } catch (error) {
     console.error('❌ Database initialization failed:', error)
     return false
   }
 }
-
-// Note: Removed auto-initialization to prevent hanging during server startup
-// Database will be accessed on-demand in API routes instead
-// If auto-initialization is needed, use a background task with timeout handling
+// Self-invoking initialization with timeout protection
+// This ensures database is ready when the module is imported
+; (async () => {
+  try {
+    await Promise.race([
+      initializeDatabase(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Database init timeout')), 5000)
+      )
+    ])
+  } catch (e) {
+    console.warn('⚠️ Database init skipped:', e instanceof Error ? e.message : 'Unknown error')
+  }
+})()

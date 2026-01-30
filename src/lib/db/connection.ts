@@ -72,6 +72,15 @@ export class DatabaseService {
 
   // Get database health status
   static async getHealthStatus() {
+    // Handle case when database is not configured
+    if (!sql) {
+      return {
+        status: 'unavailable',
+        error: 'Database not configured',
+        timestamp: new Date().toISOString()
+      }
+    }
+
     try {
       const start = Date.now()
       await sql`SELECT 1`

@@ -26,6 +26,7 @@
     "lucide-react": "^0.544.0",
     "next": "16.1.1",
     "pg": "^8.16.3",
+    "puppeteer": "^24.23.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "recharts": "^3.2.1",
@@ -40,7 +41,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
-    "puppeteer": "^24.23.0",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
     "typescript": "^5"

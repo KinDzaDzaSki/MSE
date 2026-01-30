@@ -13,11 +13,9 @@ let lastUpdate: Date | null = null
 let lastError: string | null = null
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes for better performance
 const STALE_CACHE_DURATION = 15 * 60 * 1000 // 15 minutes before cache is completely stale
-const DB_SYNC_INTERVAL = 2 * 60 * 1000 // Sync database every 2 minutes
 
 // Background sync state
 let isBackgroundSyncRunning = false
-let lastDatabaseSync: Date | null = null
 
 // Background database sync function
 async function backgroundDatabaseSync() {
@@ -28,11 +26,11 @@ async function backgroundDatabaseSync() {
 
   isBackgroundSyncRunning = true
   console.log('🔄 Starting background database sync...')
-  
+
   try {
-    const scraper = new MSEScraper()
+    const scraper = MSEScraper.createSync()
     const freshStocks = await scraper.getStocks()
-    
+
     if (freshStocks.length > 0) {
       // Update in-memory cache with real data only
       const deduplicatedStocks = deduplicateStocks(freshStocks)
@@ -46,7 +44,6 @@ async function backgroundDatabaseSync() {
           // Convert to database format and save
           const dbStocks = freshStocks.map(stock => StockService.appStockToDbStock(stock))
           await StockService.bulkUpsertStocks(dbStocks)
-          lastDatabaseSync = new Date()
           console.log('✅ Background sync: Database updated successfully')
         } else {
           console.log('📋 Background sync: Database not available, cache updated')
@@ -55,7 +52,7 @@ async function backgroundDatabaseSync() {
         console.warn('⚠️ Background sync: Database update failed, cache updated:', dbError)
       }
     }
-    
+
     await scraper.close()
   } catch (error) {
     console.error('❌ Background sync failed:', error)
@@ -64,15 +61,8 @@ async function backgroundDatabaseSync() {
   }
 }
 
-// Start periodic background sync
-setInterval(() => {
-  const now = new Date()
-  const shouldSync = !lastDatabaseSync || (now.getTime() - lastDatabaseSync.getTime()) > DB_SYNC_INTERVAL
-  
-  if (shouldSync) {
-    backgroundDatabaseSync()
-  }
-}, DB_SYNC_INTERVAL)
+// Note: Removed setInterval for serverless compatibility
+// Background sync now triggered on-demand when cache is stale
 
 export async function GET(): Promise<NextResponse<ApiResponse<{
   stocks: Stock[]
@@ -96,15 +86,15 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
         if (dbStocks.length > 0) {
           // Convert database stocks to app format - real data only
           const appStocks = dbStocks.map(dbStock => StockService.dbStockToAppStock(dbStock))
-          
+
           console.log(`📋 Using database data: ${appStocks.length} stocks`)
-          
+
           // Start background sync if needed (don't await)
           if (shouldFetchFresh) {
             console.log('� Starting background sync for fresh data')
             backgroundDatabaseSync()
           }
-          
+
           return NextResponse.json({
             success: true,
             data: {
@@ -142,10 +132,10 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
     // 3. Third priority: Return stale cached data while refreshing
     if (cachedStocks.length > 0 && shouldFetchFresh) {
       console.log('� Using cached stock data (refreshing in background)')
-      
+
       // Start background refresh (don't await)
       backgroundDatabaseSync()
-      
+
       return NextResponse.json({
         success: true,
         data: {
@@ -161,27 +151,27 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
     // 4. Last resort: Live scraping (for first-time users or complete cache miss)
     console.log('🔄 No cached data available, performing live scraping...')
     try {
-      scraper = new MSEScraper()
-      
+      scraper = MSEScraper.createSync()
+
       // Get database status for debugging
       databaseStatus = await scraper.getDatabaseStatus()
-      
+
       if (shouldFetchFresh || cachedStocks.length === 0) {
         console.log('🔄 Fetching stock data...')
-        
+
         // Use the enhanced scraper's getStocks method which handles database integration
         // Add a timeout to prevent the request from hanging indefinitely
         try {
           stocks = await Promise.race([
             scraper.getStocks(),
-            new Promise<Stock[]>((_, reject) => 
+            new Promise<Stock[]>((_, reject) =>
               setTimeout(() => reject(new Error('Scraper timeout after 40 seconds')), 40000)
             )
           ])
         } catch (timeoutError) {
           console.error('❌ Scraper timeout:', timeoutError)
           lastError = 'Scraper timeout - could not connect to MSE'
-          
+
           // If we have cached data, return it with a warning
           if (cachedStocks.length > 0) {
             return NextResponse.json({
@@ -195,7 +185,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
               message: 'Stock scraper timed out, returning cached data'
             })
           }
-          
+
           // No cached data, return error
           return NextResponse.json({
             success: false,
@@ -209,7 +199,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
             error: lastError
           }, { status: 503 })
         }
-        
+
         if (stocks.length > 0) {
           // Apply deduplication to ensure clean data
           const deduplicatedStocks = deduplicateStocks(stocks)
@@ -217,34 +207,34 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
           cachedStocks = deduplicatedStocks
           lastUpdate = now
           lastError = null
-          
+
           // Log detailed diagnostic information about scraped stocks
           console.log(`✅ Successfully retrieved ${cachedStocks.length} unique stocks`)
           console.log(`📊 All stocks are from real MSE data`)
-          
+
           // Log price statistics to detect anomalies
           const prices = cachedStocks.map(s => s.price)
           const minPrice = Math.min(...prices)
           const maxPrice = Math.max(...prices)
           const avgPrice = prices.reduce((sum, price) => sum + price, 0) / prices.length
-          
+
           console.log(`📊 Stock price statistics - Min: ${minPrice.toFixed(2)}, Max: ${maxPrice.toFixed(2)}, Avg: ${avgPrice.toFixed(2)}`)
-          
+
           // Log top 5 stocks by price for verification
           const topByPrice = [...cachedStocks].sort((a, b) => b.price - a.price).slice(0, 5)
           console.log('🔝 Top stocks by price:', topByPrice.map(s => `${s.symbol}: ${s.price}`).join(', '))
-          
+
           // Detect potential anomalies
-          const anomalousStocks = cachedStocks.filter(stock => 
+          const anomalousStocks = cachedStocks.filter(stock =>
             stock.price > 100000 || // Very high price
             Math.abs(stock.changePercent) > 10 // Very high change
           )
-          
+
           if (anomalousStocks.length > 0) {
-            console.log('⚠️ Potential data anomalies detected in', anomalousStocks.length, 'stocks:', 
+            console.log('⚠️ Potential data anomalies detected in', anomalousStocks.length, 'stocks:',
               anomalousStocks.map(s => `${s.symbol}: price=${s.price}, change=${s.changePercent}%`).join(', '))
           }
-          
+
           // Use the real stock data only
           stocks = cachedStocks
         } else {
@@ -266,7 +256,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
     } catch (scrapingError) {
       console.error('❌ Scraping error:', scrapingError)
       lastError = scrapingError instanceof Error ? scrapingError.message : 'Unknown scraping error'
-      
+
       // Fallback to cached data only - no mock data
       if (cachedStocks.length > 0) {
         console.log('🔄 Using cached data due to scraping error')
@@ -301,7 +291,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
   } catch (error) {
     console.error('❌ API Error:', error)
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch stock data'
-    
+
     return NextResponse.json({
       success: false,
       error: errorMessage,
