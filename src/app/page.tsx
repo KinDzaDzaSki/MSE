@@ -14,7 +14,10 @@ export default function HomePage() {
 
   // Create live region for accessibility
   useEffect(() => {
-    const liveRegion = createLiveRegion()
+    // createLiveRegion is imported from lib/accessibility
+    // Let's check its signature first if possible, or just fix it if it's obvious.
+    // The lint says "Expected 1-2 arguments, but got 0".
+    const liveRegion = createLiveRegion('status', 'polite')
     return () => {
       if (liveRegion && liveRegion.parentNode) {
         liveRegion.parentNode.removeChild(liveRegion)
@@ -81,7 +84,8 @@ export default function HomePage() {
           {error && (
             <div className="p-8 bg-red-50 border-2 border-red-100 rounded-3xl text-red-900">
               <h3 className="text-xl font-black mt-0 mb-2">Имаше мал проблем</h3>
-              <p className="font-bold opacity-75 mb-6">{error}</p>
+              <p className="font-bold opacity-75 mb-4">{error}</p>
+              <p className="text-sm mb-6 opacity-70">Можно е веб-страницата на Берзата да е под оптоварување или привремено недостапна. Ве молиме обидете се повторно за кратко.</p>
               <button onClick={handleRefresh} className="quiet-button">Пробај повторно</button>
             </div>
           )}

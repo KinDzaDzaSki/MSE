@@ -399,60 +399,88 @@ export class MSEScraperWithDB {
 
   private async enhanceStocksWithVolumeData(stocks: Stock[]): Promise<Stock[]> {
     if (!this.browser) await this.initialize()
-    const page = await this.browser!.newPage()
+
+    // Limit to top 15 stocks to ensure we don't time out the API (40-50s)
+    // We only enhance the most active/important ones in the synchronous path
+    const stocksToEnhance = stocks.slice(0, 15)
+    const remainingStocks = stocks.slice(15)
+
+    console.log(`🚀 Enhancing ${stocksToEnhance.length} stocks with volume data (Parallel)...`)
+
+    const CONCURRENCY = 3 // Process 3 pages at once
     const enhancedStocks: Stock[] = []
-    try {
-      await page.setUserAgent(this.userAgent)
-      for (const stock of stocks) {
-        try {
-          const url = `https://www.mse.mk/en/symbol/${stock.symbol}`
-          await page.goto(url, { waitUntil: 'networkidle2', timeout: 10000 })
-          const volumeData = await page.evaluate(() => {
-            let volume = 0
-            const volumeSelectors = ['.volume', '.trading-volume', '[data-volume]', '.last-volume', '.turnover', '.quantity']
-            let volumeText = ''
-            for (const selector of volumeSelectors) {
-              const element = document.querySelector(selector)
-              if (element && element.textContent) {
-                volumeText = element.textContent.trim()
-                break
-              }
+
+    // Helper to process a single stock
+    const processStock = async (stock: Stock): Promise<Stock> => {
+      let page: import('puppeteer').Page | null = null
+      try {
+        page = await this.browser!.newPage()
+        await page.setUserAgent(this.userAgent)
+        const url = `https://www.mse.mk/en/symbol/${stock.symbol}`
+
+        // Use a shorter timeout for individual pages
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 })
+
+        const volumeData = await page.evaluate(() => {
+          let volume = 0
+          const volumeSelectors = ['.volume', '.trading-volume', '[data-volume]', '.last-volume', '.turnover', '.quantity']
+          let volumeText = ''
+
+          for (const selector of volumeSelectors) {
+            const element = document.querySelector(selector)
+            if (element && element.textContent) {
+              volumeText = element.textContent.trim()
+              break
             }
-            if (!volumeText) {
-              const allText = document.body.textContent || ''
-              const volumePatterns = [/volume[:\s]+([0-9,\.]+)/gi, /količina[:\s]+([0-9,\.]+)/gi, /promet[:\s]+([0-9,\.]+)/gi, /turnover[:\s]+([0-9,\.]+)/gi, /trading volume[:\s]+([0-9,\.]+)/gi, /last quantity[:\s]+([0-9,\.]+)/gi, /количина[:\s]+([0-9,\.]+)/gi]
-              const volumeCandidates: { value: number, text: string }[] = []
-              for (const pattern of volumePatterns) {
-                const matches = [...allText.matchAll(pattern)]
-                for (const match of matches) {
-                  if (match && match[1]) {
-                    const cleanVolume = match[1].replace(/[^\d,]/g, '').replace(/,/g, '')
-                    const volumeValue = parseInt(cleanVolume) || 0
-                    if (volumeValue > 0 && volumeValue <= 10000) volumeCandidates.push({ value: volumeValue, text: match[1] })
-                  }
+          }
+
+          if (!volumeText) {
+            const allText = document.body.textContent || ''
+            const volumePatterns = [/volume[:\s]+([0-9,\.]+)/gi, /količina[:\s]+([0-9,\.]+)/gi, /promet[:\s]+([0-9,\.]+)/gi, /turnover[:\s]+([0-9,\.]+)/gi, /trading volume[:\s]+([0-9,\.]+)/gi, /last quantity[:\s]+([0-9,\.]+)/gi, /количина[:\s]+([0-9,\.]+)/gi]
+            const volumeCandidates: { value: number, text: string }[] = []
+
+            for (const pattern of volumePatterns) {
+              const matches = [...allText.matchAll(pattern)]
+              for (const match of matches) {
+                if (match && match[1]) {
+                  const cleanVolume = match[1].replace(/[^\d,]/g, '').replace(/,/g, '')
+                  const volumeValue = parseInt(cleanVolume) || 0
+                  if (volumeValue > 0 && volumeValue <= 1000000) volumeCandidates.push({ value: volumeValue, text: match[1] })
                 }
               }
-              if (volumeCandidates.length > 0) {
-                const bestVolume = volumeCandidates.sort((a, b) => a.value - b.value)[0]
-                if (bestVolume) volumeText = bestVolume.text
-              }
             }
-            if (volumeText) {
-              const cleanVolume = volumeText.replace(/[^\d]/g, '')
-              volume = parseInt(cleanVolume) || 0
+
+            if (volumeCandidates.length > 0) {
+              const bestVolume = volumeCandidates.sort((a, b) => b.value - a.value)[0] // Take largest found
+              if (bestVolume) volumeText = bestVolume.text
             }
-            return { volume }
-          })
-          enhancedStocks.push({ ...stock, volume: volumeData.volume })
-          await new Promise(resolve => setTimeout(resolve, 500))
-        } catch {
-          enhancedStocks.push(stock)
-        }
+          }
+
+          if (volumeText) {
+            const cleanVolume = volumeText.replace(/[^\d]/g, '')
+            volume = parseInt(cleanVolume) || 0
+          }
+
+          return { volume }
+        })
+
+        return { ...stock, volume: volumeData.volume }
+      } catch (err) {
+        console.warn(`⚠️ Failed to enhance ${stock.symbol}:`, err instanceof Error ? err.message : String(err))
+        return stock
+      } finally {
+        if (page) await page.close()
       }
-      return enhancedStocks
-    } finally {
-      await page.close()
     }
+
+    // Process in batches
+    for (let i = 0; i < stocksToEnhance.length; i += CONCURRENCY) {
+      const batch = stocksToEnhance.slice(i, i + CONCURRENCY)
+      const results = await Promise.all(batch.map(s => processStock(s)))
+      enhancedStocks.push(...results)
+    }
+
+    return [...enhancedStocks, ...remainingStocks]
   }
 
   private async saveStocksToDatabase(stocks: Stock[]): Promise<void> {

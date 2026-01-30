@@ -165,7 +165,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
           stocks = await Promise.race([
             scraper.getStocks(),
             new Promise<Stock[]>((_, reject) =>
-              setTimeout(() => reject(new Error('Scraper timeout after 40 seconds')), 40000)
+              setTimeout(() => reject(new Error('Scraper timeout after 50 seconds')), 50000)
             )
           ])
         } catch (timeoutError) {
@@ -184,6 +184,28 @@ export async function GET(): Promise<NextResponse<ApiResponse<{
               },
               message: 'Stock scraper timed out, returning cached data'
             })
+          }
+
+          // If we don't have memory cache, try database one last time
+          try {
+            const dbAvailable = await DatabaseService.testConnection()
+            if (dbAvailable) {
+              const dbStocks = await StockService.getAllStocks()
+              if (dbStocks.length > 0) {
+                const appStocks = dbStocks.map(dbStock => StockService.dbStockToAppStock(dbStock))
+                return NextResponse.json({
+                  success: true,
+                  data: {
+                    stocks: appStocks,
+                    marketStatus: getMarketStatus(),
+                    lastUpdated: dbStocks[0]?.updatedAt?.toISOString() || new Date().toISOString(),
+                    databaseStatus: 'database-fallback'
+                  }
+                })
+              }
+            }
+          } catch (e) {
+            console.error('Final fallback failed:', e)
           }
 
           // No cached data, return error
