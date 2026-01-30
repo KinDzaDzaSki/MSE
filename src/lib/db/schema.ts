@@ -10,6 +10,7 @@ export const stocks = pgTable('stocks', {
   changePercent: decimal('change_percent', { precision: 8, scale: 4 }).notNull().default('0'),
   volume: integer('volume').notNull().default(0),
   marketCap: decimal('market_cap', { precision: 20, scale: 2 }),
+  instrumentType: varchar('instrument_type', { length: 10 }).notNull().default('stock'), // 'stock' or 'bond'
   lastUpdated: timestamp('last_updated').notNull().defaultNow(),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -32,6 +33,7 @@ export const historicalPrices = pgTable('historical_prices', {
   low: decimal('low', { precision: 15, scale: 2 }),
   open: decimal('open', { precision: 15, scale: 2 }),
   close: decimal('close', { precision: 15, scale: 2 }),
+  instrumentType: varchar('instrument_type', { length: 10 }).notNull().default('stock'),
   timestamp: timestamp('timestamp').notNull(),
   tradingDate: varchar('trading_date', { length: 10 }).notNull(), // YYYY-MM-DD format
   createdAt: timestamp('created_at').notNull().defaultNow(),

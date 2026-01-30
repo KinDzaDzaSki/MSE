@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { uiTextMK } from '@/lib/localization'
 import { ChevronDown } from 'lucide-react'
 
-type SortOption = 
+type SortOption =
   | 'name-asc'
   | 'name-desc'
   | 'price-asc'
@@ -32,6 +32,8 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
   const [stats, setStats] = useState<{
     totalCompanies: number
     activeCompanies: number
+    stocksCount: number
+    bondsCount: number
   } | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>('name-asc')
   const [showSortDropdown, setShowSortDropdown] = useState(false)
@@ -49,7 +51,7 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-    
+
     return undefined
   }, [showSortDropdown])
 
@@ -111,26 +113,30 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
         setIsLoading(true)
       }
       setError(null)
-      
+
       // Use the /all endpoint to get all configured companies, not just active ones
       const response = await fetch('/api/stocks/all')
       const result = await response.json()
-      
+
       if (result.success) {
         const stocks = result.data.stocks || []
-        
+
         // Calculate stats for all stocks
         const activeStocks = stocks.filter((stock: Stock) => stock.changePercent !== 0 || stock.volume > 0 || stock.price > 0)
-        
+        const stocksCount = stocks.filter((stock: Stock) => stock.instrumentType === 'stock').length
+        const bondsCount = stocks.filter((stock: Stock) => stock.instrumentType === 'bond').length
+
         setAllStocks(stocks)
         setStats({
           totalCompanies: stocks.length,
-          activeCompanies: activeStocks.length
+          activeCompanies: activeStocks.length,
+          stocksCount,
+          bondsCount
         })
         setLastUpdated(result.data.discoveryTimestamp || result.data.lastUpdated)
-        
+
         // Show data source in console for debugging
-        console.log(`📊 All companies loaded: ${stocks.length} total, ${activeStocks.length} active`)
+        console.log(`📊 All companies loaded: ${stocks.length} total (${stocksCount} stocks, ${bondsCount} bonds), ${activeStocks.length} active`)
       } else {
         setError(result.error || 'Неуспешно преземање на акции')
       }
@@ -163,7 +169,7 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
             ({stats?.totalCompanies || allStocks.length})
           </span>
         </div>
-        
+
         {/* Sort and Refresh Controls */}
         <div className="flex gap-2 flex-wrap">
           {/* Sort Dropdown */}
@@ -183,7 +189,7 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
               📊 {getCurrentSortLabel()}
               <ChevronDown className={`w-4 h-4 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
             </Button>
-            
+
             {showSortDropdown && (
               <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
                 <div className="p-2 border-b border-slate-100">
@@ -202,9 +208,8 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
                           setShowSortDropdown(false)
                         }
                       }}
-                      className={`w-full text-left px-3 py-2 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none transition-colors ${
-                        sortBy === option.value ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-slate-700'
-                      }`}
+                      className={`w-full text-left px-3 py-2 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none transition-colors ${sortBy === option.value ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-slate-700'
+                        }`}
                       role="menuitem"
                       aria-selected={sortBy === option.value}
                     >
@@ -216,7 +221,7 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
               </div>
             )}
           </div>
-          
+
           {/* Refresh Button */}
           <Button
             variant="outline"
@@ -246,11 +251,15 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
               <p className="text-2xl font-bold text-green-600">{stats.activeCompanies}</p>
             </div>
             <div>
-              <p className="text-slate-600 mb-1">Неактивни/Листирани</p>
-              <p className="text-2xl font-bold text-slate-500">{stats.totalCompanies - stats.activeCompanies}</p>
+              <p className="text-slate-600 mb-1">Акции / Обврзници</p>
+              <p className="text-2xl font-bold text-slate-900">
+                <span className="text-blue-600">{stats.stocksCount}</span>
+                <span className="text-slate-300 mx-2">/</span>
+                <span className="text-amber-600">{stats.bondsCount}</span>
+              </p>
             </div>
             <div>
-              <p className="text-slate-600 mb-1">Стапка на активност</p>
+              <p className="text-slate-600 mb-1">Активност</p>
               <p className="text-2xl font-bold text-indigo-600">
                 {((stats.activeCompanies / stats.totalCompanies) * 100).toFixed(1)}%
               </p>
@@ -280,9 +289,9 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
       {error && (
         <div className="bg-red-900/20 border border-red-500 rounded-lg p-4">
           <p className="text-red-400">❌ {error}</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="mt-2"
             onClick={() => fetchStocks(true)}
           >
@@ -299,9 +308,9 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
       )}
 
       {/* Stock List */}
-      <StockList 
-        stocks={currentStocks} 
-        onStockClick={onStockClick || (() => {})}
+      <StockList
+        stocks={currentStocks}
+        onStockClick={onStockClick || (() => { })}
         isLoading={isLoading}
       />
     </div>

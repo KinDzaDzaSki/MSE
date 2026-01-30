@@ -1,0 +1,99 @@
+﻿
+> mse@0.1.0 lint
+> eslint
+
+
+C:\Users\User\Documents\MSE\MSE\find-quantity-data.js
+    1:19  error    A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  111:44  warning  'index' is defined but never used        @typescript-eslint/no-unused-vars
+
+C:\Users\User\Documents\MSE\MSE\generate-historical-data.js
+  9:18  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\User\Documents\MSE\MSE\inspect-mse-page.js
+   1:19  error    A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  37:40  warning  'index' is defined but never used        @typescript-eslint/no-unused-vars
+
+C:\Users\User\Documents\MSE\MSE\inspect-trading-data.js
+  1:19  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\User\Documents\MSE\MSE\src\app\api\health\route.ts
+  7:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  8:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\User\Documents\MSE\MSE\src\app\api\stocks\route.ts
+  71:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  79:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\User\Documents\MSE\MSE\src\app\stock\[symbol]\page.tsx
+   67:70  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  101:6   warning  React Hook useEffect has a missing dependency: 'fetchStockDetail'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Documents\MSE\MSE\src\components\charts\NewStockChart.tsx
+  210:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\User\Documents\MSE\MSE\src\components\stocks\EnhancedStockList.tsx
+  200:21  warning  The attribute aria-selected is not supported by the role menuitem  jsx-a11y/role-supports-aria-props
+
+C:\Users\User\Documents\MSE\MSE\src\components\stocks\StockList.tsx
+  156:13  warning  The attribute aria-posinset is not supported by the role gridcell  jsx-a11y/role-supports-aria-props
+  156:13  warning  The attribute aria-setsize is not supported by the role gridcell   jsx-a11y/role-supports-aria-props
+
+C:\Users\User\Documents\MSE\MSE\src\components\ui\error-boundary.tsx
+  12:27  error  The `{}` ("empty object") type allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowObjectTypes' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+  15:46  error  The `{}` ("empty object") type allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowObjectTypes' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+
+C:\Users\User\Documents\MSE\MSE\src\components\ui\input.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\User\Documents\MSE\MSE\src\hooks\useStocks.ts
+  50:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\User\Documents\MSE\MSE\src\lib\db-init.ts
+  36:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\User\Documents\MSE\MSE\src\lib\db\connection.ts
+  27:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  28:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\User\Documents\MSE\MSE\src\lib\scraper-enhanced.ts
+  47:15  warning  'openText' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  48:15  warning  'highText' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  49:15  warning  'lowText' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  50:15  warning  'marketCapText' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\User\Documents\MSE\MSE\src\lib\scraper-original.ts
+   54:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  153:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  175:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\User\Documents\MSE\MSE\src\lib\scraper.ts
+   39:14  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  117:16  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  127:26  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  297:15  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  420:18  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  455:14  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  461:71  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  468:14  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  475:39  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  477:38  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\User\Documents\MSE\MSE\src\lib\utils.ts
+  26:7  error  'minFractionDigits' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\User\Documents\MSE\MSE\test-mse-scrape.js
+  1:24  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\User\Documents\MSE\MSE\test-volume-extraction.js
+  1:19  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+Γ£û 43 problems (28 errors, 15 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

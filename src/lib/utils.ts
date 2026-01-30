@@ -23,7 +23,7 @@ export function formatPrice(price: number, options: {
   }
 
   // Use adaptive precision based on price value unless overridden
-  let minFractionDigits = options.minimumFractionDigits ?? 2
+  const minFractionDigits = options.minimumFractionDigits ?? 2
   let maxFractionDigits = options.maximumFractionDigits ?? 2
 
   if (options.adaptivePrecision !== false) {

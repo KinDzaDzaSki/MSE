@@ -7,6 +7,7 @@ export interface Stock {
   changePercent: number
   volume: number
   marketCap?: number
+  instrumentType: 'stock' | 'bond'
   lastUpdated: string
   sector?: string
 }
