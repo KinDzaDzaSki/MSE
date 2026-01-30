@@ -3,9 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Stock } from '@/lib/types'
 import { StockList } from './StockList'
-import { Button } from '@/components/ui/button'
 import { uiTextMK } from '@/lib/localization'
-import { ChevronDown } from 'lucide-react'
 
 type SortOption =
   | 'name-asc'
@@ -122,7 +120,7 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
         const stocks = result.data.stocks || []
 
         // Calculate stats for all stocks
-        const activeStocks = stocks.filter((stock: Stock) => stock.changePercent !== 0 || stock.volume > 0 || stock.price > 0)
+        const activeStocks = stocks.filter((stock: Stock) => stock.price > 0 || stock.volume > 0 || stock.changePercent !== 0)
         const stocksCount = stocks.filter((stock: Stock) => stock.instrumentType === 'stock').length
         const bondsCount = stocks.filter((stock: Stock) => stock.instrumentType === 'bond').length
 
@@ -157,45 +155,27 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
   const currentStocks = sortStocks(allStocks, sortBy)
 
   return (
-    <div className="space-y-6">
-      {/* Sort Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        {/* Current View Info */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-slate-600">
-            🏢 Сите компании
-          </span>
-          <span className="text-sm text-slate-500">
-            ({stats?.totalCompanies || allStocks.length})
-          </span>
+    <div className="space-y-12">
+      {/* Context area */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+        <div>
+          <h2 className="text-3xl font-black mt-0 mb-2">Берзански Именик</h2>
+          <p className="text-gray-500 font-medium">Комплетна листа на субјекти на Македонска берза.</p>
         </div>
 
-        {/* Sort and Refresh Controls */}
-        <div className="flex gap-2 flex-wrap">
-          {/* Sort Dropdown */}
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Simple Sort Dropdown */}
           <div className="relative" ref={sortDropdownRef}>
-            <Button
-              variant="outline"
+            <button
               onClick={() => setShowSortDropdown(!showSortDropdown)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setShowSortDropdown(false)
-                }
-              }}
-              className="bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2"
-              aria-expanded={showSortDropdown}
-              aria-haspopup="true"
+              className="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 transition-colors flex items-center gap-2"
             >
-              📊 {getCurrentSortLabel()}
-              <ChevronDown className={`w-4 h-4 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
-            </Button>
+              Подреди: {getCurrentSortLabel()}
+            </button>
 
             {showSortDropdown && (
-              <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
-                <div className="p-2 border-b border-slate-100">
-                  <p className="text-sm font-medium text-slate-700">Подреди акции по:</p>
-                </div>
-                <div className="max-h-80 overflow-y-auto" role="menu" aria-label="Опции за подредување">
+              <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="p-2">
                   {sortOptions.map((option) => (
                     <button
                       key={option.value}
@@ -203,18 +183,10 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
                         setSortBy(option.value)
                         setShowSortDropdown(false)
                       }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') {
-                          setShowSortDropdown(false)
-                        }
-                      }}
-                      className={`w-full text-left px-3 py-2 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none transition-colors ${sortBy === option.value ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-slate-700'
+                      className={`w-full text-left px-4 py-2.5 text-sm rounded-lg hover:bg-green-50 hover:text-green-800 transition-colors ${sortBy === option.value ? 'bg-green-50 text-green-800 font-extrabold' : 'text-gray-700 font-medium'
                         }`}
-                      role="menuitem"
-                      aria-selected={sortBy === option.value}
                     >
-                      <div className="font-medium text-sm">{option.label}</div>
-                      <div className="text-xs text-slate-500">{option.description}</div>
+                      {option.label}
                     </button>
                   ))}
                 </div>
@@ -222,97 +194,40 @@ export function EnhancedStockList({ onStockClick }: EnhancedStockListProps) {
             )}
           </div>
 
-          {/* Refresh Button */}
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={() => fetchStocks(true)}
             disabled={isLoading}
-            className="bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:text-slate-900 disabled:bg-slate-100 disabled:text-slate-500"
+            className="quiet-button text-sm"
           >
-            {isLoading ? `⏳ ${uiTextMK.loading}` : `🔄 ${uiTextMK.refresh}`}
-          </Button>
-        </div>
-      </div>
-
-      {/* Statistics */}
-      {stats && (
-        <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            📈 Преглед на МСЕ
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-slate-600 mb-1">{uiTextMK.totalCompanies}</p>
-              <p className="text-2xl font-bold text-slate-900">{stats.totalCompanies}</p>
-            </div>
-            <div>
-              <p className="text-slate-600 mb-1">{uiTextMK.activeCompanies}</p>
-              <p className="text-2xl font-bold text-green-600">{stats.activeCompanies}</p>
-            </div>
-            <div>
-              <p className="text-slate-600 mb-1">Акции / Обврзници</p>
-              <p className="text-2xl font-bold text-slate-900">
-                <span className="text-blue-600">{stats.stocksCount}</span>
-                <span className="text-slate-300 mx-2">/</span>
-                <span className="text-amber-600">{stats.bondsCount}</span>
-              </p>
-            </div>
-            <div>
-              <p className="text-slate-600 mb-1">Активност</p>
-              <p className="text-2xl font-bold text-indigo-600">
-                {((stats.activeCompanies / stats.totalCompanies) * 100).toFixed(1)}%
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mode Description */}
-      <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="text-2xl">
-            📋
-          </div>
-          <div>
-            <h3 className="font-semibold text-slate-900">
-              Комплетен МСЕ директориум
-            </h3>
-            <p className="text-sm text-slate-600 mt-1">
-              Сеопфатна листа на сите компании листирани на Македонската берза
-            </p>
-          </div>
+            {isLoading ? 'Освежувам...' : 'Освежи листа'}
+          </button>
         </div>
       </div>
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-900/20 border border-red-500 rounded-lg p-4">
-          <p className="text-red-400">❌ {error}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2"
-            onClick={() => fetchStocks(true)}
-          >
-            {uiTextMK.tryAgain}
-          </Button>
+        <div className="p-6 bg-red-50 border-2 border-red-100 rounded-2xl text-red-800 font-bold">
+          <p>Имаше мал проблем: {error}</p>
+          <button onClick={() => fetchStocks(true)} className="underline mt-2">Пробај повторно</button>
         </div>
       )}
 
-      {/* Last Updated */}
+      {/* Modern List Container */}
+      <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
+        <StockList
+          stocks={currentStocks}
+          onStockClick={onStockClick || (() => { })}
+          isLoading={isLoading}
+        />
+      </div>
+
       {lastUpdated && (
-        <div className="text-xs text-gray-500 text-center">
-          {uiTextMK.lastUpdated}: {new Date(lastUpdated).toLocaleString('mk-MK')}
+        <div className="text-center pb-8">
+          <span className="inline-block px-4 py-1.5 bg-gray-100 rounded-full text-xs font-bold text-gray-500">
+            Последно ажурирано: {new Date(lastUpdated).toLocaleString('mk-MK')}
+          </span>
         </div>
       )}
-
-      {/* Stock List */}
-      <StockList
-        stocks={currentStocks}
-        onStockClick={onStockClick || (() => { })}
-        isLoading={isLoading}
-      />
     </div>
   )
 }

@@ -332,18 +332,39 @@ export class MSEScraperWithDB {
       const activeStocks = await this.getStocks()
       const activeStockMap = new Map(activeStocks.map(stock => [stock.symbol, stock]))
 
+      // Get all stocks from database for fallback if enabled
+      let dbStocksMap = new Map<string, Stock>()
+      if (this.isDatabaseEnabled) {
+        try {
+          const dbStocks = await StockService.getAllStocks()
+          dbStocksMap = new Map(dbStocks.map(s => [s.symbol, StockService.dbStockToAppStock(s)]))
+          console.log(`🗄️ Loaded ${dbStocksMap.size} stocks from database for fallback`)
+        } catch (dbError) {
+          console.warn('⚠️ Could not load database stocks for fallback:', dbError)
+        }
+      }
+
       // Create entries for all requested companies
       const allCompanies: Stock[] = []
 
       for (const symbol of knownMSESymbols) {
         const activeStock = activeStockMap.get(symbol)
+        const dbStock = dbStocksMap.get(symbol)
 
         if (activeStock) {
-          // Use real trading data
+          // 1. Use real trading data if active today
           allCompanies.push(activeStock)
-          console.log(`✅ ${symbol}: Active with trading data`)
+          console.log(`✅ ${symbol}: Active with trading data (${activeStock.price})`)
+        } else if (dbStock && dbStock.price > 0) {
+          // 2. Use last known price from database if available
+          allCompanies.push({
+            ...dbStock,
+            // Tag it as "last known" or maintain its lastUpdated
+            lastUpdated: dbStock.lastUpdated
+          })
+          console.log(`📚 ${symbol}: Found last known price in database (${dbStock.price})`)
         } else {
-          // Create placeholder entry for inactive companies
+          // 3. Create placeholder entry for inactive companies with no history
           const placeholderStock: Stock = {
             id: `placeholder-${symbol}`,
             symbol: symbol,
@@ -356,7 +377,7 @@ export class MSEScraperWithDB {
             lastUpdated: new Date().toISOString()
           }
           allCompanies.push(placeholderStock)
-          console.log(`📝 ${symbol}: Added as inactive (no trading data)`)
+          console.log(`📝 ${symbol}: Added as inactive (no trading data or history)`)
         }
       }
 

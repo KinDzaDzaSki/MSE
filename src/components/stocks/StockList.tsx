@@ -18,76 +18,6 @@ function StockList({ stocks, onStockClick, isLoading }: StockListProps) {
     }
   }
 
-  // Generate realistic chart path based on stock data
-  const generateChartPath = (stock: Stock) => {
-    const points = 15 // Number of data points
-    const width = 100
-    const baseY = 25 // Middle baseline
-
-    // Generate realistic price movement based on stock data
-    const priceChange = stock.changePercent / 100
-    const volatility = Math.max(2, Math.abs(priceChange) * 8 + Math.random() * 3) // Realistic volatility
-
-    // Create a more realistic trading pattern
-    const pricePoints: number[] = []
-    let currentPrice = baseY
-
-    // Generate realistic intraday price movements
-    for (let i = 0; i <= points; i++) {
-      if (i === 0) {
-        pricePoints.push(baseY)
-      } else {
-        // Add realistic market noise
-        const marketNoise = (Math.random() - 0.5) * volatility * 0.8
-
-        // Add trend influence that grows stronger towards the end
-        const trendStrength = (i / points) * 0.7
-        const trendInfluence = priceChange * trendStrength * 12
-
-        // Add some momentum and mean reversion
-        const momentum = i > 1 && pricePoints[i - 1] !== undefined && pricePoints[i - 2] !== undefined
-          ? (pricePoints[i - 1]! - pricePoints[i - 2]!) * 0.3
-          : 0
-        const meanReversion = (baseY - currentPrice) * 0.1
-
-        currentPrice = baseY - trendInfluence + marketNoise + momentum + meanReversion
-
-        // Keep within bounds but allow some variation
-        currentPrice = Math.max(8, Math.min(32, currentPrice))
-        pricePoints.push(currentPrice)
-      }
-    }
-
-    // Create smooth SVG path
-    let path = `M0,${pricePoints[0] || baseY}`
-
-    for (let i = 1; i < pricePoints.length; i++) {
-      const x = (i / points) * width
-      const y = pricePoints[i]
-      const prevY = pricePoints[i - 1]
-
-      if (y === undefined) continue
-
-      if (i === 1) {
-        path += ` L${x},${y}`
-      } else {
-        // Use quadratic curves for smoother transitions
-        const prevX = ((i - 1) / points) * width
-        const controlX = prevX + (x - prevX) * 0.5
-        const controlY = prevY !== undefined ? (prevY + y) * 0.5 : y
-        path += ` Q${controlX},${controlY} ${x},${y}`
-      }
-    }
-
-    return path
-  }
-
-  // Generate fill path for gradient area
-  const generateFillPath = (stock: Stock) => {
-    const mainPath = generateChartPath(stock)
-    return `${mainPath} L100,40 L0,40 Z`
-  }
-
   const handleKeyPress = (e: React.KeyboardEvent, stock: Stock) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
@@ -137,114 +67,79 @@ function StockList({ stocks, onStockClick, isLoading }: StockListProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-0 divide-y divide-gray-100">
       {/* Screen reader summary */}
       <div className="sr-only" aria-live="polite">
-        Листа со {stocks.length} акции. Користете Tab за навигација и Enter или Space за селекција.
+        Листа со {stocks.length} компании.
       </div>
 
-      <div
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-        role="grid"
-        aria-label="Листа на акции"
-      >
-        {stocks.map((stock, index) => {
-          const changeDirection = stock.changePercent >= 0 ? 'позитивна' : 'негативна'
-          const ariaLabel = generateStockAriaLabel(stock)
+      {stocks.map((stock, index) => {
+        const ariaLabel = generateStockAriaLabel(stock)
 
-          return (
-            <div
-              key={stock.id}
-              onClick={() => handleStockClick(stock)}
-              onKeyDown={(e) => handleKeyPress(e, stock)}
-              className="bg-white rounded-lg p-4 cursor-pointer hover:bg-slate-50 transition-colors border border-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              role="gridcell"
-              tabIndex={0}
-              aria-label={ariaLabel}
-              aria-describedby={`stock-${stock.id}-details`}
-              aria-posinset={index + 1}
-              aria-setsize={stocks.length}
-            >
-              {/* Header with symbol and price */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-slate-900 text-lg" id={`stock-${stock.id}-symbol`}>
-                      {stock.symbol}
-                    </h3>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${stock.instrumentType === 'bond'
-                        ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                        : 'bg-blue-100 text-blue-700 border border-blue-200'
-                      }`}>
-                      {stock.instrumentType === 'bond' ? 'Обврзница' : 'Акција'}
-                    </span>
-                  </div>
-                  <p className="text-slate-600 text-sm truncate" id={`stock-${stock.id}-name`}>
-                    {stock.name}
-                  </p>
-                </div>
-                <div className="text-right ml-2">
-                  <div
-                    className={`text-sm font-medium ${stock.changePercent >= 0 ? 'text-stock-gain' : 'text-stock-loss'
-                      }`}
-                    aria-label={`Промена: ${changeDirection} ${Math.abs(stock.changePercent).toFixed(2)} проценти`}
-                  >
-                    <span aria-hidden="true">
-                      {stock.changePercent >= 0 ? '↑' : '↓'}
-                    </span>
-                    <span className="sr-only">
-                      {stock.changePercent >= 0 ? 'зголемување' : 'намалување'}
-                    </span>
-                    {Math.abs(stock.changePercent).toFixed(2)}%
-                  </div>
-                </div>
+        return (
+          <div
+            key={stock.id}
+            onClick={() => handleStockClick(stock)}
+            onKeyDown={(e) => handleKeyPress(e, stock)}
+            className="px-8 py-6 cursor-pointer hover:bg-gray-50/80 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group focus:outline-none focus:bg-green-50"
+            role="gridcell"
+            tabIndex={0}
+            aria-label={ariaLabel}
+            aria-posinset={index + 1}
+            aria-setsize={stocks.length}
+          >
+            <div className="min-w-0 flex-1 flex items-center gap-4">
+              <div className="flex flex-col">
+                <span className="font-black text-xl tracking-tight group-hover:text-primary leading-none mb-1">{stock.symbol}</span>
+                <span className="text-gray-400 text-xs font-bold uppercase tracking-wide truncate max-w-[250px]">{stock.name}</span>
               </div>
 
-              {/* Mini chart placeholder with accessibility */}
-              <div className="h-16 mb-3 flex items-center" role="img" aria-label={`Графикон за ${stock.symbol}, ${changeDirection} тренд`}>
-                <svg
-                  className="w-full h-full"
-                  viewBox="0 0 100 40"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    d={generateChartPath(stock)}
-                    stroke={stock.changePercent >= 0 ? 'var(--stock-gain)' : 'var(--stock-loss)'}
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                  <path
-                    d={generateFillPath(stock)}
-                    fill={`url(#gradient-${stock.id})`}
-                    fillOpacity="0.2"
-                  />
-                  <defs>
-                    <linearGradient id={`gradient-${stock.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor={stock.changePercent >= 0 ? 'var(--stock-gain)' : 'var(--stock-loss)'} />
-                      <stop offset="100%" stopColor={stock.changePercent >= 0 ? 'var(--stock-gain)' : 'var(--stock-loss)'} stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border ${stock.instrumentType === 'bond'
+                ? 'bg-amber-50 text-amber-700 border-amber-100'
+                : 'bg-gray-50 text-gray-500 border-gray-100'
+                }`}>
+                {stock.instrumentType === 'bond' ? 'Обврзница' : 'Акција'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-8 flex-shrink-0">
+              <div className="text-right">
+                {stock.price > 0 ? (
+                  <>
+                    <span className="font-black text-xl">{formatMacedonian.currency(stock.price)}</span>
+                    <div className="text-[10px] text-gray-400 font-extrabold uppercase mt-0.5">
+                      {new Date(stock.lastUpdated).toDateString() === new Date().toDateString()
+                        ? 'Последна цена'
+                        : `Цена од ${new Date(stock.lastUpdated).toLocaleDateString('mk-MK', { day: '2-digit', month: '2-digit' })}`
+                      }
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-black text-xl text-gray-300">Нема промет</span>
+                    <div className="text-[10px] text-gray-400 font-extrabold uppercase mt-0.5">Денес</div>
+                  </>
+                )}
               </div>
 
-              {/* Price with accessibility */}
-              <div className="text-slate-900 text-2xl font-bold" id={`stock-${stock.id}-price`}>
-                <span className="sr-only">Цена: </span>
-                {formatMacedonian.currency(stock.price)}
-              </div>
-
-              {/* Hidden detailed description for screen readers */}
-              <div id={`stock-${stock.id}-details`} className="sr-only">
-                Притиснете Enter или Space за да ги видите деталите за {stock.symbol}.
-                Тековна цена: {formatMacedonian.currency(stock.price)}.
-                Промена: {changeDirection} {Math.abs(stock.changePercent).toFixed(2)} проценти.
-                Компанија: {stock.name}.
+              <div className="w-24 text-right">
+                {stock.price > 0 && new Date(stock.lastUpdated).toDateString() === new Date().toDateString() ? (
+                  <span className={`inline-block px-3 py-1 rounded-lg font-black text-sm ${stock.changePercent > 0 ? 'bg-green-100 text-green-700' :
+                      stock.changePercent < 0 ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-500'
+                    }`}>
+                    {stock.changePercent > 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="inline-block px-3 py-1 rounded-lg font-black text-sm bg-gray-50 text-gray-300">
+                    0.00%
+                  </span>
+                )}
               </div>
             </div>
-          )
-        })}
-      </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

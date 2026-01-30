@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { Stock, MarketStatusInfo } from '@/lib/types'
-import { TrendingUp, TrendingDown, Activity, DollarSign } from 'lucide-react'
 import { uiTextMK, formatMacedonian } from '@/lib/localization'
 
 interface MarketOverviewProps {
@@ -11,7 +10,7 @@ interface MarketOverviewProps {
   lastUpdated: string
 }
 
-export function MarketOverview({}: MarketOverviewProps) {
+export function MarketOverview({ }: MarketOverviewProps) {
   const [currentDayStocks, setCurrentDayStocks] = useState<Stock[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -22,7 +21,7 @@ export function MarketOverview({}: MarketOverviewProps) {
         setIsLoading(true)
         const response = await fetch('/api/stocks')
         const result = await response.json()
-        
+
         if (result.success && result.data?.stocks) {
           setCurrentDayStocks(result.data.stocks)
         }
@@ -39,7 +38,7 @@ export function MarketOverview({}: MarketOverviewProps) {
   // Filter for stocks that appear on MSE's trading list (those with actual prices > 0)
   // This matches MSE's definition of "traded today" rather than requiring price changes
   const tradedToday = currentDayStocks.filter((stock: Stock) => stock.price > 0)
-  
+
   const totalStocks = tradedToday.length
   const gainers = tradedToday.filter(s => s.changePercent > 0).length
   const losers = tradedToday.filter(s => s.changePercent < 0).length
@@ -80,185 +79,91 @@ export function MarketOverview({}: MarketOverviewProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Market Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Тргувани денес</p>
-              <p className="text-2xl font-bold text-slate-900">{totalStocks}</p>
-            </div>
-            <DollarSign className="w-8 h-8 text-indigo-600" />
+    <div className="space-y-16">
+      {/* Summary Card */}
+      <section>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div>
+            <h4 className="text-gray-400 text-xs font-black uppercase tracking-wider mb-2">Тргувани</h4>
+            <div className="text-5xl font-black">{totalStocks}</div>
+          </div>
+          <div>
+            <h4 className="text-green-700/50 text-xs font-black uppercase tracking-wider mb-2">Во пораст</h4>
+            <div className="text-5xl font-black text-stock-gain">{gainers}</div>
+          </div>
+          <div>
+            <h4 className="text-red-700/50 text-xs font-black uppercase tracking-wider mb-2">Во пад</h4>
+            <div className="text-5xl font-black text-stock-loss">{losers}</div>
+          </div>
+          <div>
+            <h4 className="text-gray-400 text-xs font-black uppercase tracking-wider mb-2">Мирни</h4>
+            <div className="text-5xl font-black text-gray-300">{unchanged}</div>
           </div>
         </div>
+      </section>
 
-        <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">{uiTextMK.gainers}</p>
-              <p className="text-2xl font-bold text-emerald-600">{gainers}</p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-emerald-600" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">{uiTextMK.losers}</p>
-              <p className="text-2xl font-bold text-red-600">{losers}</p>
-            </div>
-            <TrendingDown className="w-8 h-8 text-red-600" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Непроменети</p>
-              <p className="text-2xl font-bold text-slate-600">{unchanged}</p>
-            </div>
-            <Activity className="w-8 h-8 text-slate-600" />
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Most Traded Today - Always show all stocks sorted by volume */}
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center">
-              <Activity className="w-5 h-5 text-indigo-600 mr-2" />
-              Најтргувани денес
-            </h3>
-          </div>
-          <div className="divide-y divide-slate-100">
+      {/* Market Stream */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+        {/* Activity Stream */}
+        <section>
+          <h3 className="text-xl font-black mb-8 border-b-2 border-gray-100 pb-2">Активни денес</h3>
+          <div className="space-y-6">
             {mostTraded.length === 0 ? (
-              <div className="px-6 py-8 text-center text-slate-500">
-                Нема податоци за тргување денес
-              </div>
+              <p className="text-gray-400 font-medium">Денес сѐ уште нема активност.</p>
             ) : (
-              mostTraded.map((stock, index) => (
-                <div key={stock.id} className="px-6 py-3 hover:bg-slate-50 cursor-pointer transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 min-w-0 flex-1">
-                      <div className="text-xs font-medium text-slate-500 w-4 flex-shrink-0">
-                        {index + 1}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-slate-900 text-sm">{stock.symbol}</div>
-                        <div className="text-xs text-slate-600 break-words leading-tight">
-                          {stock.name}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      <div className="font-bold text-slate-900 text-sm">
-                        {formatMacedonian.currency(stock.price)}
-                      </div>
-                      <div className="text-xs text-indigo-600 font-medium">
-                        {formatMacedonian.volume(stock.volume)} тргувани
-                      </div>
-                      <div className={`text-sm font-semibold ${
-                        stock.changePercent > 0 ? 'text-emerald-600' : 
-                        stock.changePercent < 0 ? 'text-red-600' : 'text-slate-600'
+              mostTraded.slice(0, 6).map((stock) => (
+                <div key={stock.id} className="flex justify-between items-center group">
+                  <div className="flex flex-col">
+                    <span className="text-lg font-black group-hover:text-primary transition-colors cursor-pointer">{stock.symbol}</span>
+                    <span className="text-xs text-gray-400 font-bold truncate max-w-[150px]">{stock.name}</span>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <span className="font-extrabold">{formatMacedonian.currency(stock.price)}</span>
+                    <span className={`px-2 py-1 rounded text-xs font-black ${stock.changePercent > 0 ? 'bg-green-100 text-green-700' :
+                        stock.changePercent < 0 ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-500'
                       }`}>
-                        {formatChange(stock.changePercent)}
-                      </div>
-                    </div>
+                      {formatChange(stock.changePercent)}
+                    </span>
                   </div>
                 </div>
               ))
             )}
           </div>
-        </div>
+          {mostTraded.length > 6 && (
+            <button className="mt-8 text-sm font-black text-gray-400 hover:text-black uppercase tracking-widest">Види повеќе →</button>
+          )}
+        </section>
 
-        {/* Top Losers */}
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center">
-              <TrendingDown className="w-5 h-5 text-red-600 mr-2" />
-              Најголеми {uiTextMK.losers}
-            </h3>
-          </div>
-          <div className="divide-y divide-slate-100">
-            {topLosers.length === 0 ? (
-              <div className="px-6 py-8 text-center text-slate-500">
-                {uiTextMK.noLosers} {uiTextMK.today}
-              </div>
-            ) : (
-              topLosers.map((stock, index) => (
-                <div key={stock.id} className="px-6 py-3 hover:bg-red-50 cursor-pointer transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 min-w-0 flex-1">
-                      <div className="text-xs font-medium text-slate-500 w-4 flex-shrink-0">
-                        {index + 1}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-slate-900 text-sm">{stock.symbol}</div>
-                        <div className="text-xs text-slate-600 break-words leading-tight">
-                          {stock.name}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      <div className="font-bold text-slate-900 text-sm">
-                        {formatMacedonian.currency(stock.price)}
-                      </div>
-                      <div className="text-sm font-semibold text-red-600">
-                        {formatChange(stock.changePercent)}
-                      </div>
-                    </div>
-                  </div>
+        {/* Momentum */}
+        <div className="space-y-16">
+          <section>
+            <h3 className="text-xl font-black mb-8 border-b-2 border-gray-100 pb-2">Најголем скок</h3>
+            <div className="space-y-4">
+              {topGainers.map((stock) => (
+                <div key={stock.id} className="flex justify-between items-center bg-green-50/50 p-4 rounded-xl">
+                  <span className="font-black text-green-900">{stock.symbol}</span>
+                  <span className="px-3 py-1 bg-green-600 text-white text-xs font-black rounded-full">
+                    {formatChange(stock.changePercent)}
+                  </span>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+              ))}
+            </div>
+          </section>
 
-        {/* Biggest Gainers */}
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center">
-              <TrendingUp className="w-5 h-5 text-emerald-600 mr-2" />
-              Најголеми {uiTextMK.gainers}
-            </h3>
-          </div>
-          <div className="divide-y divide-slate-100">
-            {topGainers.length === 0 ? (
-              <div className="px-6 py-8 text-center text-slate-500">
-                {uiTextMK.noGainers} {uiTextMK.today}
-              </div>
-            ) : (
-              topGainers.map((stock, index) => (
-                <div key={stock.id} className="px-6 py-3 hover:bg-emerald-50 cursor-pointer transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 min-w-0 flex-1">
-                      <div className="text-xs font-medium text-slate-500 w-4 flex-shrink-0">
-                        {index + 1}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-slate-900 text-sm">{stock.symbol}</div>
-                        <div className="text-xs text-slate-600 break-words leading-tight">
-                          {stock.name}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      <div className="font-bold text-slate-900 text-sm">
-                        {formatMacedonian.currency(stock.price)}
-                      </div>
-                      <div className="text-sm font-semibold text-emerald-600">
-                        {formatChange(stock.changePercent)}
-                      </div>
-                    </div>
-                  </div>
+          <section>
+            <h3 className="text-xl font-black mb-8 border-b-2 border-gray-100 pb-2">Најголем пад</h3>
+            <div className="space-y-4">
+              {topLosers.map((stock) => (
+                <div key={stock.id} className="flex justify-between items-center bg-red-50/50 p-4 rounded-xl">
+                  <span className="font-black text-red-900">{stock.symbol}</span>
+                  <span className="px-3 py-1 bg-red-600 text-white text-xs font-black rounded-full">
+                    {formatChange(stock.changePercent)}
+                  </span>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
     </div>
