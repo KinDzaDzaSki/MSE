@@ -36,7 +36,7 @@ export class MSEScraperWithDB {
       } else {
         console.log('⚠️ Database not available, using in-memory mode')
       }
-    } catch (error) {
+    } catch {
       console.log('⚠️ Database connection failed, using in-memory mode')
       this.isDatabaseEnabled = false
     }
@@ -114,7 +114,7 @@ export class MSEScraperWithDB {
       // Wait for content to load
       try {
         await page.waitForSelector('body', { timeout: 10000 })
-      } catch (e) {
+      } catch {
         console.warn('⚠️ Could not find body element, continuing anyway')
       }
       await new Promise(resolve => setTimeout(resolve, 2000))
@@ -124,7 +124,14 @@ export class MSEScraperWithDB {
 
       // Extract stocks from the "Most Traded" table
       const rawStocks = await page.evaluate(() => {
-        const stockData: any[] = []
+        const stockData: {
+          symbol: string;
+          price: number;
+          changePercent: number;
+          volume: number;
+          instrumentType: string;
+          source: string;
+        }[] = []
         console.log('Starting extraction from "Most Traded" table');
 
         // Helper: Parse Macedonian locale numbers
@@ -294,7 +301,7 @@ export class MSEScraperWithDB {
       await this.initialize()
     }
 
-    let page: any = null
+    let page: import('puppeteer').Page | null = null
 
     try {
       page = await this.browser!.newPage()
@@ -417,7 +424,7 @@ export class MSEScraperWithDB {
           })
           enhancedStocks.push({ ...stock, volume: volumeData.volume })
           await new Promise(resolve => setTimeout(resolve, 500))
-        } catch (error) {
+        } catch {
           enhancedStocks.push(stock)
         }
       }
@@ -452,46 +459,56 @@ export class MSEScraperWithDB {
         return result.stocks
       }
       return dbStocks.map(StockService.dbStockToAppStock)
-    } catch (error) {
+    } catch {
       const result = await this.scrapeStocks()
       return result.stocks
     }
   }
 
-  async getHistoricalData(symbol: string, days: number = 30): Promise<any[]> {
+  async getHistoricalData(symbol: string, days: number = 30): Promise<Record<string, unknown>[]> {
     if (!this.isDatabaseEnabled) return []
     try {
       const endDate = new Date()
       const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000)
       const historicalPrices = await HistoricalDataService.getHistoricalPrices(symbol.toUpperCase(), startDate, endDate)
       return historicalPrices.map(price => ({ date: price.timestamp.toISOString(), price: parseFloat(price.price), change: parseFloat(price.change), changePercent: parseFloat(price.changePercent), volume: price.volume }))
-    } catch (error) {
+    } catch {
       return []
     }
   }
 
   async scrapeMarketIndices(): Promise<MarketIndex[]> { return [] }
 
-  private processStockData(rawStocks: any[]): Stock[] {
-    const validStocks = rawStocks.filter(stock => stock.symbol && typeof stock.price === 'number' && stock.price > 0 && !isNaN(stock.price))
-    const stockMap = new Map<string, any>()
+  private processStockData(rawStocks: Record<string, unknown>[]): Stock[] {
+    const validStocks = rawStocks.filter(stock =>
+      stock.symbol &&
+      typeof stock.symbol === 'string' &&
+      typeof stock.price === 'number' &&
+      stock.price > 0 &&
+      !isNaN(stock.price)
+    )
+
+    const stockMap = new Map<string, Record<string, unknown>>()
     validStocks.forEach(stock => {
-      const symbol = stock.symbol.toUpperCase()
-      if (!stockMap.has(symbol) || stock.price > 0) stockMap.set(symbol, stock)
+      const symbol = (stock.symbol as string).toUpperCase()
+      if (!stockMap.has(symbol) || (stock.price as number) > 0) stockMap.set(symbol, stock)
     })
+
     return Array.from(stockMap.values()).map(stock => {
-      const symbol = stock.symbol.toUpperCase()
+      const symbol = (stock.symbol as string).toUpperCase()
+      const price = stock.price as number
       const changePercent = Number(stock.changePercent) || 0
-      const previousPrice = changePercent === 0 ? stock.price : stock.price / (1 + changePercent / 100)
+      const previousPrice = changePercent === 0 ? price : price / (1 + changePercent / 100)
+
       return {
         id: symbol,
         symbol: symbol,
         name: this.getCompanyName(symbol),
-        price: Number(stock.price.toFixed(2)),
-        change: Number((stock.price - previousPrice).toFixed(2)),
+        price: Number(price.toFixed(2)),
+        change: Number((price - previousPrice).toFixed(2)),
         changePercent: changePercent,
-        volume: stock.volume || 0,
-        instrumentType: stock.instrumentType || this.getInstrumentType(symbol),
+        volume: (stock.volume as number) || 0,
+        instrumentType: (stock.instrumentType as 'stock' | 'bond') || this.getInstrumentType(symbol),
         lastUpdated: new Date().toISOString()
       }
     }).sort((a, b) => a.symbol.localeCompare(b.symbol))
