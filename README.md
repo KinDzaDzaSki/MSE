@@ -14,20 +14,31 @@ Data is scraped from the **public, free end-of-day** pages on
   - per-issuer quotes (`/en/symbol/{TICKER}`)
   - historical OHLCV via POST to `/en/stats/symbolhistory/{TICKER}`
   - index values (`/en/indicies/MBI10/values`, `OMB`)
-- `lib/store.js` — JSON file cache under `data/`, a scheduler that polls
-  **while the market is open** (Mon–Fri, 09:00–14:30 Skopje time) every 60s,
-  and a historical backfill that fetches ~1y windows per symbol.
+- `lib/db.js` — PostgreSQL persistence (tables: `meta`, `quotes`,
+  `history`, `indices`) with upsert helpers and auto-migration.
+- `lib/store.js` — scheduler that polls **while the market is open**
+  (Mon–Fri, 09:00–14:30 Skopje time) every 60s, and a historical backfill
+  that fetches ~1y windows per symbol; reads/writes go through `lib/db.js`.
 - `server.js` — Node HTTP server exposing JSON APIs + static dashboard.
-- `public/` — dashboard UI (Chart.js from CDN).
+- `public/` — dashboard UI (Chart.js + lightweight-charts from CDN).
 
-## Run
+## Requirements
+
+- Node.js >= 18
+- PostgreSQL (or use the free Render Postgres add-on in one click)
+
+## Run locally
 
 ```bash
+npm install
+export DATABASE_URL="postgresql://user:pass@localhost:5432/mse"
 node server.js
 # open http://localhost:3000
 ```
 
-First launch fetches the 369-symbol list and does an initial quote poll.
+On first boot the schema is created automatically (`lib/db.js` → `migrate()`),
+the symbol list is fetched from mse.mk, and an initial poll runs.
+
 Backfill history for charts (one-off, takes a few minutes for all symbols):
 
 ```bash
@@ -40,6 +51,19 @@ curl "http://localhost:3000/api/refresh"
 ```
 
 Set `PORT` to change the port (default 3000).
+
+## Deploy on Render (one click)
+
+1. Push this repo to GitHub.
+2. In Render, **New → Blueprint** and select the repo. `render.yaml` provisions:
+   - a `starter` web service (`npm install` / `npm start`) on `:3000`
+   - a free **PostgreSQL** database, wired to `DATABASE_URL` automatically.
+3. The first deploy runs the schema migration and an initial poll. After it is
+   live, trigger a backfill once: `curl https://<your-app>/api/backfill-all`.
+
+Region is set to `frankfurt` (closest EU region to Skopje). See
+`.env.example` for the env vars.
+
 
 ## APIs
 

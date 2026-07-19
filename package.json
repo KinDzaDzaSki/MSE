@@ -4,12 +4,13 @@
   "description": "Self-hosted clone of the Macedonian Stock Exchange (mse.mk) with a Yahoo-Finance-style dashboard",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "backfill": "node -e \"require('http').get('http://localhost:3000/api/backfill-all',r=>{console.log('backfill started');r.resume();})\""
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=18"
   },
   "license": "MIT",
-  "dependencies": {}
+  "dependencies": {
+    "pg": "^8.22.0"
+  }
 }

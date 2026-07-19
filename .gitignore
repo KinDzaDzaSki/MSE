@@ -6,4 +6,5 @@ server.err
 *.log
 .DS_Store
 .env
+.env.local
 
