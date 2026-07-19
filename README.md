@@ -54,24 +54,29 @@ Set `PORT` to change the port (default 3000).
 
 ## Deploy (free tier)
 
-### Railway (recommended, free to start)
+### Fly.io (recommended — real free tier, no trial expiry)
 
-1. Push this repo to GitHub.
-2. In Railway, **New Project → Deploy from GitHub repo** → select `KinDzaDzaSki/MSE`.
-   `railway.json` configures the build (`npm install`) and start (`npm start`).
-3. Add a **PostgreSQL** plugin to the project (free). Railway auto-injects
-   `DATABASE_URL` — no manual env setup needed.
+1. Install `flyctl` (https://fly.io/docs/hands-on/installing/).
+2. `fly auth signup` (free account — no card required for the free allowance).
+3. From the repo root:
+   ```bash
+   fly launch            # creates the app from fly.toml; say yes to Postgres
+   fly postgres create   # if not prompted: 1GB free tier
+   fly postgres attach   # links DB -> sets DATABASE_URL automatically
+   fly deploy
+   ```
 4. First deploy runs schema migration + initial poll. Then trigger a backfill:
-   `curl https://<your-app>.up.railway.app/api/backfill-all`.
+   `curl https://<your-app>.fly.dev/api/backfill-all`.
 
-Railway gives free trial credits; a low-traffic app stays within the free
-allowance. Upgrade only when you're ready to market.
+Free allowance: 3 shared-CPU VMs (256MB) + 1GB Postgres. The app uses
+`min_machines_running = 0`, so it scales to zero when idle (no cost).
 
-### Render (paid web service)
+### Railway / Render (alternatives)
 
-Render now charges ~$7/mo for web services (Postgres stays free). If you
-prefer Render, use `render.yaml` via **New → Blueprint**. Set
-`DATABASE_URL` from the Postgres add-on.
+- **Railway**: `railway.json` configures the build. Add a free PostgreSQL
+  plugin (auto-injects `DATABASE_URL`). Note: Railway's trial can expire.
+- **Render**: `render.yaml` via **New → Blueprint** (~$7/mo for the web
+  service; Postgres is free).
 
 
 ## APIs

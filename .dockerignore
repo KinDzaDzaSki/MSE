@@ -1,0 +1,10 @@
+node_modules
+data
+.env
+.env.local
+*.log
+*.err
+.git
+.gitignore
+server.log
+server.err
