@@ -1,4 +1,5 @@
-# Render deployment blueprint — push this repo to deploy automatically.
+# Render deployment blueprint (PAID: Render charges for web services; Postgres is free).
+# For a FREE host, use Railway + railway.json instead. Keep this for when you're ready to pay.
 # Connect the repo at https://dashboard.render.com/ and Render will use this file.
 
 services:

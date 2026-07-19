@@ -52,17 +52,26 @@ curl "http://localhost:3000/api/refresh"
 
 Set `PORT` to change the port (default 3000).
 
-## Deploy on Render (one click)
+## Deploy (free tier)
+
+### Railway (recommended, free to start)
 
 1. Push this repo to GitHub.
-2. In Render, **New → Blueprint** and select the repo. `render.yaml` provisions:
-   - a `starter` web service (`npm install` / `npm start`) on `:3000`
-   - a free **PostgreSQL** database, wired to `DATABASE_URL` automatically.
-3. The first deploy runs the schema migration and an initial poll. After it is
-   live, trigger a backfill once: `curl https://<your-app>/api/backfill-all`.
+2. In Railway, **New Project → Deploy from GitHub repo** → select `KinDzaDzaSki/MSE`.
+   `railway.json` configures the build (`npm install`) and start (`npm start`).
+3. Add a **PostgreSQL** plugin to the project (free). Railway auto-injects
+   `DATABASE_URL` — no manual env setup needed.
+4. First deploy runs schema migration + initial poll. Then trigger a backfill:
+   `curl https://<your-app>.up.railway.app/api/backfill-all`.
 
-Region is set to `frankfurt` (closest EU region to Skopje). See
-`.env.example` for the env vars.
+Railway gives free trial credits; a low-traffic app stays within the free
+allowance. Upgrade only when you're ready to market.
+
+### Render (paid web service)
+
+Render now charges ~$7/mo for web services (Postgres stays free). If you
+prefer Render, use `render.yaml` via **New → Blueprint**. Set
+`DATABASE_URL` from the Postgres add-on.
 
 
 ## APIs

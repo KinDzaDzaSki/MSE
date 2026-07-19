@@ -1,0 +1,16 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "nixpacks",
+    "buildCommand": "npm install",
+    "watchPatterns": ["/src", "/lib", "/public", "package.json"]
+  },
+  "deploy": {
+    "startCommand": "npm start",
+    "restartPolicyType": "on_failure",
+    "restartPolicyMaxRetries": 3,
+    "healthcheckPath": "/api/symbols",
+    "healthcheckTimeout": 100,
+    "copyEnv": true
+  }
+}
