@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MSE Clone — Macedonian Stock Exchange</title>
+<link rel="stylesheet" href="/styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">MSE</span>
+    <span class="brand-name">Macedonian Stock Exchange</span>
+  </div>
+  <div class="topbar-right">
+    <div class="market-status" id="marketStatus">—</div>
+    <div class="mbi-chip" id="mbiChip"></div>
+    <button class="lang-toggle" id="langToggle">МК</button>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- LEFT: MAIN TABLE -->
+  <section class="main-panel">
+    <div class="toolbar">
+      <input id="search" class="search" placeholder="Search ticker or company…" />
+      <select id="sortBy" class="select">
+        <option value="volume">Volume</option>
+        <option value="changePct">Change %</option>
+        <option value="lastPrice">Price</option>
+        <option value="week52Chg">52 Wk Change</option>
+        <option value="symbol">Ticker</option>
+      </select>
+      <span class="muted" id="lastPoll"></span>
+    </div>
+    <div class="table-wrap">
+      <table class="quotes">
+        <thead>
+          <tr>
+            <th data-sort="symbol">Symbol</th>
+            <th data-sort="name">Name</th>
+            <th class="spark-th"></th>
+            <th class="num" data-sort="lastPrice">Price</th>
+            <th class="num" data-sort="dailyChange">Change</th>
+            <th class="num" data-sort="changePct">Change %</th>
+            <th class="num" data-sort="volume">Volume</th>
+            <th class="num" data-sort="week52Chg">52 Wk Change %</th>
+            <th class="wk-range" data-sort="week52Min">52 Wk Range</th>
+          </tr>
+        </thead>
+        <tbody id="quotesBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- RIGHT: SIDEBAR PANELS -->
+  <aside class="sidebar">
+    <div class="side-card" id="gainersCard">
+      <h3 class="side-title">Top gainers</h3>
+      <div class="side-items" id="gainersItems"></div>
+    </div>
+    <div class="side-card" id="losersCard">
+      <h3 class="side-title">Top losers</h3>
+      <div class="side-items" id="losersItems"></div>
+    </div>
+    <div class="side-card" id="activeCard">
+      <h3 class="side-title">Most active</h3>
+      <div class="side-items" id="activeItems"></div>
+    </div>
+  </aside>
+</main>
+
+<!-- COMPANY MODAL -->
+<div id="companyModal" class="modal hidden">
+  <div class="modal-card">
+    <button class="close" id="modalClose">×</button>
+    <div id="companyContent"></div>
+  </div>
+</div>
+
+<footer class="foot">
+  Data scraped from <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — free public end-of-day data — for educational use.
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>
