@@ -41,7 +41,7 @@ async function handleApi(req, res, url) {
   }
 
   if (url.pathname === '/api/quotes') {
-    const quotes = store.getQuotes();
+    const quotes = await store.getQuotes();
     let arr = Object.values(quotes);
     // Restrict to actively-traded companies unless ?all=1 is requested.
     if (url.searchParams.get('all') !== '1') {
@@ -53,14 +53,14 @@ async function handleApi(req, res, url) {
   }
 
   if (url.pathname === '/api/indices') {
-    const all = store.getIndices();
+    const all = await store.getIndices();
     return sendJson(res, { MBI10: all.MBI10 || null });
   }
 
   const m = url.pathname.match(/^\/api\/history\/([^/]+)$/);
   if (m) {
     const sym = decodeURIComponent(m[1]);
-    let rows = store.getHistory(sym);
+    let rows = await store.getHistory(sym);
     const range = url.searchParams.get('range');
     if (range === '1M') rows = rows.slice(-22);
     else if (range === '3M') rows = rows.slice(-66);
@@ -72,7 +72,7 @@ async function handleApi(req, res, url) {
   const q = url.pathname.match(/^\/api\/quote\/([^/]+)$/);
   if (q) {
     const sym = decodeURIComponent(q[1]);
-    const quotes = store.getQuotes();
+    const quotes = await store.getQuotes();
     return sendJson(res, quotes[sym] || { symbol: sym, error: 'no data' });
   }
 
