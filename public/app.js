@@ -150,7 +150,7 @@ async function loadMBI() {
     const idx = d.MBI10;
     if (!idx) return;
     const chg = idx.changePct ?? 0;
-    $('#mbiChip').innerHTML = `<a href="#" class="mbi-link" id="mbiLink">MBI10 <span class="mbi-val">${fmt(idx.value)}</span> <span class="mbi-chg ${pctClass(chg)}">${pctStr(chg)}</span></a>`;
+    $('#mbiChip').innerHTML = `MBI10 <span class="mbi-val">${fmt(idx.value)}</span> <span class="mbi-chg ${pctClass(chg)}">${pctStr(chg)}</span>`;
   } catch (e) {}
 }
 
@@ -472,20 +472,6 @@ $('#langToggle').addEventListener('click', () => {
   applyStaticI18n();
 });
 
-$('#backfillBtn').addEventListener('click', async () => {
-  const btn = $('#backfillBtn');
-  btn.disabled = true;
-  btn.textContent = 'Backfilling…';
-  try {
-    const r = await fetch('/api/backfill-all');
-    const d = await r.json();
-    btn.textContent = d.ok ? `Done (${d.symbolsDone} symbols)` : `Error: ${d.error}`;
-  } catch (e) {
-    btn.textContent = `Error: ${e.message}`;
-  }
-  setTimeout(() => { btn.disabled = false; btn.textContent = 'Backfill History'; }, 5000);
-});
-
 (async function init() {
   applyStaticI18n();
   await loadMBI();
@@ -493,8 +479,7 @@ $('#backfillBtn').addEventListener('click', async () => {
   setInterval(loadQuotes, 30000);
   setInterval(loadMBI, 60000);
   // MBI10 chip click opens company modal with index chart
-  $('#mbiChip').addEventListener('click', (e) => {
-    e.preventDefault();
+  $('#mbiChip').addEventListener('click', () => {
     openCompany('MBI10');
   });
 })();
