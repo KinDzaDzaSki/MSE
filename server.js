@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const store = require('./lib/store');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 console.log(`[config] PORT env="${process.env.PORT}" listening on=${PORT}`);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
