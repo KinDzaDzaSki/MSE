@@ -25,14 +25,9 @@
   <!-- LEFT: MAIN TABLE -->
   <section class="main-panel">
     <div class="toolbar">
-      <input id="search" class="search" placeholder="Search ticker or company…" />
-      <select id="sortBy" class="select">
-        <option value="volume">Volume</option>
-        <option value="changePct">Change %</option>
-        <option value="lastPrice">Price</option>
-        <option value="week52Chg">52 Wk Change</option>
-        <option value="symbol">Ticker</option>
-      </select>
+      <div class="search-wrapper">
+        <input id="search" class="search" placeholder="Search ticker or company…" />
+      </div>
       <span class="muted" id="lastPoll"></span>
     </div>
     <div class="table-wrap">

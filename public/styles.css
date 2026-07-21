@@ -4,7 +4,7 @@
   --panel-2: #1c2230;
   --line: #2a3140;
   --text: #e6e9ef;
-  --muted: #8b94a7;
+  --muted: #a0a8b5;
   --green: #16c784;
   --red: #ea3943;
   --accent: #f5a623;
@@ -61,15 +61,27 @@ a { color: var(--blue); text-decoration: none; }
 
 /* TOOLBAR */
 .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+}
+.search-wrapper::before {
+  content: '🔍';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.6;
+  pointer-events: none;
+}
 .search {
   flex: 1; min-width: 180px;
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
-  padding: 6px 10px; border-radius: 6px; outline: none; font-size: 13px;
+  padding: 8px 10px 8px 36px; border-radius: 6px; outline: none; font-size: 13px;
 }
-.select {
-  background: var(--panel); border: 1px solid var(--line); color: var(--text);
-  padding: 6px 10px; border-radius: 6px; outline: none; font-size: 13px;
-}
+.search:focus { border-color: var(--accent); }
 .muted { color: var(--muted); font-size: 11px; white-space: nowrap; }
 
 /* MBI10 index chip — clickable opens chart modal */

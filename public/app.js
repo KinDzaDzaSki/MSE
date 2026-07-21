@@ -10,85 +10,87 @@ let headerSortDir = 'desc';
 // ---- i18n ----
 const I18N = {
   en: {
-    market_open: '🟢 Market Open',
-    market_closed: '⚪ Market Closed',
-    search: 'Search ticker or company…',
-    sort_volume: 'Volume',
-    sort_change: 'Change %',
-    sort_price: 'Price',
-    sort_52w: '52 Wk Change',
-    sort_symbol: 'Ticker',
-    updated: 'Updated',
-    th_symbol: 'Symbol',
-    th_name: 'Name',
-    th_price: 'Price',
-    th_change: 'Change',
-    th_change_pct: 'Change %',
-    th_volume: 'Volume',
-    th_52w_chg: '52 Wk Change %',
-    th_52w_range: '52 Wk Range',
-    gainers: 'Top gainers',
-    losers: 'Top losers',
-    active: 'Most active',
-    loading: 'Loading…',
-    last_price: 'Last Price',
-    avg_price: 'Avg Price',
-    day_range: 'Day Range',
-    turnover_l: 'Turnover',
-    trades: 'Trades',
-    wk_high: '52w High',
-    wk_low: '52w Low',
-    range_1m: '1M',
-    range_3m: '3M',
-    range_6m: '6M',
-    range_1y: '1Y',
-    range_all: 'All',
-    as_of: 'As of',
-    eod_note: 'end-of-day data (latest trading session)',
-    failed: 'Failed to load data.',
-    source: 'Data scraped from mse.mk — free public end-of-day data — for educational use.',
-    lang_btn: 'МК',
-  },
-  mk: {
-    market_open: '🟢 Пазарот е отворен',
-    market_closed: '⚪ Пазарот е затворен',
-    search: 'Пребарај тикер или компанија…',
-    sort_volume: 'Волумен',
-    sort_change: 'Промена %',
-    sort_price: 'Цена',
-    sort_52w: '52 н Промена',
-    sort_symbol: 'Тикер',
-    updated: 'Ажурирано',
-    th_symbol: 'Тикер',
-    th_name: 'Компанија',
-    th_price: 'Цена',
-    th_change: 'Промена',
-    th_change_pct: 'Промена %',
-    th_volume: 'Волумен',
-    th_52w_chg: '52 н Промена %',
-    th_52w_range: '52 н Опсег',
-    gainers: 'Најголеми добитници',
-    losers: 'Најголеми губитници',
-    active: 'Најтргувани',
-    loading: 'Вчитување…',
-    last_price: 'Последна цена',
-    avg_price: 'Просечна цена',
-    day_range: 'Дневен опсег',
-    turnover_l: 'Промет',
-    trades: 'Трансакции',
-    wk_high: '52н Макс',
-    wk_low: '52н Мин',
-    range_1m: '1М',
-    range_3m: '3М',
-    range_6m: '6М',
-    range_1y: '1Г',
-    range_all: 'Сите',
-    as_of: 'За',
-    eod_note: 'податоци на крај на ден (последна трговска сесија)',
-    failed: 'Не успеа вчитувањето на податоците.',
-    source: 'Податоци преземени од mse.mk — бесплатни јавни податоци — за едукативна намена.',
-    lang_btn: 'EN',
-  },
+      market_open: '🟢 Market Open',
+      market_closed: '⚪ Market Closed',
+      market_closed_at: '⚪ Market Closed · {time}',
+      search: 'Search ticker or company…',
+      sort_volume: 'Volume',
+      sort_change: 'Change %',
+      sort_price: 'Price',
+      sort_52w: '52 Wk Change',
+      sort_symbol: 'Ticker',
+      updated: 'Updated',
+      th_symbol: 'Symbol',
+      th_name: 'Name',
+      th_price: 'Price',
+      th_change: 'Change',
+      th_change_pct: 'Change %',
+      th_volume: 'Volume',
+      th_52w_chg: '52 Wk Change %',
+      th_52w_range: '52 Wk Range',
+      gainers: 'Top gainers',
+      losers: 'Top losers',
+      active: 'Most active',
+      loading: 'Loading…',
+      last_price: 'Last Price',
+      avg_price: 'Avg Price',
+      day_range: 'Day Range',
+      turnover_l: 'Turnover',
+      trades: 'Trades',
+      wk_high: '52w High',
+      wk_low: '52w Low',
+      range_1m: '1M',
+      range_3m: '3M',
+      range_6m: '6M',
+      range_1y: '1Y',
+      range_all: 'All',
+      as_of: 'As of',
+      eod_note: 'end-of-day data (latest trading session)',
+      failed: 'Failed to load data.',
+      source: 'Data scraped from mse.mk — free public end-of-day data — for educational use.',
+      lang_btn: 'МК',
+    },
+    mk: {
+      market_open: '🟢 Пазарот е отворен',
+      market_closed: '⚪ Пазарот е затворен',
+      market_closed_at: '⚪ Пазарот е затворен · {time}',
+      search: 'Пребарај тикер или компанија…',
+      sort_volume: 'Волумен',
+      sort_change: 'Промена %',
+      sort_price: 'Цена',
+      sort_52w: '52 н Промена',
+      sort_symbol: 'Тикер',
+      updated: 'Ажурирано',
+      th_symbol: 'Тикер',
+      th_name: 'Компанија',
+      th_price: 'Цена',
+      th_change: 'Промена',
+      th_change_pct: 'Промена %',
+      th_volume: 'Волумен',
+      th_52w_chg: '52 н Промена %',
+      th_52w_range: '52 н Опсег',
+      gainers: 'Најголеми добитници',
+      losers: 'Најголеми губитници',
+      active: 'Најтргувани',
+      loading: 'Вчитување…',
+      last_price: 'Последна цена',
+      avg_price: 'Просечна цена',
+      day_range: 'Дневен опсег',
+      turnover_l: 'Промет',
+      trades: 'Трансакции',
+      wk_high: '52н Макс',
+      wk_low: '52н Мин',
+      range_1m: '1М',
+      range_3m: '3М',
+      range_6m: '6М',
+      range_1y: '1Г',
+      range_all: 'Сите',
+      as_of: 'За',
+      eod_note: 'податоци на крај на ден (последната трговска сесија)',
+      failed: 'Не успеа вчитувањето на податоците.',
+      source: 'Податоци преземени од mse.mk — бесплатни јавни податоци — за едукативна намена.',
+      lang_btn: 'EN',
+    },
 };
 
 let lang = localStorage.getItem('mse_lang') || 'en';
@@ -105,12 +107,6 @@ function applyStaticI18n() {
   $$('th', h)[7].textContent = t('th_52w_chg');
   $$('th', h)[8].textContent = t('th_52w_range');
   $('#search').placeholder = t('search');
-  const sb = $('#sortBy');
-  sb.options[0].textContent = t('sort_volume');
-  sb.options[1].textContent = t('sort_change');
-  sb.options[2].textContent = t('sort_price');
-  sb.options[3].textContent = t('sort_52w');
-  sb.options[4].textContent = t('sort_symbol');
   $('#langToggle').textContent = t('lang_btn');
   $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')}`;
   $$('.side-title')[0].textContent = t('gainers');
@@ -176,10 +172,21 @@ async function loadMBI() {
 async function loadQuotes() {
   const d = await fetch('/api/quotes').then((r) => r.json());
   quotesCache = d.quotes || [];
-  const ms = d.marketOpen ? t('market_open') : t('market_closed');
-  const st = $('#marketStatus');
-  st.textContent = ms;
-  st.className = 'market-status ' + (d.marketOpen ? 'open' : 'closed');
+  if (d.marketOpen) {
+    const ms = t('market_open');
+    const st = $('#marketStatus');
+    st.textContent = ms;
+    st.className = 'market-status open';
+  } else {
+    const st = $('#marketStatus');
+    if (d.lastPoll) {
+      const timeStr = new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
+      st.textContent = t('market_closed_at').replace('{time}', timeStr);
+    } else {
+      st.textContent = t('market_closed');
+    }
+    st.className = 'market-status closed';
+  }
   if (d.lastPoll) {
     $('#lastPoll').textContent = `${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString()}`;
   }
@@ -343,10 +350,12 @@ async function openCompany(symbol) {
   modal.classList.remove('hidden');
   content.innerHTML = `<div class="muted">${t('loading')}</div>`;
   try {
-    const [q, h] = await Promise.all([
+    const [q, hAll] = await Promise.all([
       fetch(`/api/quote/${symbol}`).then((r) => r.json()),
-      fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json()),
+      fetch(`/api/history/${symbol}?range=ALL`).then((r) => r.json()),
     ]);
+    // Cache full history once per modal open; range buttons slice client-side.
+    const fullHistory = (hAll.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
     const chg = q.changePct ?? 0;
     const chgAbs = q.dailyChange ?? 0;
     content.innerHTML = `
@@ -381,9 +390,13 @@ async function openCompany(symbol) {
       <div class="chart-box" id="companyChart"></div>`;
     let chart, candleSeries, volSeries, priceLine;
     let onResize = null;
-    const draw = async (range) => {
-      const hh = await fetch(`/api/history/${symbol}?range=${range}`).then((r) => r.json());
-      const rows = (hh.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+    const draw = (range) => {
+      // Slice client-side from fullHistory; no network round-trip on range changes.
+      let rows = fullHistory;
+      if (range === '1M') rows = rows.slice(-22);
+      else if (range === '3M') rows = rows.slice(-66);
+      else if (range === '6M') rows = rows.slice(-132);
+      else if (range === '1Y') rows = rows.slice(-252);
       // Normalize history prices to match the live quote's current close (MSE history/quote
       // endpoints occasionally use different price scales for the same symbol).
       const histLast = rows.length ? rows[rows.length - 1].last : null;
@@ -403,7 +416,7 @@ async function openCompany(symbol) {
       if (!chart) {
         chart = LightweightCharts.createChart($('#companyChart'), {
           width: $('#companyChart').clientWidth || 760,
-          layout: { background: { color: 'transparent' }, textColor: '#8b94a7', fontSize: 11 },
+          layout: { background: { color: 'transparent' }, textColor: '#a0a8b5', fontSize: 11 },
           grid: { vertLines: { color: '#2a3140' }, horzLines: { color: '#2a3140' } },
           rightPriceScale: { borderColor: '#2a3140' },
           timeScale: { borderColor: '#2a3140', timeVisible: false, secondsVisible: false },
@@ -443,12 +456,12 @@ async function openCompany(symbol) {
         $('#asOf').textContent = `${t('as_of')} ${fmtDate(candleData[candleData.length - 1].time * 1000)} · ${t('eod_note')}`;
       }
     };
-    await draw('1Y');
+    draw('1Y');
     $$('#rangeBtns button').forEach((b) =>
-      b.addEventListener('click', async () => {
+      b.addEventListener('click', () => {
         $$('#rangeBtns button').forEach((x) => x.classList.remove('active'));
         b.classList.add('active');
-        await draw(b.dataset.r);
+        draw(b.dataset.r);
       })
     );
     onResize = () => { if (chart) chart.applyOptions({ width: $('#companyChart').clientWidth }); };
@@ -465,11 +478,14 @@ async function openCompany(symbol) {
 
 // ---- WIRE UP ----
 $('#search').addEventListener('input', () => { renderTable(); });
-$('#sortBy').addEventListener('change', (e) => {
-  headerSortCol = e.target.value;
-  headerSortDir = 'desc';
-  syncHeaderIndicators();
-  renderTable();
+$('#search').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const rows = getFilteredQuotes();
+    if (rows.length) {
+      const first = $$('tbody tr')[0];
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
 });
 $$('th[data-sort]').forEach((th) => {
   th.addEventListener('click', () => {
@@ -480,7 +496,6 @@ $$('th[data-sort]').forEach((th) => {
       headerSortCol = col;
       headerSortDir = 'desc';
     }
-    $('#sortBy').value = col;
     syncHeaderIndicators();
     renderTable();
   });
