@@ -4,6 +4,7 @@ const path = require('path');
 const store = require('./lib/store');
 
 const PORT = process.env.PORT || 8080;
+console.log(`[config] PORT env="${process.env.PORT}" listening on=${PORT}`);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const MIME = {
@@ -133,8 +134,8 @@ const server = http.createServer(async (req, res) => {
 async function main() {
   // Start listening immediately so platform health checks pass (critical for
   // Cloud Run / suga.app / Fly.io). Init runs async in the background.
-  server.listen(PORT, () => {
-    console.log(`MSE Clone dashboard listening on :${PORT}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`MSE Clone dashboard listening on 0.0.0.0:${PORT}`);
   });
   // Warm up in background — don't block server requests.
   store.init()
