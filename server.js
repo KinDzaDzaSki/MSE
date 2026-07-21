@@ -136,14 +136,15 @@ async function main() {
   server.listen(PORT, () => {
     console.log(`MSE Clone dashboard listening on :${PORT}`);
   });
-  // Warm up: fetch symbol list + initial poll (non-blocking to the caller).
-  try {
-    await store.init();
-    store.startScheduler({ pollIntervalMs: 60000 });
-  } catch (e) {
-    console.error('[init] store init error (dashboard still serving health):', e.message);
-  }
+  // Warm up in background — don't block server requests.
+  store.init()
+    .then(() => store.startScheduler({ pollIntervalMs: 60000 }))
+    .catch((e) => console.error('[init] store init error (dashboard still serving health):', e.message));
 }
+
+// Global crash handlers — don't let unhandled errors kill the process silently.
+process.on('uncaughtException', (e) => console.error('[crash] uncaughtException', e.message));
+process.on('unhandledRejection', (e) => console.error('[crash] unhandledRejection', e && e.message));
 
 main().catch((e) => {
   console.error('FATAL', e);
