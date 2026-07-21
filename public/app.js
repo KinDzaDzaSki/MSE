@@ -472,6 +472,20 @@ $('#langToggle').addEventListener('click', () => {
   applyStaticI18n();
 });
 
+$('#backfillBtn').addEventListener('click', async () => {
+  const btn = $('#backfillBtn');
+  btn.disabled = true;
+  btn.textContent = 'Backfilling…';
+  try {
+    const r = await fetch('/api/backfill-all');
+    const d = await r.json();
+    btn.textContent = d.ok ? `Done (${d.symbolsDone} symbols)` : `Error: ${d.error}`;
+  } catch (e) {
+    btn.textContent = `Error: ${e.message}`;
+  }
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Backfill History'; }, 5000);
+});
+
 (async function init() {
   applyStaticI18n();
   await loadMBI();

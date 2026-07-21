@@ -71,6 +71,11 @@ a { color: var(--blue); text-decoration: none; }
   padding: 6px 10px; border-radius: 6px; outline: none; font-size: 13px;
 }
 .muted { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.backfill-btn {
+  background: var(--accent); color: #fff; border: none; padding: 6px 12px;
+  border-radius: 6px; font-size: 12px; cursor: pointer;
+}
+.backfill-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* TABLE */
 .table-wrap {
