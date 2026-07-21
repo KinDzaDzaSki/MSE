@@ -14,7 +14,6 @@ COPY . .
 RUN apk add --no-cache ca-certificates
 
 ENV NODE_ENV=production
-ENV PORT=3000
 
 EXPOSE 3000
 
