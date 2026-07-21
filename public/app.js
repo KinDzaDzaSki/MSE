@@ -3,6 +3,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
 let quotesCache = [];
 let sparkCache = {};
+let historyCache = {};    // symbol -> {rows, range}
 let headerSortCol = 'value';
 let headerSortDir = 'desc';
 
@@ -143,6 +144,23 @@ function fmtDate(ts) {
   return d.toLocaleDateString(lang === 'mk' ? 'mk-MK' : 'en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+// ---- batch history loader (replaces N individual sparkline API calls) ----
+async function loadSparkHistory() {
+  const needed = new Set();
+  // First 40 table rows + up to 15 sidebar items
+  for (const r of quotesCache.slice(0, 55)) {
+    const sym = r.symbol;
+    if (!historyCache[sym]) needed.add(sym);
+  }
+  if (!needed.size) return;
+  try {
+    const d = await fetch(`/api/history?symbols=${[...needed].join(',')}&range=1Y`).then((r) => r.json());
+    for (const [sym, rows] of Object.entries(d.queries || {})) {
+      historyCache[sym] = { rows, range: '1Y' };
+    }
+  } catch (e) { /* sparklines will load individually on cache miss */ }
+}
+
 // ---- MBI10 chip ----
 async function loadMBI() {
   try {
@@ -167,6 +185,7 @@ async function loadQuotes() {
   }
   renderTable();
   renderSidebar();
+  loadSparkHistory(); // batch-fetch history for sparklines
 }
 
 function getFilteredQuotes() {
@@ -229,7 +248,13 @@ function buildRangeBar(r) {
 
 async function drawSpark(canvas, symbol) {
   try {
-    const d = await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
+    const cached = historyCache[symbol];
+    let d;
+    if (cached && cached.range === '1Y') {
+      d = { rows: cached.rows };
+    } else {
+      d = await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
+    }
     const rows = (d.rows || []).filter((x) => x.last != null);
     const data = rows.map((x) => x.last);
     const last = data[data.length - 1] || 0;
@@ -288,7 +313,13 @@ function renderSidePanel(containerId, items) {
 
 async function drawSparkSide(canvas, symbol, chgPct) {
   try {
-    const d = await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
+    const cached = historyCache[symbol];
+    let d;
+    if (cached && cached.range === '1Y') {
+      d = { rows: cached.rows };
+    } else {
+      d = await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
+    }
     const rows = (d.rows || []).filter((x) => x.last != null);
     const data = rows.map((x) => x.last);
     const color = (chgPct != null && chgPct >= 0) ? '#16c784' : '#ea3943';
@@ -348,7 +379,8 @@ async function openCompany(symbol) {
         <button data-r="ALL">${t('range_all')}</button>
       </div>
       <div class="chart-box" id="companyChart"></div>`;
-    let chart, candleSeries, volSeries, priceLine, resizeObs, asOfSet = false;
+    let chart, candleSeries, volSeries, priceLine;
+    let onResize = null;
     const draw = async (range) => {
       const hh = await fetch(`/api/history/${symbol}?range=${range}`).then((r) => r.json());
       const rows = (hh.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -407,9 +439,8 @@ async function openCompany(symbol) {
       chgEl.className = 'chart-chg ' + (chgPct >= 0 ? 'up' : 'down');
       const rangeLabel = { '1M': 'past month', '3M': 'past 3 months', '6M': 'past 6 months', '1Y': 'past year', 'ALL': 'all time' }[range] || range;
       $('#chartPeriod').textContent = `${rangeLabel} · ${candleData.length ? fmtDate(candleData[0].time * 1000) + ' – ' + fmtDate(candleData[candleData.length - 1].time * 1000) : ''}`;
-      if (!asOfSet && candleData.length) {
+      if (candleData.length) {
         $('#asOf').textContent = `${t('as_of')} ${fmtDate(candleData[candleData.length - 1].time * 1000)} · ${t('eod_note')}`;
-        asOfSet = true;
       }
     };
     await draw('1Y');
@@ -420,10 +451,12 @@ async function openCompany(symbol) {
         await draw(b.dataset.r);
       })
     );
-    const onResize = () => { if (chart) chart.applyOptions({ width: $('#companyChart').clientWidth }); };
+    onResize = () => { if (chart) chart.applyOptions({ width: $('#companyChart').clientWidth }); };
     window.addEventListener('resize', onResize);
     setTimeout(onResize, 0);
     const mc = $('#companyModal');
+    mc._chart = chart;
+    mc._resizeHandler = onResize;
     mc.addEventListener('click', (e) => { if (e.target.id === 'companyModal' && chart) { chart.remove(); chart = null; } }, { once: true });
   } catch (e) {
     content.innerHTML = `<div class="down">${t('failed')}</div>`;
@@ -462,9 +495,20 @@ document.addEventListener('click', (e) => {
   const item = e.target.closest('[data-sym]');
   if (item) openCompany(item.dataset.sym);
 });
-$('#modalClose').addEventListener('click', () => $('#companyModal').classList.add('hidden'));
+function closeModal() {
+  const modal = $('#companyModal');
+  modal.classList.add('hidden');
+  // Cleanup: remove any chart stored on the modal element
+  if (modal._chart) {
+    if (modal._resizeHandler) window.removeEventListener('resize', modal._resizeHandler);
+    try { modal._chart.remove(); } catch (_) {}
+    modal._chart = null;
+    modal._resizeHandler = null;
+  }
+}
+$('#modalClose').addEventListener('click', closeModal);
 $('#companyModal').addEventListener('click', (e) => {
-  if (e.target.id === 'companyModal') $('#companyModal').classList.add('hidden');
+  if (e.target.id === 'companyModal') closeModal();
 });
 $('#langToggle').addEventListener('click', () => {
   lang = lang === 'en' ? 'mk' : 'en';

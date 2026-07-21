@@ -8,3 +8,6 @@ data
 .gitignore
 server.log
 server.err
+killnode.js
+logs/
+README.md

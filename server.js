@@ -124,6 +124,22 @@ async function handleApi(req, res, url) {
     return sendJson(res, { ok: true, symbolsDone: done, total: syms.length });
   }
 
+  if (url.pathname === '/api/history') {
+    // Batch history: /api/history?symbols=ALK,ADIN,GRNT&range=1Y
+    const syms = (url.searchParams.get('symbols') || '').split(',').filter(Boolean);
+    const range = url.searchParams.get('range') || '1Y';
+    const queries = {};
+    for (const sym of syms) {
+      let rows = await store.getHistory(sym);
+      if (range === '1M') rows = rows.slice(-22);
+      else if (range === '3M') rows = rows.slice(-66);
+      else if (range === '6M') rows = rows.slice(-132);
+      else if (range === '1Y') rows = rows.slice(-252);
+      queries[sym] = rows;
+    }
+    return sendJson(res, { queries });
+  }
+
   if (url.pathname === '/api/refresh') {
     await store.pollQuotes();
     await store.pollIndices();
@@ -162,6 +178,23 @@ const server = http.createServer(async (req, res) => {
   }
   sendFile(res, filePath);
 });
+
+// Graceful shutdown — close server + DB pool so in-flight writes finish
+// before the platform kills the container.
+function shutdown(signal) {
+  log.info(`${signal} received — draining connections`);
+  server.close(() => {
+    log.info('HTTP server closed');
+    process.exit(0);
+  });
+  // Force exit after 10s if server won't drain
+  setTimeout(() => {
+    log.warn('forced exit after drain timeout');
+    process.exit(1);
+  }, 10000).unref();
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 async function main() {
   // Mark healthy immediately so platform health probes pass (critical for
