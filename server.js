@@ -109,7 +109,7 @@ async function handleApi(req, res, url) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   // Health check — respond immediately for platform probes
-  if (url.pathname === '/health') {
+  if (url.pathname === '/health' || url.pathname === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ ok: true, ready: !!store.lastPoll }));
   }
