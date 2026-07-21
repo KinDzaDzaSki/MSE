@@ -96,22 +96,6 @@ const I18N = {
 let lang = localStorage.getItem('mse_lang') || 'en';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
-// Lazy-loaded on first company modal open (~50KB). Cached in module scope.
-let lwcPromise = null;
-function loadLightweightCharts() {
-  if (window.LightweightCharts) return Promise.resolve(window.LightweightCharts);
-  if (lwcPromise) return lwcPromise;
-  lwcPromise = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
-    s.async = true;
-    s.onload = () => resolve(window.LightweightCharts);
-    s.onerror = () => { lwcPromise = null; reject(new Error('lightweight-charts load failed')); };
-    document.head.appendChild(s);
-  });
-  return lwcPromise;
-}
-
 function applyStaticI18n() {
   const h = $('thead tr');
   $$('th', h)[0].textContent = t('th_symbol');
@@ -170,34 +154,7 @@ async function loadSparkHistory() {
     for (const [sym, rows] of Object.entries(d.queries || {})) {
       historyCache[sym] = { rows, range: '1Y' };
     }
-    // Re-draw now that the data is in — renderTable() ran before this
-    // finished, so the SVGs are still empty. Re-trigger on the existing
-    // rows/sidebar items that had no cache at first paint.
-    redrawSparklines();
   } catch (e) { /* sparklines will load individually on cache miss */ }
-}
-
-function redrawSparklines() {
-  // Clear sparkCache so the same symbols get redrawn with fresh data
-  // (the cache is keyed by symbol; we only redraw rows whose SVGs are still
-  // empty so we don't re-render ones already populated)
-  for (const r of quotesCache.slice(0, 40)) {
-    const sv = $(`svg[data-spark="${r.symbol}"]`);
-    if (!sv) continue;
-    if (sv.children.length === 0 && historyCache[r.symbol]) {
-      delete sparkCache[r.symbol];
-      drawSparkSVG(sv, r.symbol);
-    }
-  }
-  for (const id of ['gainersItems', 'losersItems', 'activeItems']) {
-    $$(`#${id} svg[data-spark-side]`).forEach((sv) => {
-      const sym = sv.getAttribute('data-spark-side');
-      if (sv.children.length === 0 && historyCache[sym]) {
-        delete sparkCache['s_' + sym];
-        drawSparkSVG(sv, sym);
-      }
-    });
-  }
 }
 
 // ---- MBI10 chip ----
@@ -270,7 +227,7 @@ function renderTable() {
     tr.innerHTML = `
       <td class="sym">${r.symbol}</td>
       <td class="comp">${r.name || ''}</td>
-      <td class="spark"><svg class="spark-svg" data-spark="${r.symbol}" viewBox="0 0 64 24" preserveAspectRatio="none"></svg></td>
+      <td class="spark"><canvas data-spark="${r.symbol}"></canvas></td>
       <td class="num">${fmt(r.lastPrice)}</td>
       <td class="num ${pctClass(r.dailyChange)}">${chgStr(r.dailyChange)}</td>
       <td class="num ${pctClass(r.changePct)}">${pctStr(r.changePct)}</td>
@@ -280,8 +237,8 @@ function renderTable() {
     body.appendChild(tr);
   }
   for (const r of rows.slice(0, 40)) {
-    const sv = $(`svg[data-spark="${r.symbol}"]`);
-    if (sv && !sparkCache[r.symbol]) drawSparkSVG(sv, r.symbol);
+    const cv = $(`canvas[data-spark="${r.symbol}"]`);
+    if (cv && !sparkCache[r.symbol]) drawSpark(cv, r.symbol);
   }
 }
 
@@ -296,24 +253,31 @@ function buildRangeBar(r) {
     <div class="wk-range-labels"><span>${fmt(lo, 0)}</span><span>${fmt(hi, 0)}</span></div>`;
 }
 
-// SVG sparkline — replaces Chart.js for tiny inline charts. ~1KB per render
-// vs ~30-60ms Chart.js instance init. Renders directly into the existing <svg>.
-function drawSparkSVG(svg, symbol) {
-  const cached = historyCache[symbol];
-  if (!cached || !cached.rows || cached.rows.length < 2) return;
-  const data = cached.rows.filter((x) => x.last != null).map((x) => x.last);
-  if (data.length < 2) return;
-  const vb = (svg.getAttribute('viewBox') || '0 0 64 24').split(' ').map(Number);
-  const W = vb[2], H = vb[3], pad = 1.5;
-  const min = Math.min(...data), max = Math.max(...data);
-  const range = max - min || 1;
-  const stepX = (W - pad * 2) / (data.length - 1);
-  const normY = (v) => pad + (H - pad * 2) * (1 - (v - min) / range);
-  const d = data.map((v, i) => `${i ? 'L' : 'M'}${(i * stepX + pad).toFixed(1)} ${normY(v).toFixed(1)}`).join(' ');
-  const last = data[data.length - 1], first = data[0];
-  const color = last >= first ? '#16c784' : '#ea3943';
-  svg.innerHTML = `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`;
-  sparkCache[symbol] = true;
+async function drawSpark(canvas, symbol) {
+  try {
+    const cached = historyCache[symbol];
+    let d;
+    if (cached && cached.range === '1Y') {
+      d = { rows: cached.rows };
+    } else {
+      d = await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
+    }
+    const rows = (d.rows || []).filter((x) => x.last != null);
+    const data = rows.map((x) => x.last);
+    const last = data[data.length - 1] || 0;
+    const first = data[0] || last;
+    const color = last >= first ? '#16c784' : '#ea3943';
+    sparkCache[symbol] = new Chart(canvas, {
+      type: 'line',
+      data: { labels: data.map((_, i) => i), datasets: [{ data, borderColor: color, borderWidth: 1.5, pointRadius: 0 }] },
+      options: {
+        responsive: false, animation: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: { x: { display: false }, y: { display: false } },
+        elements: { line: { tension: 0.3 } },
+      },
+    });
+  } catch (e) {}
 }
 
 // ---- SIDEBAR ----
@@ -341,7 +305,7 @@ function renderSidePanel(containerId, items) {
         <div class="si-sym">${r.symbol}</div>
         <div class="si-name">${r.name || ''}</div>
       </div>
-      <div class="si-spark"><svg data-spark-side="${r.symbol}" viewBox="0 0 56 22" preserveAspectRatio="none"></svg></div>
+      <div class="si-spark"><canvas data-spark-side="${r.symbol}"></canvas></div>
       <div class="si-right">
         <div class="si-price">${fmt(r.lastPrice)}</div>
         <div class="si-chg ${pctClass(r.changePct)}">${chgStr(r.dailyChange)} (${pctStr(r.changePct)})</div>
@@ -349,9 +313,34 @@ function renderSidePanel(containerId, items) {
     el.appendChild(div);
   }
   for (const r of items) {
-    const sv = $(`svg[data-spark-side="${r.symbol}"]`);
-    if (sv && !sparkCache['s_' + r.symbol]) drawSparkSVG(sv, r.symbol);
+    const cv = $(`canvas[data-spark-side="${r.symbol}"]`);
+    if (cv && !sparkCache['s_' + r.symbol]) drawSparkSide(cv, r.symbol, r.changePct);
   }
+}
+
+async function drawSparkSide(canvas, symbol, chgPct) {
+  try {
+    const cached = historyCache[symbol];
+    let d;
+    if (cached && cached.range === '1Y') {
+      d = { rows: cached.rows };
+    } else {
+      d = await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
+    }
+    const rows = (d.rows || []).filter((x) => x.last != null);
+    const data = rows.map((x) => x.last);
+    const color = (chgPct != null && chgPct >= 0) ? '#16c784' : '#ea3943';
+    sparkCache['s_' + symbol] = new Chart(canvas, {
+      type: 'line',
+      data: { labels: data.map((_, i) => i), datasets: [{ data, borderColor: color, borderWidth: 1.5, pointRadius: 0 }] },
+      options: {
+        responsive: false, animation: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: { x: { display: false }, y: { display: false } },
+        elements: { line: { tension: 0.3 } },
+      },
+    });
+  } catch (e) {}
 }
 
 // ---- COMPANY MODAL ----
@@ -399,9 +388,9 @@ async function openCompany(symbol) {
         <button data-r="ALL">${t('range_all')}</button>
       </div>
       <div class="chart-box" id="companyChart"></div>`;
-    let chart, candleSeries, volSeries, priceLine, LWC;
+    let chart, candleSeries, volSeries, priceLine;
     let onResize = null;
-    const draw = async (range) => {
+    const draw = (range) => {
       // Slice client-side from fullHistory; no network round-trip on range changes.
       let rows = fullHistory;
       if (range === '1M') rows = rows.slice(-22);
@@ -425,14 +414,13 @@ async function openCompany(symbol) {
         volData.push({ time: ts, value: x.volume || 0, color: close >= open ? 'rgba(22,199,132,0.5)' : 'rgba(234,57,67,0.5)' });
       }
       if (!chart) {
-        LWC = await loadLightweightCharts();
-        chart = LWC.createChart($('#companyChart'), {
+        chart = LightweightCharts.createChart($('#companyChart'), {
           width: $('#companyChart').clientWidth || 760,
           layout: { background: { color: 'transparent' }, textColor: '#a0a8b5', fontSize: 11 },
           grid: { vertLines: { color: '#2a3140' }, horzLines: { color: '#2a3140' } },
           rightPriceScale: { borderColor: '#2a3140' },
           timeScale: { borderColor: '#2a3140', timeVisible: false, secondsVisible: false },
-          crosshair: { mode: LWC.CrosshairMode.Normal, vertLine: { color: '#5b6478', width: 1, style: 2, labelBackgroundColor: '#f5a623' }, horzLine: { color: '#5b6478', width: 1, style: 2, labelBackgroundColor: '#f5a623' } },
+          crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: '#5b6478', width: 1, style: 2, labelBackgroundColor: '#f5a623' }, horzLine: { color: '#5b6478', width: 1, style: 2, labelBackgroundColor: '#f5a623' } },
           localization: { priceFormatter: (p) => fmt(p) },
           height: 360,
         });
@@ -452,7 +440,7 @@ async function openCompany(symbol) {
       const lastClose = candleData.length ? candleData[candleData.length - 1].close : null;
       if (lastClose != null) {
         priceLine = candleSeries.createPriceLine({
-          price: lastClose, color: '#f5a623', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed,
+          price: lastClose, color: '#f5a623', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed,
           axisLabelVisible: true, title: '',
         });
       }
@@ -468,12 +456,12 @@ async function openCompany(symbol) {
         $('#asOf').textContent = `${t('as_of')} ${fmtDate(candleData[candleData.length - 1].time * 1000)} · ${t('eod_note')}`;
       }
     };
-    await draw('1Y');
+    draw('1Y');
     $$('#rangeBtns button').forEach((b) =>
-      b.addEventListener('click', async () => {
+      b.addEventListener('click', () => {
         $$('#rangeBtns button').forEach((x) => x.classList.remove('active'));
         b.classList.add('active');
-        await draw(b.dataset.r);
+        draw(b.dataset.r);
       })
     );
     onResize = () => { if (chart) chart.applyOptions({ width: $('#companyChart').clientWidth }); };
