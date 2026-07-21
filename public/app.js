@@ -170,7 +170,34 @@ async function loadSparkHistory() {
     for (const [sym, rows] of Object.entries(d.queries || {})) {
       historyCache[sym] = { rows, range: '1Y' };
     }
+    // Re-draw now that the data is in — renderTable() ran before this
+    // finished, so the SVGs are still empty. Re-trigger on the existing
+    // rows/sidebar items that had no cache at first paint.
+    redrawSparklines();
   } catch (e) { /* sparklines will load individually on cache miss */ }
+}
+
+function redrawSparklines() {
+  // Clear sparkCache so the same symbols get redrawn with fresh data
+  // (the cache is keyed by symbol; we only redraw rows whose SVGs are still
+  // empty so we don't re-render ones already populated)
+  for (const r of quotesCache.slice(0, 40)) {
+    const sv = $(`svg[data-spark="${r.symbol}"]`);
+    if (!sv) continue;
+    if (sv.children.length === 0 && historyCache[r.symbol]) {
+      delete sparkCache[r.symbol];
+      drawSparkSVG(sv, r.symbol);
+    }
+  }
+  for (const id of ['gainersItems', 'losersItems', 'activeItems']) {
+    $$(`#${id} svg[data-spark-side]`).forEach((sv) => {
+      const sym = sv.getAttribute('data-spark-side');
+      if (sv.children.length === 0 && historyCache[sym]) {
+        delete sparkCache['s_' + sym];
+        drawSparkSVG(sv, sym);
+      }
+    });
+  }
 }
 
 // ---- MBI10 chip ----
