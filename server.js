@@ -2,9 +2,10 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const store = require('./lib/store');
+const log = require('./lib/logger');
 
 const PORT = process.env.PORT || 8080;
-console.log(`[config] PORT env="${process.env.PORT}" listening on=${PORT}`);
+log.info(`config PORT env="${process.env.PORT}" listening on=${PORT}`);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const MIME = {
@@ -122,6 +123,11 @@ async function handleApi(req, res, url) {
     return sendJson(res, { ok: true, lastPoll: store.lastPoll });
   }
 
+  if (url.pathname === '/api/logs') {
+    const n = parseInt(url.searchParams.get('n') || '50', 10);
+    return sendJson(res, { lines: log.getRecent(n) });
+  }
+
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'unknown api' }));
 }
@@ -137,7 +143,7 @@ const server = http.createServer(async (req, res) => {
     try {
       return await handleApi(req, res, url);
     } catch (e) {
-      console.error(e);
+      log.error(`api handler: ${e.message}`);
       return sendJson(res, { error: e.message }, 500);
     }
   }
@@ -156,19 +162,19 @@ async function main() {
   store.markReady();
   // Start listening immediately — init runs async in the background.
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`MSE Clone dashboard listening on 0.0.0.0:${PORT}`);
+    log.info(`MSE Clone dashboard listening on 0.0.0.0:${PORT}`);
   });
   // Warm up in background — don't block server requests.
   store.init()
     .then(() => store.startScheduler({ pollIntervalMs: 60000 }))
-    .catch((e) => console.error('[init] store init error (dashboard still serving health):', e.message));
+    .catch((e) => log.error(`store init error (dashboard still serving health): ${e.message}`));
 }
 
 // Global crash handlers — don't let unhandled errors kill the process silently.
-process.on('uncaughtException', (e) => console.error('[crash] uncaughtException', e.message));
-process.on('unhandledRejection', (e) => console.error('[crash] unhandledRejection', e && e.message));
+process.on('uncaughtException', (e) => log.error(`uncaughtException: ${e.message}`));
+process.on('unhandledRejection', (e) => log.error(`unhandledRejection: ${e && e.message}`));
 
 main().catch((e) => {
-  console.error('FATAL', e);
+  log.error(`FATAL: ${e.message}`);
   process.exit(1);
 });
