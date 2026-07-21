@@ -73,6 +73,25 @@ async function handleApi(req, res, url) {
   const q = url.pathname.match(/^\/api\/quote\/([^/]+)$/);
   if (q) {
     const sym = decodeURIComponent(q[1]);
+    // Special case: MBI10 index — return from indices store instead of quotes
+    if (sym === 'MBI10') {
+      const indices = await store.getIndices();
+      const idx = indices.MBI10;
+      if (idx) {
+        return sendJson(res, {
+          symbol: 'MBI10',
+          name: 'MBI10 Index',
+          lastPrice: idx.value,
+          changePct: idx.changePct,
+          dailyChange: null,
+          volume: null,
+          value: null,
+          trades: null,
+          week52Max: null,
+          week52Min: null,
+        });
+      }
+    }
     const quotes = await store.getQuotes();
     return sendJson(res, quotes[sym] || { symbol: sym, error: 'no data' });
   }
