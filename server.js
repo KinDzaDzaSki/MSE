@@ -151,8 +151,10 @@ const server = http.createServer(async (req, res) => {
 });
 
 async function main() {
-  // Start listening immediately so platform health checks pass (critical for
-  // Cloud Run / suga.app / Fly.io). Init runs async in the background.
+  // Mark healthy immediately so platform health probes pass (critical for
+  // Cloud Run / suga.app — they kill containers that don't show ready in time).
+  store.markReady();
+  // Start listening immediately — init runs async in the background.
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`MSE Clone dashboard listening on 0.0.0.0:${PORT}`);
   });
