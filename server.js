@@ -105,6 +105,13 @@ async function handleApi(req, res, url) {
     return sendJson(res, { symbol: sym, count: rows.length });
   }
 
+  const bfIdx = url.pathname.match(/^\/api\/backfill-index\/([^/]+)$/);
+  if (bfIdx) {
+    const code = decodeURIComponent(bfIdx[1]);
+    const rows = await store.backfillIndexHistory(code);
+    return sendJson(res, { code, count: rows.length });
+  }
+
   const bfAll = url.pathname.match(/^\/api\/backfill-all$/);
   if (bfAll) {
     const syms = store.getSymbols();
