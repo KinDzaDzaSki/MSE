@@ -108,6 +108,11 @@ async function handleApi(req, res, url) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  // Health check — respond immediately for platform probes
+  if (url.pathname === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: true, ready: !!store.lastPoll }));
+  }
   if (url.pathname.startsWith('/api/')) {
     try {
       return await handleApi(req, res, url);
@@ -126,11 +131,18 @@ const server = http.createServer(async (req, res) => {
 });
 
 async function main() {
-  await store.init();
-  store.startScheduler({ pollIntervalMs: 60000 });
+  // Start listening immediately so platform health checks pass (critical for
+  // Cloud Run / suga.app / Fly.io). Init runs async in the background.
   server.listen(PORT, () => {
-    console.log(`MSE Clone dashboard running at http://localhost:${PORT}`);
+    console.log(`MSE Clone dashboard listening on :${PORT}`);
   });
+  // Warm up: fetch symbol list + initial poll (non-blocking to the caller).
+  try {
+    await store.init();
+    store.startScheduler({ pollIntervalMs: 60000 });
+  } catch (e) {
+    console.error('[init] store init error (dashboard still serving health):', e.message);
+  }
 }
 
 main().catch((e) => {
