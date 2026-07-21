@@ -94,7 +94,7 @@ async function handleApi(req, res, url) {
       await store.backfillHistory(s, 365);
       done++;
     }
-    return sendJson(res, { done, total: syms.length });
+    return sendJson(res, { ok: true, symbolsDone: done, total: syms.length });
   }
 
   if (url.pathname === '/api/refresh') {
