@@ -243,7 +243,7 @@ function renderTable() {
   }
   for (const r of rows.slice(0, 40)) {
     const cv = $(`canvas[data-spark="${r.symbol}"]`);
-    if (cv && !sparkCache[r.symbol]) drawSpark(cv, r.symbol);
+    if (cv && !sparkCache[r.symbol]) drawSpark(cv, r.symbol, r.changePct);
   }
   } catch (e) {
     console.error('renderTable failed:', e);
@@ -263,7 +263,7 @@ function buildRangeBar(r) {
     <div class="wk-range-labels"><span>${fmt(lo, 0)}</span><span>${fmt(hi, 0)}</span></div>`;
 }
 
-async function drawSpark(canvas, symbol) {
+async function drawSpark(canvas, symbol, chgPct) {
   try {
     const cached = historyCache[symbol];
     let d;
@@ -272,11 +272,15 @@ async function drawSpark(canvas, symbol) {
     } else {
       d = await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
     }
-    const rows = (d.rows || []).filter((x) => x.last != null);
+    // API returns rows newest-first; sort ascending so the chart reads
+    // left=old, right=new like every other time series on screen.
+    const rows = (d.rows || []).filter((x) => x.last != null)
+      .slice().sort((a, b) => new Date(a.date) - new Date(b.date));
     const data = rows.map((x) => x.last);
-    const last = data[data.length - 1] || 0;
-    const first = data[0] || last;
-    const color = last >= first ? '#16c784' : '#ea3943';
+    // Color follows daily change (the "is today up or down" question),
+    // not the year-long drift. The line shape shows the drift, the
+    // color shows today's direction — those are two different signals.
+    const color = (chgPct != null && chgPct >= 0) ? '#16c784' : '#ea3943';
     sparkCache[symbol] = new Chart(canvas, {
       type: 'line',
       data: { labels: data.map((_, i) => i), datasets: [{ data, borderColor: color, borderWidth: 1.5, pointRadius: 0 }] },
