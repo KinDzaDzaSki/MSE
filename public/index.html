@@ -58,48 +58,50 @@
       <span class="muted" id="lastPoll"></span>
     </div>
     <div class="table-wrap">
-      <table class="quotes">
-        <thead>
-          <tr>
-            <th data-sort="symbol">
-              Symbol
-              <span class="material-symbols-outlined sort-icon">arrow_upward</span>
-            </th>
-            <th data-sort="name">
-              Name
-              <span class="material-symbols-outlined sort-icon">arrow_upward</span>
-            </th>
-            <th class="spark-th">
-              <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--md-sys-color-on-surface-variant);font-variation-settings:'FILL' 0,'wght' 300">show_chart</span>
-            </th>
-            <th class="num" data-sort="lastPrice">
-              Price
-              <span class="material-symbols-outlined sort-icon">arrow_upward</span>
-            </th>
-            <th class="num" data-sort="dailyChange">
-              Change
-              <span class="material-symbols-outlined sort-icon">arrow_upward</span>
-            </th>
-            <th class="num" data-sort="changePct">
-              Change %
-              <span class="material-symbols-outlined sort-icon">arrow_upward</span>
-            </th>
-            <th class="num" data-sort="volume">
-              Volume
-              <span class="material-symbols-outlined sort-icon">arrow_upward</span>
-            </th>
-            <th class="num" data-sort="week52Chg">
-              52 Wk %
-              <span class="material-symbols-outlined sort-icon">arrow_upward</span>
-            </th>
-            <th class="wk-range" data-sort="week52Min">
-              52 Wk Range
-              <span class="material-symbols-outlined sort-icon">arrow_upward</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody id="quotesBody"></tbody>
-      </table>
+      <div class="table-scroll">
+        <table class="quotes">
+          <thead>
+            <tr>
+              <th data-sort="symbol">
+                Symbol
+                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+              </th>
+              <th data-sort="name">
+                Name
+                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+              </th>
+              <th class="spark-th">
+                <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--md-sys-color-on-surface-variant);font-variation-settings:'FILL' 0,'wght' 300">show_chart</span>
+              </th>
+              <th class="num" data-sort="lastPrice">
+                Price
+                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+              </th>
+              <th class="num" data-sort="dailyChange">
+                Change
+                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+              </th>
+              <th class="num" data-sort="changePct">
+                Change %
+                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+              </th>
+              <th class="num" data-sort="volume">
+                Volume
+                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+              </th>
+              <th class="num" data-sort="week52Chg">
+                52 Wk %
+                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+              </th>
+              <th class="wk-range" data-sort="week52Min">
+                52 Wk Range
+                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="quotesBody"></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
