@@ -358,7 +358,7 @@ async function openCompany(symbol) {
     const fullHistory = (hAll.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
     const chg = q.changePct ?? 0;
     const chgAbs = q.dailyChange ?? 0;
-    // Indices (e.g. MBI10) return null for stock-only fields — show a slim card.
+    // Indices (e.g. MBI10) have no stock fields — skip the stat grid entirely.
     const isIndex = q.avgPrice == null && q.volume == null && q.trades == null;
     content.innerHTML = `
       <div class="company-head">
@@ -369,10 +369,7 @@ async function openCompany(symbol) {
       </div>
       <div class="company-sub">${q.name || ''} ${q.isin ? '· ISIN ' + q.isin : ''}</div>
       <div class="as-of" id="asOf"></div>
-      ${isIndex ? `
-      <div class="stat-grid">
-        <div class="stat"><div class="k">${t('last_price')}</div><div class="v">${fmt(q.lastPrice)} MKD</div></div>
-      </div>` : `
+      ${isIndex ? '' : `
       <div class="stat-grid">
         <div class="stat"><div class="k">${t('last_price')}</div><div class="v">${fmt(q.lastPrice)} MKD</div></div>
         <div class="stat"><div class="k">${t('avg_price')}</div><div class="v">${fmt(q.avgPrice)}</div></div>
