@@ -358,13 +358,17 @@ async function openCompany(symbol) {
     const fullHistory = (hAll.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
     const chg = q.changePct ?? 0;
     const chgAbs = q.dailyChange ?? 0;
-    // Indices (e.g. MBI10) have no stock fields — skip the stat grid entirely.
-    const isIndex = q.avgPrice == null && q.volume == null && q.trades == null;
+    // Indices (MBI10 etc.) — detect by symbol, by name, OR by all-null stock fields.
+    // Skip the stat grid entirely for them.
+    const isIndex =
+      symbol === 'MBI10' ||
+      q.name === 'MBI10 Index' ||
+      (q.avgPrice == null && q.volume == null && q.trades == null && q.minPrice == null && q.maxPrice == null);
     content.innerHTML = `
       <div class="company-head">
         <h2>${symbol}</h2>
         <span class="${pctClass(chg)}">
-          <span class="material-symbols-outlined icon-fill" style="font-size:20px;vertical-align:middle">${chg >= 0 ? 'trending_up' : 'trending_down'}</span>
+          <svg class="${chg >= 0 ? 'up' : 'down'}" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:middle"><path d="${chg >= 0 ? 'M3 17l6-6 4 4 8-8v4h2V3h-8v2h4l-6 6-4-4-6 6z' : 'M3 7l6 6 4-4 8 8v-4h2v8h-8v-2h4l-6-6-4 4-6-6z'}"/></svg>
           ${chgStr(chgAbs)} (${pctStr(chg)})</span>
       </div>
       <div class="company-sub">${q.name || ''} ${q.isin ? '· ISIN ' + q.isin : ''}</div>
