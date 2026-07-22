@@ -170,6 +170,7 @@ async function loadMBI() {
 
 // ---- MAIN TABLE ----
 async function loadQuotes() {
+  try {
   const d = await fetch('/api/quotes').then((r) => r.json());
   quotesCache = d.quotes || [];
   if (d.marketOpen) {
@@ -193,6 +194,11 @@ async function loadQuotes() {
   renderTable();
   renderSidebar();
   loadSparkHistory(); // batch-fetch history for sparklines
+  } catch (e) {
+    console.error('loadQuotes failed:', e);
+    const body = $('#quotesBody');
+    if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Failed to load data: ${e.message}</td></tr>`;
+  }
 }
 
 function getFilteredQuotes() {
@@ -203,6 +209,7 @@ function getFilteredQuotes() {
 }
 
 function renderTable() {
+  try {
   const rows = getFilteredQuotes().sort((a, b) => {
     const dir = headerSortDir;
     let cmp;
@@ -219,6 +226,7 @@ function renderTable() {
     return dir === 'asc' ? cmp : -cmp;
   });
   const body = $('#quotesBody');
+  if (!body) { console.error('quotesBody not found'); return; }
   body.innerHTML = '';
   for (const r of rows) {
     const tr = document.createElement('tr');
@@ -239,6 +247,11 @@ function renderTable() {
   for (const r of rows.slice(0, 40)) {
     const cv = $(`canvas[data-spark="${r.symbol}"]`);
     if (cv && !sparkCache[r.symbol]) drawSpark(cv, r.symbol);
+  }
+  } catch (e) {
+    console.error('renderTable failed:', e);
+    const body = $('#quotesBody');
+    if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Render failed: ${e.message}</td></tr>`;
   }
 }
 
