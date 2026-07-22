@@ -442,15 +442,19 @@ a:hover { color: var(--md-sys-color-primary-container); }
   flex: 1;
   min-width: 280px;
 }
-.search-wrapper .material-symbols-outlined {
+.search-wrapper .search-icon {
   position: absolute;
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 22px;
+  width: 22px;
+  height: 22px;
   color: var(--md-sys-color-on-surface-variant);
   pointer-events: none;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 22;
+  transition: color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+}
+.search-wrapper:focus-within .search-icon {
+  color: var(--md-sys-color-primary);
 }
 
 /* Language flag — emoji rendered with native emoji font (not Material Symbols) */
