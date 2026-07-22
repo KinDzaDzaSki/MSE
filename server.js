@@ -30,7 +30,15 @@ function sendFile(res, file) {
       return res.end('Not found');
     }
     const ext = path.extname(file);
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+    // CSS/JS: short cache so CDN picks up new versions quickly.
+    // HTML: no-cache so the latest version (with cache-busting ?v=) always loads.
+    const cacheHeaders = {};
+    if (ext === '.css' || ext === '.js') {
+      cacheHeaders['Cache-Control'] = 'public, max-age=300';
+    } else if (ext === '.html') {
+      cacheHeaders['Cache-Control'] = 'no-cache';
+    }
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', ...cacheHeaders });
     res.end(data);
   });
 }
