@@ -107,7 +107,6 @@ function applyStaticI18n() {
   $$('th', h)[7].textContent = t('th_52w_chg');
   $$('th', h)[8].textContent = t('th_52w_range');
   $('#search').placeholder = t('search');
-  $('#langFlag').textContent = (lang === 'mk' ? '🇲🇰' : '🇬🇧');
   $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')}`;
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
@@ -382,7 +381,7 @@ async function openCompany(symbol) {
       <div class="company-head">
         <h2>${symbol}</h2>
         <span class="${pctClass(chg)}">
-          <svg class="${chg >= 0 ? 'up' : 'down'}" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:middle"><path d="${chg >= 0 ? 'M3 17l6-6 4 4 8-8v4h2V3h-8v2h4l-6 6-4-4-6 6z' : 'M3 7l6 6 4-4 8 8v-4h2v8h-8v-2h4l-6-6-4 4-6-6z'}"/></svg>
+          <span class="material-symbols-outlined icon-fill" style="font-size:20px;vertical-align:middle">${chg >= 0 ? 'trending_up' : 'trending_down'}</span>
           ${chgStr(chgAbs)} (${pctStr(chg)})</span>
       </div>
       <div class="company-sub">${q.name || ''} ${q.isin ? '· ISIN ' + q.isin : ''}</div>
@@ -553,15 +552,14 @@ $('#langToggle').addEventListener('click', () => {
   localStorage.setItem('mse_lang', lang);
   applyStaticI18n();
 });
-// Sync flag on load
-$('#langFlag').textContent = ((localStorage.getItem('mse_lang') || 'en') === 'mk' ? '🇲🇰' : '🇬🇧');
 
 // ---- THEME TOGGLE ----
 const THEME_KEY = 'mse_theme';
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem(THEME_KEY, theme);
-  // Icon visibility is controlled by CSS [data-theme] selectors
+  const icon = $('#themeIcon');
+  icon.textContent = theme === 'light' ? 'light_mode' : 'dark_mode';
 }
 applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
 $('#themeToggle').addEventListener('click', () => {
