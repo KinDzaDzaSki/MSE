@@ -107,7 +107,7 @@ function applyStaticI18n() {
   $$('th', h)[7].textContent = t('th_52w_chg');
   $$('th', h)[8].textContent = t('th_52w_range');
   $('#search').placeholder = t('search');
-  $('#langToggle').title = t('lang_btn');
+  $('#langToggle').textContent = t('lang_btn');
   $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')}`;
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
@@ -358,6 +358,7 @@ async function openCompany(symbol) {
     const fullHistory = (hAll.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
     const chg = q.changePct ?? 0;
     const chgAbs = q.dailyChange ?? 0;
+    // Indices (e.g. MBI10) return null for stock-only fields — show a slim card.
     const isIndex = q.avgPrice == null && q.volume == null && q.trades == null;
     content.innerHTML = `
       <div class="company-head">
@@ -538,29 +539,21 @@ $('#langToggle').addEventListener('click', () => {
   applyStaticI18n();
   $('#langFlag').textContent = lang === 'mk' ? '🇲🇰' : '🇬🇧';
 });
-// Init flag to match stored language
-$('#langFlag').textContent = lang === 'mk' ? '🇲🇰' : '🇬🇧';
+// Sync flag on load
+$('#langFlag').textContent = (localStorage.getItem('mse_lang') || 'en') === 'mk' ? '🇲🇰' : '🇬🇧';
 
 // ---- THEME TOGGLE ----
-function getStoredTheme() {
-  return localStorage.getItem('mse_theme') || 'dark';
-}
-function setTheme(theme) {
+const THEME_KEY = 'mse_theme';
+function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('mse_theme', theme);
+  localStorage.setItem(THEME_KEY, theme);
   const icon = $('#themeIcon');
-  if (theme === 'light') {
-    icon.textContent = 'light_mode';
-  } else {
-    icon.textContent = 'dark_mode';
-  }
+  icon.textContent = theme === 'light' ? 'light_mode' : 'dark_mode';
 }
-// Init theme from storage
-setTheme(getStoredTheme());
-
+applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
 $('#themeToggle').addEventListener('click', () => {
-  const current = document.documentElement.getAttribute('data-theme') || 'dark';
-  setTheme(current === 'dark' ? 'light' : 'dark');
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
 });
 
 (async function init() {

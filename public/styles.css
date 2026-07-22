@@ -3,7 +3,7 @@
    Design tokens: Color system, Typography scale, Shape, Elevation, Spacing
    ========================================================================== */
 
-/* ---- M3 Color Tokens (Dark Theme) ---- */
+/* ---- M3 Color Tokens (Dark Theme — default) ---- */
 :root,
 [data-theme="dark"] {
   /* Primary — Deep Blue (trust, stability, finance) */
@@ -71,28 +71,33 @@
   --md-sys-color-on-secondary-fixed-variant: #544300;
 }
 
-/* ---- M3 Color Tokens (Light Theme) — Financial-grade light mode ---- */
+/* ---- M3 Color Tokens (Light Theme — financial-grade light mode) ---- */
 [data-theme="light"] {
+  /* Primary — brighter blue for white backgrounds */
   --md-sys-color-primary: #1A6DF5;
   --md-sys-color-on-primary: #FFFFFF;
   --md-sys-color-primary-container: #D6E3FF;
   --md-sys-color-on-primary-container: #001B3E;
 
+  /* Secondary — dark gold keeps Macedonian heritage on light bg */
   --md-sys-color-secondary: #B8860B;
   --md-sys-color-on-secondary: #FFFFFF;
   --md-sys-color-secondary-container: #FFDF8A;
   --md-sys-color-on-secondary-container: #3B2E00;
 
+  /* Tertiary — teal */
   --md-sys-color-tertiary: #00897B;
   --md-sys-color-on-tertiary: #FFFFFF;
   --md-sys-color-tertiary-container: #A0F2E6;
   --md-sys-color-on-tertiary-container: #00201D;
 
+  /* Error */
   --md-sys-color-error: #BA1A1A;
   --md-sys-color-on-error: #FFFFFF;
   --md-sys-color-error-container: #FFDAD6;
   --md-sys-color-on-error-container: #410002;
 
+  /* Surface & Background — near-white, soft gray for variant */
   --md-sys-color-surface: #F8F9FB;
   --md-sys-color-on-surface: #1A1D26;
   --md-sys-color-surface-variant: #EDEFF4;
@@ -104,14 +109,17 @@
   --md-sys-color-surface-dim: #D3D8E3;
   --md-sys-color-surface-bright: #F8F9FB;
 
+  /* Surface Tones for elevation */
   --md-sys-color-surface-tone-1: #FFFFFF;
   --md-sys-color-surface-tone-2: #F2F4F9;
   --md-sys-color-surface-tone-3: #EBEDF3;
 
+  /* Inverse */
   --md-sys-color-inverse-surface: #2E3240;
   --md-sys-color-inverse-on-surface: #EDEFF4;
   --md-sys-color-inverse-primary: #AAC7FF;
 
+  /* Semantic — Market movement */
   --md-sys-color-positive: #0FA76C;
   --md-sys-color-on-positive: #FFFFFF;
   --md-sys-color-positive-container: #B8F0D6;
@@ -119,6 +127,7 @@
   --md-sys-color-on-negative: #FFFFFF;
   --md-sys-color-negative-container: #FFD6D6;
 
+  /* Fixed accent colors (keep same across themes) */
   --md-sys-color-primary-fixed: #D6E3FF;
   --md-sys-color-primary-fixed-dim: #AAC7FF;
   --md-sys-color-on-primary-fixed: #001B3E;
@@ -203,11 +212,6 @@
    ========================================================================== */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html {
-  transition: background var(--md-motion-duration-long-1) var(--md-motion-easing-standard),
-              color var(--md-motion-duration-long-1) var(--md-motion-easing-standard);
-}
-
 body {
   font-family: var(--md-ref-typeface-plain);
   font-size: 14px;
@@ -231,21 +235,9 @@ a:hover { color: var(--md-sys-color-primary-container); }
    MATERIAL SYMBOLS ICON HELPER
    ========================================================================== */
 .material-symbols-outlined {
-  font-family: 'Material Symbols Outlined', 'Material Icons', sans-serif;
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-feature-settings: 'liga';
-  -webkit-font-smoothing: antialiased;
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   vertical-align: middle;
+  line-height: 1;
   user-select: none;
 }
 .icon-fill {
@@ -369,13 +361,13 @@ a:hover { color: var(--md-sys-color-primary-container); }
   height: 40px;
   border: none;
   background: transparent;
-  color: var(--md-sys-color-on-surface);
+  color: var(--md-sys-color-on-surface-variant);
   border-radius: var(--md-shape-full);
   cursor: pointer;
   transition: all var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
 .icon-btn:hover {
-  background: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  background: rgba(255,255,255,0.08);
 }
 .icon-btn .material-symbols-outlined {
   font-size: 24px;
@@ -402,19 +394,6 @@ a:hover { color: var(--md-sys-color-primary-container); }
 .lang-toggle:hover {
   border-color: var(--md-sys-color-primary);
   color: var(--md-sys-color-primary);
-}
-
-/* Flag icon button — emoji flags inside M3 icon-btn */
-.icon-btn.flag-btn .lang-flag {
-  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', 'EmojiOne Color', 'Android Emoji', sans-serif;
-  font-size: 22px;
-  line-height: 1;
-  display: inline-block;
-  letter-spacing: 0;
-  font-variant-emoji: emoji;
-  font-feature-settings: normal;
-  /* Ensure the button itself doesn't strip emoji font */
-  -webkit-text-fill-color: initial;
 }
 
 /* ==========================================================================
@@ -452,18 +431,18 @@ a:hover { color: var(--md-sys-color-primary-container); }
    ========================================================================== */
 .toolbar {
   display: flex;
-  gap: var(--md-space-sm);
+  gap: var(--md-space-xs);
   align-items: center;
   margin-bottom: var(--md-space-sm);
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .search-wrapper {
   position: relative;
   flex: 1;
-  min-width: 360px;
+  min-width: 280px;
 }
-.search-wrapper .search-icon {
+.search-wrapper .material-symbols-outlined {
   position: absolute;
   left: 14px;
   top: 50%;
@@ -472,18 +451,21 @@ a:hover { color: var(--md-sys-color-primary-container); }
   color: var(--md-sys-color-on-surface-variant);
   pointer-events: none;
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 22;
-  transition: color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
-  /* Ensure font-family is set explicitly so it renders as an icon, not text */
-  font-family: 'Material Symbols Outlined', 'Material Icons', sans-serif;
 }
-.search-wrapper:focus-within .search-icon {
-  color: var(--md-sys-color-primary);
+
+/* Language flag — emoji rendered with native emoji font (not Material Symbols) */
+.lang-flag {
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', sans-serif;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0;
+  font-variant-emoji: emoji;
 }
 
 .search {
   width: 100%;
-  height: 52px;
-  padding: 0 18px 0 50px;
+  height: 48px;
+  padding: 0 16px 0 46px;
   background: var(--md-sys-color-surface-variant);
   border: 1px solid var(--md-sys-color-outline);
   color: var(--md-sys-color-on-surface);
@@ -491,15 +473,10 @@ a:hover { color: var(--md-sys-color-primary-container); }
   outline: none;
   font-size: 15px;
   font-family: inherit;
-  letter-spacing: 0.15px;
   transition: all var(--md-motion-duration-medium-1) var(--md-motion-easing-standard);
 }
 .search::placeholder {
   color: var(--md-sys-color-on-surface-variant);
-  opacity: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .search:hover {
   border-color: var(--md-sys-color-on-surface-variant);
@@ -507,7 +484,10 @@ a:hover { color: var(--md-sys-color-primary-container); }
 .search:focus {
   border-color: var(--md-sys-color-primary);
   background: var(--md-sys-color-surface);
-  box-shadow: 0 0 0 2px rgba(77, 138, 240, 0.25);
+  box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+}
+.search-wrapper:focus-within .material-symbols-outlined {
+  color: var(--md-sys-color-primary);
 }
 
 .muted {
