@@ -37,8 +37,11 @@
   <div class="topbar-right">
     <span class="market-status" id="marketStatus">—</span>
     <span id="mbiChip">MBI10</span>
-    <button class="icon-btn" id="langToggle" title="Switch language / Промени јазик">
-      <span class="material-symbols-outlined">translate</span>
+    <button class="icon-btn" id="themeToggle" title="Toggle theme / Промени тема">
+      <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+    </button>
+    <button class="icon-btn flag-btn" id="langToggle" title="Switch language / Промени јазик">
+      <span class="lang-flag" id="langFlag">🇬🇧</span>
     </button>
   </div>
 </header>
@@ -49,7 +52,7 @@
   <section class="main-panel">
     <div class="toolbar">
       <div class="search-wrapper">
-        <span class="material-symbols-outlined">search</span>
+        <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
         <input id="search" class="search" placeholder="Search ticker or company…" />
       </div>
       <span class="muted" id="lastPoll"></span>

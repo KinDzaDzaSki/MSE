@@ -107,7 +107,7 @@ function applyStaticI18n() {
   $$('th', h)[7].textContent = t('th_52w_chg');
   $$('th', h)[8].textContent = t('th_52w_range');
   $('#search').placeholder = t('search');
-  $('#langToggle').textContent = t('lang_btn');
+  $('#langToggle').title = t('lang_btn');
   $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')}`;
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
@@ -358,6 +358,7 @@ async function openCompany(symbol) {
     const fullHistory = (hAll.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
     const chg = q.changePct ?? 0;
     const chgAbs = q.dailyChange ?? 0;
+    const isIndex = q.avgPrice == null && q.volume == null && q.trades == null;
     content.innerHTML = `
       <div class="company-head">
         <h2>${symbol}</h2>
@@ -367,6 +368,10 @@ async function openCompany(symbol) {
       </div>
       <div class="company-sub">${q.name || ''} ${q.isin ? '· ISIN ' + q.isin : ''}</div>
       <div class="as-of" id="asOf"></div>
+      ${isIndex ? `
+      <div class="stat-grid">
+        <div class="stat"><div class="k">${t('last_price')}</div><div class="v">${fmt(q.lastPrice)} MKD</div></div>
+      </div>` : `
       <div class="stat-grid">
         <div class="stat"><div class="k">${t('last_price')}</div><div class="v">${fmt(q.lastPrice)} MKD</div></div>
         <div class="stat"><div class="k">${t('avg_price')}</div><div class="v">${fmt(q.avgPrice)}</div></div>
@@ -376,7 +381,7 @@ async function openCompany(symbol) {
         <div class="stat"><div class="k">${t('trades')}</div><div class="v">${fmtInt(q.trades)}</div></div>
         <div class="stat"><div class="k">${t('wk_high')}</div><div class="v">${fmt(q.week52Max)}</div></div>
         <div class="stat"><div class="k">${t('wk_low')}</div><div class="v">${fmt(q.week52Min)}</div></div>
-      </div>
+      </div>`}
       <div class="chart-head">
         <div class="chart-price" id="chartPrice"></div>
         <div class="chart-chg" id="chartChg"></div>
@@ -531,6 +536,31 @@ $('#langToggle').addEventListener('click', () => {
   lang = lang === 'en' ? 'mk' : 'en';
   localStorage.setItem('mse_lang', lang);
   applyStaticI18n();
+  $('#langFlag').textContent = lang === 'mk' ? '🇲🇰' : '🇬🇧';
+});
+// Init flag to match stored language
+$('#langFlag').textContent = lang === 'mk' ? '🇲🇰' : '🇬🇧';
+
+// ---- THEME TOGGLE ----
+function getStoredTheme() {
+  return localStorage.getItem('mse_theme') || 'dark';
+}
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('mse_theme', theme);
+  const icon = $('#themeIcon');
+  if (theme === 'light') {
+    icon.textContent = 'light_mode';
+  } else {
+    icon.textContent = 'dark_mode';
+  }
+}
+// Init theme from storage
+setTheme(getStoredTheme());
+
+$('#themeToggle').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  setTheme(current === 'dark' ? 'light' : 'dark');
 });
 
 (async function init() {
