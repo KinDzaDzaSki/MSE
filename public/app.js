@@ -107,7 +107,7 @@ function applyStaticI18n() {
   $$('th', h)[7].textContent = t('th_52w_chg');
   $$('th', h)[8].textContent = t('th_52w_range');
   $('#search').placeholder = t('search');
-  $('#langText').textContent = t('lang_btn');
+  $('#langFlag').textContent = (lang === 'mk' ? '🇲🇰' : '🇬🇧');
   $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')}`;
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
@@ -358,12 +358,13 @@ async function openCompany(symbol) {
     const fullHistory = (hAll.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
     const chg = q.changePct ?? 0;
     const chgAbs = q.dailyChange ?? 0;
-    // Indices (MBI10 etc.) — detect by symbol, by name, OR by all-null stock fields.
-    // Skip the stat grid entirely for them.
+    // Indices (MBI10 etc.) — most reliable signal: server returns a quote with
+    // 0 trades, 0 volume, 0 turnover, null 52-week range. Stock quotes always
+    // have at least one of these populated.
     const isIndex =
       symbol === 'MBI10' ||
       q.name === 'MBI10 Index' ||
-      (q.avgPrice == null && q.volume == null && q.trades == null && q.minPrice == null && q.maxPrice == null);
+      (q.trades == null && q.volume == null && q.value == null && q.week52Max == null);
     content.innerHTML = `
       <div class="company-head">
         <h2>${symbol}</h2>
@@ -539,15 +540,15 @@ $('#langToggle').addEventListener('click', () => {
   localStorage.setItem('mse_lang', lang);
   applyStaticI18n();
 });
-// Sync lang text on load
-$('#langText').textContent = (localStorage.getItem('mse_lang') || 'en') === 'mk' ? 'МК' : 'EN';
+// Sync flag on load
+$('#langFlag').textContent = ((localStorage.getItem('mse_lang') || 'en') === 'mk' ? '🇲🇰' : '🇬🇧');
 
 // ---- THEME TOGGLE ----
 const THEME_KEY = 'mse_theme';
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem(THEME_KEY, theme);
-  // Icon visibility is controlled by CSS based on [data-theme]
+  // Icon visibility is controlled by CSS [data-theme] selectors
 }
 applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
 $('#themeToggle').addEventListener('click', () => {
