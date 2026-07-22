@@ -10,9 +10,9 @@ let headerSortDir = 'desc';
 // ---- i18n ----
 const I18N = {
   en: {
-      market_open: '🟢 Market Open',
-      market_closed: '⚪ Market Closed',
-      market_closed_at: '⚪ Market Closed · {time}',
+      market_open: '<span class="material-symbols-outlined icon-fill" style="font-size:14px;color:var(--md-sys-color-positive)">signal_cellular_alt</span> Market Open',
+      market_closed: '<span class="material-symbols-outlined" style="font-size:14px">block</span> Market Closed',
+      market_closed_at: '<span class="material-symbols-outlined" style="font-size:14px">block</span> Market Closed · {time}',
       search: 'Search ticker or company…',
       sort_volume: 'Volume',
       sort_change: 'Change %',
@@ -51,9 +51,9 @@ const I18N = {
       lang_btn: 'МК',
     },
     mk: {
-      market_open: '🟢 Пазарот е отворен',
-      market_closed: '⚪ Пазарот е затворен',
-      market_closed_at: '⚪ Пазарот е затворен · {time}',
+      market_open: '<span class="material-symbols-outlined icon-fill" style="font-size:14px;color:var(--md-sys-color-positive)">signal_cellular_alt</span> Пазарот е отворен',
+      market_closed: '<span class="material-symbols-outlined" style="font-size:14px">block</span> Пазарот е затворен',
+      market_closed_at: '<span class="material-symbols-outlined" style="font-size:14px">block</span> Пазарот е затворен · {time}',
       search: 'Пребарај тикер или компанија…',
       sort_volume: 'Волумен',
       sort_change: 'Промена %',
@@ -175,15 +175,15 @@ async function loadQuotes() {
   if (d.marketOpen) {
     const ms = t('market_open');
     const st = $('#marketStatus');
-    st.textContent = ms;
+    st.innerHTML = ms;
     st.className = 'market-status open';
   } else {
     const st = $('#marketStatus');
     if (d.lastPoll) {
       const timeStr = new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
-      st.textContent = t('market_closed_at').replace('{time}', timeStr);
+      st.innerHTML = t('market_closed_at').replace('{time}', timeStr);
     } else {
-      st.textContent = t('market_closed');
+      st.innerHTML = t('market_closed');
     }
     st.className = 'market-status closed';
   }
@@ -361,7 +361,9 @@ async function openCompany(symbol) {
     content.innerHTML = `
       <div class="company-head">
         <h2>${symbol}</h2>
-        <span class="${pctClass(chg)}">${chg >= 0 ? '▲' : '▼'} ${chgStr(chgAbs)} (${pctStr(chg)})</span>
+        <span class="${pctClass(chg)}">
+          <span class="material-symbols-outlined icon-fill" style="font-size:20px;vertical-align:middle">${chg >= 0 ? 'trending_up' : 'trending_down'}</span>
+          ${chgStr(chgAbs)} (${pctStr(chg)})</span>
       </div>
       <div class="company-sub">${q.name || ''} ${q.isin ? '· ISIN ' + q.isin : ''}</div>
       <div class="as-of" id="asOf"></div>

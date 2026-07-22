@@ -1,224 +1,941 @@
+/* ==========================================================================
+   MSE Clone — Material Design 3 Theme (Dark)
+   Design tokens: Color system, Typography scale, Shape, Elevation, Spacing
+   ========================================================================== */
+
+/* ---- M3 Color Tokens (Dark Theme) ---- */
 :root {
-  --bg: #0b0e14;
-  --panel: #151a23;
-  --panel-2: #1c2230;
-  --line: #2a3140;
-  --text: #e6e9ef;
-  --muted: #a0a8b5;
-  --green: #16c784;
-  --red: #ea3943;
-  --accent: #f5a623;
-  --blue: #4d8af0;
-  /* Macedonian national palette (used in brand mark + ticker highlights) */
-  --mk-red: #c8102e;
-  --mk-yellow: #ffeb3b;
+  /* Primary — Deep Blue (trust, stability, finance) */
+  --md-sys-color-primary: #4D8AF0;
+  --md-sys-color-on-primary: #001B3E;
+  --md-sys-color-primary-container: #003A70;
+  --md-sys-color-on-primary-container: #D6E3FF;
+
+  /* Secondary — Gold/Amber (Macedonian heritage, gains) */
+  --md-sys-color-secondary: #FFD845;
+  --md-sys-color-on-secondary: #3B2E00;
+  --md-sys-color-secondary-container: #544300;
+  --md-sys-color-on-secondary-container: #FFDF8A;
+
+  /* Tertiary — Teal (neutral info, indices) */
+  --md-sys-color-tertiary: #2EC4B6;
+  --md-sys-color-on-tertiary: #003734;
+  --md-sys-color-tertiary-container: #00504A;
+  --md-sys-color-on-tertiary-container: #55F0E0;
+
+  /* Error */
+  --md-sys-color-error: #FFB4AB;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000A;
+  --md-sys-color-on-error-container: #FFDAD6;
+
+  /* Surface & Background */
+  --md-sys-color-surface: #0B0E14;
+  --md-sys-color-on-surface: #E6E9EF;
+  --md-sys-color-surface-variant: #1C2230;
+  --md-sys-color-on-surface-variant: #A0A8B5;
+  --md-sys-color-outline: #2A3140;
+  --md-sys-color-outline-variant: #434B5C;
+  --md-sys-color-background: #070A0F;
+  --md-sys-color-on-background: #E6E9EF;
+  --md-sys-color-surface-dim: #0B0E14;
+  --md-sys-color-surface-bright: #2A3140;
+
+  /* Surface Tones for elevation */
+  --md-sys-color-surface-tone-1: #11151D;
+  --md-sys-color-surface-tone-2: #151A23;
+  --md-sys-color-surface-tone-3: #1A212D;
+
+  /* Inverse */
+  --md-sys-color-inverse-surface: #E6E9EF;
+  --md-sys-color-inverse-on-surface: #0B0E14;
+  --md-sys-color-inverse-primary: #004A9F;
+
+  /* Semantic — Market movement (outside M3 spec, but essential here) */
+  --md-sys-color-positive: #16C784;
+  --md-sys-color-on-positive: #00391E;
+  --md-sys-color-positive-container: #00522B;
+  --md-sys-color-negative: #EA3943;
+  --md-sys-color-on-negative: #600009;
+  --md-sys-color-negative-container: #8C0014;
+
+  /* Fixed accent colors (keep same across themes) */
+  --md-sys-color-primary-fixed: #D6E3FF;
+  --md-sys-color-primary-fixed-dim: #AAC7FF;
+  --md-sys-color-on-primary-fixed: #001B3E;
+  --md-sys-color-on-primary-fixed-variant: #003A70;
+  --md-sys-color-secondary-fixed: #FFDF8A;
+  --md-sys-color-secondary-fixed-dim: #FDC43F;
+  --md-sys-color-on-secondary-fixed: #3B2E00;
+  --md-sys-color-on-secondary-fixed-variant: #544300;
 }
+
+/* ---- M3 Typography Scale ---- */
+:root {
+  --md-typeset-display-large: 57px/64px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-display-medium: 45px/52px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-display-small: 36px/44px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-headline-large: 32px/40px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-headline-medium: 28px/36px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-headline-small: 24px/32px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-title-large: 22px/28px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-title-medium: 16px/24px 500 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-title-small: 14px/20px 500 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-body-large: 16px/24px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-body-medium: 14px/20px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-body-small: 12px/16px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-label-large: 14px/20px 500 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-label-medium: 12px/16px 500 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-typeset-label-small: 11px/16px 500 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --md-ref-typeface-plain: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --md-ref-typeface-brand: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --md-ref-typeface-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+
+/* ---- M3 Shape Scale ---- */
+:root {
+  --md-shape-none: 0px;
+  --md-shape-extra-small: 4px;
+  --md-shape-small: 8px;
+  --md-shape-medium: 12px;
+  --md-shape-large: 16px;
+  --md-shape-extra-large: 28px;
+  --md-shape-full: 9999px;
+}
+
+/* ---- M3 Elevation (shadows) ---- */
+:root {
+  --md-elevation-level-0: none;
+  --md-elevation-level-1: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15);
+  --md-elevation-level-2: 0 1px 2px rgba(0,0,0,0.3), 0 2px 6px 2px rgba(0,0,0,0.15);
+  --md-elevation-level-3: 0 4px 8px 3px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.3);
+  --md-elevation-level-4: 0 6px 10px 4px rgba(0,0,0,0.15), 0 2px 3px rgba(0,0,0,0.3);
+  --md-elevation-level-5: 0 8px 12px 6px rgba(0,0,0,0.15), 0 4px 4px rgba(0,0,0,0.3);
+}
+
+/* ---- M3 Motion ---- */
+:root {
+  --md-motion-duration-short-1: 50ms;
+  --md-motion-duration-short-2: 100ms;
+  --md-motion-duration-medium-1: 200ms;
+  --md-motion-duration-medium-2: 400ms;
+  --md-motion-duration-long-1: 500ms;
+  --md-motion-duration-long-2: 600ms;
+  --md-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --md-motion-easing-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-motion-easing-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --md-motion-easing-emphasized: cubic-bezier(0.3, 0, 0, 1);
+}
+
+/* ---- M3 Spacing Scale ---- */
+:root {
+  --md-space-xxs: 4px;
+  --md-space-xs: 8px;
+  --md-space-sm: 12px;
+  --md-space-md: 16px;
+  --md-space-lg: 24px;
+  --md-space-xl: 32px;
+  --md-space-xxl: 48px;
+}
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 13px;
-  line-height: 1.4;
+  font-family: var(--md-ref-typeface-plain);
+  font-size: 14px;
+  line-height: 20px;
+  background: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-surface);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-a { color: var(--blue); text-decoration: none; }
+
+a {
+  color: var(--md-sys-color-primary);
+  text-decoration: none;
+  transition: color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+}
+a:hover { color: var(--md-sys-color-primary-container); }
+
 .hidden { display: none !important; }
 
-/* TOPBAR */
-.topbar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 16px;
-  background: linear-gradient(180deg, var(--panel) 0%, color-mix(in srgb, var(--panel) 92%, #000) 100%);
-  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10;
+/* ==========================================================================
+   MATERIAL SYMBOLS ICON HELPER
+   ========================================================================== */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+  line-height: 1;
+  user-select: none;
 }
-.brand { display: flex; align-items: center; gap: 10px; }
-.logo { width: 28px; height: 28px; flex-shrink: 0; }
-.brand-text { display: flex; flex-direction: column; line-height: 1.1; }
-.brand-name { font-weight: 700; font-size: 14px; letter-spacing: 0.2px; }
-.brand-sub  { font-size: 10px; color: var(--muted); letter-spacing: 0.3px; margin-top: 1px; }
-.topbar-right { display: flex; align-items: center; gap: 14px; }
-.market-status { font-weight: 600; font-size: 12px; }
-.market-status.open { color: var(--green); }
-.market-status.closed { color: var(--muted); }
-.mbi-chip { font-size: 12px; color: var(--muted); }
-.mbi-chip .mbi-val { color: var(--text); font-weight: 700; }
-.mbi-chip .mbi-chg { font-weight: 600; }
-.lang-toggle {
-  background: var(--panel-2); border: 1px solid var(--line);
-  color: var(--text); padding: 4px 10px; border-radius: 4px;
-  cursor: pointer; font-weight: 700; font-size: 12px;
+.icon-fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
-.lang-toggle:hover { border-color: var(--accent); }
 
-/* LAYOUT */
+/* ==========================================================================
+   TOPBAR — M3 App Bar
+   ========================================================================== */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 var(--md-space-md);
+  background: var(--md-sys-color-surface);
+  border-bottom: 1px solid var(--md-sys-color-outline);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-sm);
+}
+.brand-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--md-sys-color-primary-container);
+  border-radius: var(--md-shape-small);
+  color: var(--md-sys-color-on-primary-container);
+  flex-shrink: 0;
+}
+.brand-icon .material-symbols-outlined {
+  font-size: 20px;
+}
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.brand-name {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.15px;
+  color: var(--md-sys-color-on-surface);
+}
+.brand-sub {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-top: 1px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-md);
+}
+
+.market-status {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  padding: 4px 10px;
+  border-radius: var(--md-shape-full);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.market-status.open {
+  color: var(--md-sys-color-on-positive);
+  background: var(--md-sys-color-positive-container);
+}
+.market-status.closed {
+  color: var(--md-sys-color-on-surface-variant);
+  background: transparent;
+  border: 1px solid var(--md-sys-color-outline);
+}
+
+/* MBI10 Index Chip — M3 Chip style */
+#mbiChip {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  padding: 4px 12px;
+  border-radius: var(--md-shape-small);
+  border: 1px solid var(--md-sys-color-outline);
+  background: var(--md-sys-color-surface-variant);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+  white-space: nowrap;
+}
+#mbiChip:hover {
+  border-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-primary);
+}
+#mbiChip .mbi-val {
+  color: var(--md-sys-color-on-surface);
+  font-weight: 700;
+}
+#mbiChip .mbi-chg {
+  font-weight: 600;
+}
+
+/* Icon Button */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  border-radius: var(--md-shape-full);
+  cursor: pointer;
+  transition: all var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+}
+.icon-btn:hover {
+  background: rgba(255,255,255,0.08);
+}
+.icon-btn .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  min-width: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--md-sys-color-outline);
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  border-radius: var(--md-shape-full);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  letter-spacing: 0.3px;
+  transition: all var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+}
+.lang-toggle:hover {
+  border-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-primary);
+}
+
+/* ==========================================================================
+   LAYOUT — M3 Responsive Grid
+   ========================================================================== */
 .layout {
   display: grid;
   grid-template-columns: 1fr 320px;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: var(--md-space-md);
+  padding: var(--md-space-md) var(--md-space-md);
   max-width: 1440px;
   margin: 0 auto;
+  height: calc(100vh - 56px - 44px);
+  overflow: hidden;
 }
-.main-panel { min-width: 0; }
-.sidebar { display: flex; flex-direction: column; gap: 12px; }
 
-/* TOOLBAR */
-.toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.main-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-sm);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--md-sys-color-outline) transparent;
+}
+
+/* ==========================================================================
+   TOOLBAR
+   ========================================================================== */
+.toolbar {
+  display: flex;
+  gap: var(--md-space-xs);
+  align-items: center;
+  margin-bottom: var(--md-space-sm);
+  flex-wrap: wrap;
+}
+
 .search-wrapper {
   position: relative;
   flex: 1;
   min-width: 180px;
 }
-.search-wrapper::before {
-  content: '🔍';
+.search-wrapper .material-symbols-outlined {
   position: absolute;
-  left: 10px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 14px;
-  opacity: 0.6;
+  font-size: 20px;
+  color: var(--md-sys-color-on-surface-variant);
   pointer-events: none;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
 }
+
 .search {
-  flex: 1; min-width: 180px;
-  background: var(--panel); border: 1px solid var(--line); color: var(--text);
-  padding: 8px 10px 8px 36px; border-radius: 6px; outline: none; font-size: 13px;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px 0 40px;
+  background: var(--md-sys-color-surface-variant);
+  border: 1px solid var(--md-sys-color-outline);
+  color: var(--md-sys-color-on-surface);
+  border-radius: var(--md-shape-extra-small);
+  outline: none;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all var(--md-motion-duration-medium-1) var(--md-motion-easing-standard);
 }
-.search:focus { border-color: var(--accent); }
-.muted { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.search::placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+}
+.search:hover {
+  border-color: var(--md-sys-color-on-surface-variant);
+}
+.search:focus {
+  border-color: var(--md-sys-color-primary);
+  background: var(--md-sys-color-surface);
+  box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+}
+.search:focus + .search-wrapper .material-symbols-outlined {
+  color: var(--md-sys-color-primary);
+}
 
-/* MBI10 index chip — clickable opens chart modal */
-#mbiChip { cursor: pointer; }
-#mbiChip:hover { color: var(--accent); }
+.muted {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  white-space: nowrap;
+  font-weight: 500;
+}
 
-/* TABLE */
+/* ==========================================================================
+   TABLE CARD — M3 Elevated Card
+   ========================================================================== */
 .table-wrap {
-  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
-  overflow-x: auto;
+  background: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-medium);
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
-table.quotes { width: 100%; border-collapse: collapse; white-space: nowrap; }
-table.quotes th, table.quotes td {
-  padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line);
-  font-size: 12px;
-}
-table.quotes th {
-  color: var(--muted); font-weight: 600; font-size: 11px;
-  text-transform: uppercase; letter-spacing: 0.3px;
-  user-select: none;
-}
-table.quotes th[data-sort] { cursor: pointer; }
-table.quotes th[data-sort]:hover { color: var(--text); }
-table.quotes th[data-sort]::after {
-  content: ''; display: inline-block; margin-left: 4px; opacity: 0; font-size: 9px;
-}
-table.quotes th.sorted-asc { color: var(--accent); }
-table.quotes th.sorted-desc { color: var(--accent); }
-table.quotes th.sorted-asc::after { content: '▲'; opacity: 1; }
-table.quotes th.sorted-desc::after { content: '▼'; opacity: 1; }
-table.quotes th.num, table.quotes td.num { text-align: right; font-variant-numeric: tabular-nums; }
-table.quotes thead th.spark-th { width: 70px; }
-table.quotes tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
-table.quotes tbody tr:hover { background: var(--panel-2); cursor: pointer; }
-.sym { font-weight: 700; color: var(--mk-yellow); letter-spacing: 0.2px; }
-.comp { color: var(--muted); max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
-.up { color: var(--green); }
-.down { color: var(--red); }
-.spark { width: 70px; }
-.spark canvas { width: 64px !important; height: 24px !important; }
 
-/* 52 WK RANGE BAR */
-.wk-range { width: 140px; }
+table.quotes {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+table.quotes thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+table.quotes th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--md-sys-color-on-surface-variant);
+  background: var(--md-sys-color-surface);
+  border-bottom: 1px solid var(--md-sys-color-outline);
+  user-select: none;
+  white-space: nowrap;
+}
+
+table.quotes td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  font-feature-settings: 'tnum' 1;
+}
+
+table.quotes tbody tr {
+  transition: background var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+}
+table.quotes tbody tr:last-child td {
+  border-bottom: none;
+}
+table.quotes tbody tr:hover {
+  background: var(--md-sys-color-surface-variant);
+  cursor: pointer;
+}
+
+/* Sortable headers */
+table.quotes th[data-sort] {
+  cursor: pointer;
+  transition: color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+}
+table.quotes th[data-sort]:hover {
+  color: var(--md-sys-color-primary);
+}
+table.quotes th[data-sort] .sort-icon {
+  display: inline-block;
+  vertical-align: middle;
+  font-size: 16px;
+  opacity: 0;
+  margin-left: 2px;
+  line-height: 1;
+}
+table.quotes th.sorted-asc,
+table.quotes th.sorted-desc {
+  color: var(--md-sys-color-primary);
+}
+table.quotes th.sorted-asc .sort-icon,
+table.quotes th.sorted-desc .sort-icon {
+  opacity: 1;
+}
+table.quotes th.sorted-asc .sort-icon {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+table.quotes th.sorted-desc .sort-icon {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+
+table.quotes th.num,
+table.quotes td.num {
+  text-align: right;
+}
+
+table.quotes thead th.spark-th {
+  width: 72px;
+  text-align: center;
+}
+
+.sym {
+  font-weight: 600;
+  color: var(--md-sys-color-primary);
+  letter-spacing: 0.3px;
+  font-feature-settings: 'tnum' 1, 'calt' 1;
+}
+
+.comp {
+  color: var(--md-sys-color-on-surface-variant);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 400;
+}
+
+.up {
+  color: var(--md-sys-color-positive);
+}
+.down {
+  color: var(--md-sys-color-negative);
+}
+
+/* Sparkline cell */
+.spark {
+  text-align: center;
+}
+.spark canvas {
+  width: 64px !important;
+  height: 24px !important;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* ---- 52 WK RANGE BAR ---- */
+.wk-range {
+  width: 140px;
+}
 .wk-range-bar {
-  position: relative; width: 120px; height: 16px; background: var(--line);
-  border-radius: 3px; overflow: visible;
+  position: relative;
+  width: 120px;
+  height: 4px;
+  background: var(--md-sys-color-outline);
+  border-radius: var(--md-shape-full);
+  overflow: visible;
 }
 .wk-range-fill {
-  position: absolute; top: 0; height: 100%; border-radius: 3px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: var(--md-shape-full);
+  opacity: 0.6;
 }
 .wk-range-pointer {
-  position: absolute; top: 0; width: 3px; height: 100%;
-  background: var(--text); border-radius: 1px;
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--md-shape-full);
+  background: var(--md-sys-color-on-surface);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 .wk-range-labels {
-  display: flex; justify-content: space-between; font-size: 10px; color: var(--muted);
-  margin-top: 2px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-top: 4px;
+  font-feature-settings: 'tnum' 1;
 }
 
-/* SIDEBAR CARDS */
+/* ==========================================================================
+   SIDEBAR CARDS — M3 Elevated Cards
+   ========================================================================== */
 .side-card {
-  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  background: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-medium);
   overflow: hidden;
+  transition: box-shadow var(--md-motion-duration-medium-1) var(--md-motion-easing-standard);
 }
+
 .side-title {
-  font-size: 16px; font-weight: 700; padding: 12px 14px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  padding: 14px 14px 8px;
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.side-items { display: flex; flex-direction: column; }
+.side-title .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.side-items {
+  display: flex;
+  flex-direction: column;
+}
+
 .side-item {
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: 6px; align-items: center;
-  padding: 8px 14px; border-top: 1px solid var(--line);
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
   cursor: pointer;
+  transition: background var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
-.side-item:hover { background: var(--panel-2); }
-.side-item .si-left { min-width: 0; }
-.side-item .si-sym { font-weight: 700; color: var(--mk-yellow); font-size: 13px; letter-spacing: 0.2px; }
-.side-item .si-name { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.side-item .si-spark { width: 60px; }
-.side-item .si-spark canvas { width: 56px !important; height: 22px !important; }
-.side-item .si-right { text-align: right; white-space: nowrap; }
-.side-item .si-price { font-weight: 700; font-size: 13px; }
-.side-item .si-chg { font-size: 12px; font-weight: 600; }
+.side-item:hover {
+  background: var(--md-sys-color-surface-variant);
+}
 
-/* MODAL */
+.side-item .si-left {
+  min-width: 0;
+}
+.side-item .si-sym {
+  font-weight: 600;
+  color: var(--md-sys-color-primary);
+  font-size: 13px;
+  letter-spacing: 0.2px;
+}
+.side-item .si-name {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-item .si-spark {
+  width: 60px;
+}
+.side-item .si-spark canvas {
+  width: 56px !important;
+  height: 22px !important;
+}
+.side-item .si-right {
+  text-align: right;
+  white-space: nowrap;
+}
+.side-item .si-price {
+  font-weight: 600;
+  font-size: 13px;
+  font-feature-settings: 'tnum' 1;
+}
+.side-item .si-chg {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   MODAL — M3 Dialog / Modal
+   ========================================================================== */
 .modal {
-  position: fixed; inset: 0; background: rgba(0,0,0,.65);
-  display: flex; align-items: flex-start; justify-content: center;
-  padding: 30px 16px; z-index: 50; overflow: auto;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 16px;
+  z-index: 50;
+  overflow: auto;
+  animation: modalFadeIn var(--md-motion-duration-medium-1) var(--md-motion-easing-decelerate);
 }
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .modal-card {
-  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-  width: 100%; max-width: 860px; padding: 18px 22px; position: relative;
+  background: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-large);
+  box-shadow: var(--md-elevation-level-3);
+  width: 100%;
+  max-width: 860px;
+  padding: 24px;
+  position: relative;
+  animation: modalSlideUp var(--md-motion-duration-medium-2) var(--md-motion-easing-emphasized);
+  margin-top: 32px;
 }
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .close {
-  position: absolute; right: 12px; top: 8px; background: none; border: none;
-  color: var(--muted); font-size: 24px; cursor: pointer;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant);
+  border-radius: var(--md-shape-full);
+  cursor: pointer;
+  transition: all var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
-.company-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 2px; }
-.company-head h2 { margin: 0; font-size: 20px; }
-.company-sub { color: var(--muted); margin-bottom: 4px; font-size: 13px; }
-.as-of { color: var(--muted); font-size: 11px; margin-bottom: 12px; font-style: italic; }
+.close:hover {
+  background: var(--md-sys-color-surface-variant);
+}
+.close .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.company-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.company-head h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.company-sub {
+  color: var(--md-sys-color-on-surface-variant);
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.as-of {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  margin-bottom: var(--md-space-md);
+  font-style: italic;
+}
+
+/* Stats grid — M3 Data Display */
 .stat-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(110px,1fr));
-  gap: 8px; margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: var(--md-space-lg);
 }
-.stat { background: var(--panel-2); border-radius: 6px; padding: 8px 10px; }
-.stat .k { color: var(--muted); font-size: 10px; text-transform: uppercase; }
-.stat .v { font-size: 15px; font-weight: 700; margin-top: 1px; }
-.range-btns { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+
+.stat {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--md-shape-small);
+  padding: 12px 14px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+.stat .k {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.stat .v {
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 2px;
+  font-feature-settings: 'tnum' 1;
+  color: var(--md-sys-color-on-surface);
+}
+
+/* Range buttons — M3 Segmented Button style */
+.range-btns {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--md-shape-small);
+  padding: 3px;
+  width: fit-content;
+  border: 1px solid var(--md-sys-color-outline);
+}
 .range-btns button {
-  background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
-  padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px;
+  background: transparent;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant);
+  padding: 5px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: inherit;
+  letter-spacing: 0.3px;
+  transition: all var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
-.range-btns button.active { background: var(--accent); color: #1a1205; border-color: var(--accent); }
-.chart-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
-.chart-price { font-size: 22px; font-weight: 800; }
-.chart-chg { font-size: 14px; font-weight: 700; }
-.chart-period { font-size: 11px; color: var(--muted); margin-left: auto; align-self: center; }
-.chart-box { background: var(--panel-2); border-radius: 8px; padding: 12px; min-height: 360px; }
+.range-btns button:hover {
+  color: var(--md-sys-color-on-surface);
+}
+.range-btns button.active {
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-primary);
+  box-shadow: var(--md-elevation-level-1);
+}
 
+/* Chart area */
+.chart-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.chart-price {
+  font-size: 24px;
+  font-weight: 700;
+  font-feature-settings: 'tnum' 1;
+  color: var(--md-sys-color-on-surface);
+}
+.chart-chg {
+  font-size: 15px;
+  font-weight: 600;
+}
+.chart-period {
+  font-size: 11px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-left: auto;
+  align-self: center;
+}
+
+.chart-box {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--md-shape-small);
+  padding: 12px;
+  min-height: 360px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
 .foot {
-  text-align: center; color: var(--muted); padding: 14px;
-  font-size: 11px; border-top: 1px solid var(--line);
+  text-align: center;
+  color: var(--md-sys-color-on-surface-variant);
+  padding: 12px;
+  font-size: 11px;
+  border-top: 1px solid var(--md-sys-color-outline);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* RESPONSIVE */
-@media (max-width: 1024px) {
-  .layout { grid-template-columns: 1fr; }
-  .sidebar { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+/* ==========================================================================
+   SCROLLBAR STYLING
+   ========================================================================== */
+.table-wrap::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
+.table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+.table-wrap::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline);
+  border-radius: var(--md-shape-full);
+}
+.table-wrap::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-on-surface-variant);
+}
+
+/* ==========================================================================
+   RESPONSIVE — M3 Breakpoints
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+  }
+  .sidebar {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    overflow: visible;
+  }
+}
+
 @media (max-width: 720px) {
-  .sidebar { grid-template-columns: 1fr; }
+  .topbar {
+    height: 48px;
+    padding: 0 var(--md-space-sm);
+  }
+  .brand-sub { display: none; }
+  .layout {
+    padding: var(--md-space-xs);
+    gap: var(--md-space-xs);
+  }
+  .sidebar {
+    grid-template-columns: 1fr;
+  }
+  .modal { padding: 16px 8px; }
+  .modal-card { padding: 16px; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .range-btns { width: 100%; }
+  .range-btns button { flex: 1; text-align: center; }
+  .market-status { font-size: 11px; padding: 2px 8px; }
+  #mbiChip { font-size: 11px; padding: 2px 8px; }
+}
+
+@media (max-width: 480px) {
+  .topbar .brand-name { font-size: 13px; }
+  .search-wrapper { min-width: 120px; }
+  .table-wrap { border-radius: var(--md-shape-small); }
 }
