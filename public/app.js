@@ -37,13 +37,12 @@ const I18N = {
       day_range: 'Day Range',
       turnover_l: 'Turnover',
       trades: 'Trades',
-      wk_high: '52w High',
-      wk_low: '52w Low',
       range_1m: '1M',
       range_3m: '3M',
       range_6m: '6M',
       range_1y: '1Y',
       range_all: 'All',
+      range_52w: '52w Position',
       as_of: 'As of',
       eod_note: 'end-of-day data (latest trading session)',
       failed: 'Failed to load data.',
@@ -78,13 +77,12 @@ const I18N = {
       day_range: 'Дневен опсег',
       turnover_l: 'Промет',
       trades: 'Трансакции',
-      wk_high: '52н Макс',
-      wk_low: '52н Мин',
       range_1m: '1М',
       range_3m: '3М',
       range_6m: '6М',
       range_1y: '1Г',
       range_all: 'Сите',
+      range_52w: '52н Позиција',
       as_of: 'За',
       eod_note: 'податоци на крај на ден (последната трговска сесија)',
       failed: 'Не успеа вчитувањето на податоците.',
@@ -386,17 +384,48 @@ async function openCompany(symbol) {
       </div>
       <div class="company-sub">${q.name || ''} ${q.isin ? '· ISIN ' + q.isin : ''}</div>
       <div class="as-of" id="asOf"></div>
-      ${isIndex ? '' : `
-      <div class="stat-grid">
-        <div class="stat"><div class="k">${t('last_price')}</div><div class="v">${fmt(q.lastPrice)} MKD</div></div>
-        <div class="stat"><div class="k">${t('avg_price')}</div><div class="v">${fmt(q.avgPrice)}</div></div>
-        <div class="stat"><div class="k">${t('day_range')}</div><div class="v">${fmt(q.minPrice)} – ${fmt(q.maxPrice)}</div></div>
-        <div class="stat"><div class="k">${t('volume')}</div><div class="v">${fmtInt(q.volume)}</div></div>
-        <div class="stat"><div class="k">${t('turnover_l')}</div><div class="v">${fmtInt(q.value)} MKD</div></div>
-        <div class="stat"><div class="k">${t('trades')}</div><div class="v">${fmtInt(q.trades)}</div></div>
-        <div class="stat"><div class="k">${t('wk_high')}</div><div class="v">${fmt(q.week52Max)}</div></div>
-        <div class="stat"><div class="k">${t('wk_low')}</div><div class="v">${fmt(q.week52Min)}</div></div>
-      </div>`}
+      ${isIndex ? '' : (() => {
+        const lo = q.minPrice, hi = q.maxPrice, lo52 = q.week52Min, hi52 = q.week52Max;
+        const pos = (cur, a, b) => (cur != null && a != null && b != null && b > a) ? Math.max(0, Math.min(100, ((cur - a) / (b - a)) * 100)) : null;
+        const dayPct = pos(q.lastPrice, lo, hi);
+        const yrPct = pos(q.lastPrice, lo52, hi52);
+        const bar = (pct, lo2, hi2) => {
+          if (pct == null) return '';
+          return `<div class="stat-bar" aria-hidden="true"><div class="stat-bar-fill" style="left:${pct.toFixed(1)}%"></div>` +
+            (lo2 != null ? `<div class="stat-bar-end stat-bar-low">${fmt(lo2, 0)}</div>` : '') +
+            (hi2 != null ? `<div class="stat-bar-end stat-bar-high">${fmt(hi2, 0)}</div>` : '') +
+            `</div>`;
+        };
+        return `
+      <div class="stat-grid stat-grid-primary">
+        <div class="stat">
+          <div class="k">${t('last_price')}</div>
+          <div class="v">${fmt(q.lastPrice)}</div>
+          <div class="u">MKD</div>
+        </div>
+        <div class="stat">
+          <div class="k">${t('avg_price')}</div>
+          <div class="v">${fmt(q.avgPrice)}</div>
+          <div class="u">MKD</div>
+        </div>
+        <div class="stat stat-with-bar">
+          <div class="k">${t('day_range')}</div>
+          <div class="v">${fmt(lo, 0)} – ${fmt(hi, 0)}</div>
+          ${bar(dayPct)}
+        </div>
+        <div class="stat stat-with-bar">
+          <div class="k">${t('range_52w')}</div>
+          <div class="v">${yrPct == null ? '—' : yrPct.toFixed(0) + '%'}</div>
+          ${bar(yrPct, lo52, hi52)}
+        </div>
+      </div>
+      <div class="stat-grid stat-grid-secondary">
+        <div class="stat"><div class="k">${t('volume')}</div><div class="v-sm">${fmtInt(q.volume)}</div></div>
+        <div class="stat"><div class="k">${t('turnover_l')}</div><div class="v-sm">${fmtInt(q.value)}<span class="u-sm"> MKD</span></div></div>
+        <div class="stat"><div class="k">${t('trades')}</div><div class="v-sm">${fmtInt(q.trades)}</div></div>
+        <div class="stat"><div class="k">P/E</div><div class="v-sm">${q.peRatio != null ? fmt(q.peRatio) : '—'}</div></div>
+      </div>`;
+      })()}
       <div class="chart-head">
         <div class="chart-price" id="chartPrice"></div>
         <div class="chart-chg" id="chartChg"></div>

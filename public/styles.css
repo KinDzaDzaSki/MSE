@@ -859,12 +859,19 @@ table.quotes thead th.spark-th {
   font-style: italic;
 }
 
-/* Stats grid — M3 Data Display */
+/* Stats grid — M3 Data Display
+   Row A (primary): price facts at a glance, with mini bars for ranges
+   Row B (secondary): activity metrics, compact + dimmer */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
-  margin-bottom: var(--md-space-lg);
+  margin-bottom: var(--md-space-md);
+}
+.stat-grid-primary {
+  grid-template-columns: repeat(4, 1fr);
+}
+.stat-grid-secondary {
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .stat {
@@ -872,6 +879,7 @@ table.quotes thead th.spark-th {
   border-radius: var(--md-shape-small);
   padding: 12px 14px;
   border: 1px solid var(--md-sys-color-outline-variant);
+  min-width: 0;  /* prevent grid blowout from long numbers */
 }
 .stat .k {
   color: var(--md-sys-color-on-surface-variant);
@@ -881,12 +889,87 @@ table.quotes thead th.spark-th {
   letter-spacing: 0.5px;
 }
 .stat .v {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
+  margin-top: 4px;
+  font-feature-settings: 'tnum' 1;
+  color: var(--md-sys-color-on-surface);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat .u {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--md-sys-color-on-surface-variant);
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+.stat .v-sm {
+  font-size: 14px;
+  font-weight: 600;
   margin-top: 2px;
   font-feature-settings: 'tnum' 1;
   color: var(--md-sys-color-on-surface);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+.stat .u-sm {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-left: 2px;
+}
+.stat-grid-secondary .stat {
+  padding: 10px 12px;
+  background: transparent;
+  border-color: transparent;
+}
+.stat-grid-secondary .stat .k {
+  font-size: 10px;
+}
+.stat-grid-secondary .stat .v-sm {
+  font-size: 15px;
+}
+
+/* Range-bar inside a stat cell (day range, 52w position).
+   4px tall track with a 6px circle marker showing where the current
+   price sits. End-labels sit just outside the track, micro-sized. */
+.stat-with-bar .v {
+  margin-bottom: 10px;
+}
+.stat-bar {
+  position: relative;
+  height: 4px;
+  background: var(--md-sys-color-outline-variant);
+  border-radius: 2px;
+  margin-top: 2px;
+}
+.stat-bar-fill {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--md-sys-color-primary);
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--md-sys-color-surface);
+  box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+}
+.stat-bar-end {
+  position: absolute;
+  top: 8px;
+  font-size: 10px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-feature-settings: 'tnum' 1;
+  line-height: 1;
+}
+.stat-bar-low  { left: 0; }
+.stat-bar-high { right: 0; text-align: right; }
 
 /* Range buttons — M3 Segmented Button style */
 .range-btns {
@@ -1018,7 +1101,8 @@ table.quotes thead th.spark-th {
   }
   .modal { padding: 16px 8px; }
   .modal-card { padding: 16px; }
-  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-grid-primary,
+  .stat-grid-secondary { grid-template-columns: repeat(2, 1fr); }
   .range-btns { width: 100%; }
   .range-btns button { flex: 1; text-align: center; }
   .market-status { font-size: 11px; padding: 2px 8px; }
