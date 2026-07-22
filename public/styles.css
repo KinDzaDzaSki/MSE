@@ -359,18 +359,40 @@ a:hover { color: var(--md-sys-color-primary-container); }
   justify-content: center;
   width: 40px;
   height: 40px;
+  padding: 0;
   border: none;
   background: transparent;
-  color: var(--md-sys-color-on-surface-variant);
+  color: var(--md-sys-color-on-surface);
   border-radius: var(--md-shape-full);
   cursor: pointer;
-  transition: all var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+  transition: background var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+  flex-shrink: 0;
 }
 .icon-btn:hover {
-  background: rgba(255,255,255,0.08);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
 }
-.icon-btn .material-symbols-outlined {
-  font-size: 24px;
+.icon-btn svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+  color: inherit;
+}
+
+/* Theme toggle: show dark icon in light theme, light icon in dark theme */
+[data-theme="light"] .theme-icon-dark { display: block; }
+[data-theme="light"] .theme-icon-light { display: none; }
+[data-theme="dark"] .theme-icon-dark { display: none; }
+[data-theme="dark"] .theme-icon-light { display: block; }
+
+/* Language toggle: globe icon + text label */
+.lang-icon {
+  margin-right: 2px;
+}
+.lang-text {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--md-sys-color-on-surface);
 }
 
 .lang-toggle {
@@ -471,13 +493,16 @@ a:hover { color: var(--md-sys-color-primary-container); }
   box-shadow: 0 0 0 1px var(--md-sys-color-primary);
 }
 
-/* Language flag — emoji rendered with native emoji font (not Material Symbols) */
-.lang-flag {
-  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', sans-serif;
-  font-size: 20px;
-  line-height: 1;
-  letter-spacing: 0;
-  font-variant-emoji: emoji;
+/* Language toggle: globe icon + text label */
+.icon-btn#langToggle {
+  width: auto;
+  min-width: 40px;
+  padding: 0 12px 0 10px;
+  gap: 4px;
+}
+.icon-btn#langToggle svg {
+  width: 18px;
+  height: 18px;
 }
 
 .muted {

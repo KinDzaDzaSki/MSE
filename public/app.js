@@ -107,7 +107,7 @@ function applyStaticI18n() {
   $$('th', h)[7].textContent = t('th_52w_chg');
   $$('th', h)[8].textContent = t('th_52w_range');
   $('#search').placeholder = t('search');
-  $('#langToggle').textContent = t('lang_btn');
+  $('#langText').textContent = t('lang_btn');
   $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')}`;
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
@@ -534,18 +534,16 @@ $('#langToggle').addEventListener('click', () => {
   lang = lang === 'en' ? 'mk' : 'en';
   localStorage.setItem('mse_lang', lang);
   applyStaticI18n();
-  $('#langFlag').textContent = lang === 'mk' ? '🇲🇰' : '🇬🇧';
 });
-// Sync flag on load
-$('#langFlag').textContent = (localStorage.getItem('mse_lang') || 'en') === 'mk' ? '🇲🇰' : '🇬🇧';
+// Sync lang text on load
+$('#langText').textContent = (localStorage.getItem('mse_lang') || 'en') === 'mk' ? 'МК' : 'EN';
 
 // ---- THEME TOGGLE ----
 const THEME_KEY = 'mse_theme';
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem(THEME_KEY, theme);
-  const icon = $('#themeIcon');
-  icon.textContent = theme === 'light' ? 'light_mode' : 'dark_mode';
+  // Icon visibility is controlled by CSS based on [data-theme]
 }
 applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
 $('#themeToggle').addEventListener('click', () => {
