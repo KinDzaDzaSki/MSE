@@ -48,6 +48,63 @@ const I18N = {
       failed: 'Failed to load data.',
       source: 'Data scraped from mse.mk — free public end-of-day data — for educational use.',
       lang_btn: 'МК',
+      tab_chart: 'Chart',
+      tab_fin_data: 'Financial Data',
+      tab_ratios: 'Financial Ratios',
+      fin_no_data: 'No financial data available.',
+      fin_no_ratios: 'No financial ratios available.',
+      fin_note_000: '* data in 000 MKD',
+      tab_analysis: 'Analysis',
+      analysis_rating: 'Rating',
+      analysis_technical: 'Technical Analysis',
+      analysis_fundamental: 'Fundamental Analysis',
+      analysis_verdict: 'Analyst Verdict',
+      analysis_buy: 'BUY',
+      analysis_hold: 'HOLD',
+      analysis_sell: 'SELL',
+      analysis_confidence: 'Confidence',
+      analysis_sma50: '50-day SMA',
+      analysis_sma200: '200-day SMA',
+      analysis_rsi: 'RSI (14)',
+      analysis_52w: '52-Week Position',
+      analysis_momentum: 'Momentum',
+      analysis_volume_trend: 'Volume Trend',
+      analysis_pe: 'P/E Valuation',
+      analysis_eps_growth: 'EPS Growth',
+      analysis_revenue_growth: 'Revenue Growth',
+      analysis_roe: 'ROE Trend',
+      analysis_div_yield: 'Dividend Yield',
+      analysis_volatility: 'Volatility',
+      analysis_strength: 'Strength',
+      analysis_weakness: 'Weakness',
+      analysis_neutral: 'Neutral',
+      analysis_overbought: 'Overbought territory',
+      analysis_oversold: 'Oversold territory',
+      analysis_uptrend: 'Uptrend',
+      analysis_downtrend: 'Downtrend',
+      analysis_signals: 'Signals',
+      analysis_positive: 'Positive',
+      analysis_negative: 'Negative',
+      // Tooltip explanations (EN)
+      tt_sma50: 'The 50-day simple moving average. Price above it = short-term uptrend. Below = short-term downtrend.',
+      tt_sma200: 'The 200-day simple moving average. Price above it = long-term uptrend. Below = long-term downtrend.',
+      tt_rsi: 'Relative Strength Index (14 periods). Above 70 = overbought (may fall). Below 30 = oversold (may rise). 30–70 = neutral.',
+      tt_52w: 'Where the current price sits in the 52-week range. Below 25% = near yearly low. Above 75% = near yearly high.',
+      tt_momentum: 'Price change over the last 20 trading days. Positive = buying pressure. Negative = selling pressure.',
+      tt_volume: 'Recent avg volume vs long-term avg. Rising volume confirms trends. Falling volume signals weakening interest.',
+      tt_pe: 'Price-to-Earnings ratio. Lower P/E may indicate undervaluation; higher P/E may indicate overvaluation. Context-dependent by sector.',
+      tt_eps: 'Year-over-year change in Earnings Per Share. Rising EPS = improving profitability. Falling EPS = declining earnings.',
+      tt_revenue: 'Year-over-year change in total revenue. Growing revenue = business expansion. Shrinking revenue = warning sign.',
+      tt_roe: 'Return on Equity. Measures how effectively the company generates profit from shareholder capital. Improving = better efficiency.',
+      tt_div: 'Annual dividend per share ÷ stock price. Higher yield = more income, but can also signal a falling stock price.',
+      analysis_methodology: 'Methodology & Limitations',
+      analysis_methodology_lines: [
+        '❌ Not based on any specific financial expert or framework — no Graham, Buffett, Lynch, Dalio, or any investment bank methodology',
+        '❌ Not a DCF model — no discounted cash flow, no terminal value, no WACC',
+        '❌ Not sector-aware — a P/E of 20 might be cheap for pharma but expensive for a bank; this system treats them the same',
+        '❌ No risk adjustment — no beta, no Sharpe ratio, no volatility weighting',
+        '❌ No comparative analysis — doesn\'t compare against sector peers or the broader market (MBI10)',
+      ],
     },
     mk: {
       market_open: '<span class="material-symbols-outlined icon-fill" style="font-size:14px;color:var(--md-sys-color-positive)">signal_cellular_alt</span> Пазарот е отворен',
@@ -88,11 +145,92 @@ const I18N = {
       failed: 'Не успеа вчитувањето на податоците.',
       source: 'Податоци преземени од mse.mk — бесплатни јавни податоци — за едукативна намена.',
       lang_btn: 'EN',
+      tab_chart: 'Графикон',
+      tab_fin_data: 'Податоци',
+      tab_ratios: 'Показатели',
+      fin_no_data: 'Нема финансиски податоци.',
+      fin_no_ratios: 'Нема финансиски показатели.',
+      fin_note_000: '* податоците се во 000 денари',
+      tab_analysis: 'Анализа',
+      analysis_rating: 'Рејтинг',
+      analysis_technical: 'Техничка анализа',
+      analysis_fundamental: 'Фундаментална анализа',
+      analysis_verdict: 'Аналитички преглед',
+      analysis_buy: 'КУПИ',
+      analysis_hold: 'ДРЖИ',
+      analysis_sell: 'ПРОДАЈ',
+      analysis_confidence: 'Сигурност',
+      analysis_sma50: '50-дневен ПП',
+      analysis_sma200: '200-дневен ПП',
+      analysis_rsi: 'RSI (14)',
+      analysis_52w: '52-неделна позиција',
+      analysis_momentum: 'Моментум',
+      analysis_volume_trend: 'Тренд на волумен',
+      analysis_pe: 'P/E Вреднување',
+      analysis_eps_growth: 'Раст на EPS',
+      analysis_revenue_growth: 'Раст на приход',
+      analysis_roe: 'Тренд на ROE',
+      analysis_div_yield: 'Дивидентен принос',
+      analysis_volatility: 'Волатилност',
+      analysis_strength: 'Предност',
+      analysis_weakness: 'Слабост',
+      analysis_neutral: 'Неутрално',
+      analysis_overbought: 'Прекупена територија',
+      analysis_oversold: 'Препродадена територија',
+      analysis_uptrend: 'Растечки тренд',
+      analysis_downtrend: 'Паѓачки тренд',
+      analysis_signals: 'Сигнали',
+      analysis_positive: 'Позитивни',
+      analysis_negative: 'Негативни',
+      tt_sma50: '50-дневен прост просек. Цената над него = краткорочен растечки тренд. Подолу = краткорочен пад.',
+      tt_sma200: '200-дневен прост просек. Цената над него = долгорочен растечки тренд. Подолу = долгорочен пад.',
+      tt_rsi: 'Индекс на релативна сила (14 периоди). Над 70 = прекупено (може да падне). Под 30 = препродадено (може да порасне). 30–70 = неутрално.',
+      tt_52w: 'Каде стои цената во 52-неделниот опсег. Под 25% = близу годишно дно. Над 75% = близу годишен врв.',
+      tt_momentum: 'Промена на цената во последните 20 дена. Позитивен = притисок за купување. Негативен = притисок за продавање.',
+      tt_volume: 'Неодамнешен просечен волумен наспроти долгорочен. Раст на волумен ги потврдува трендовите. Пад сигнализира слабеење.',
+      tt_pe: 'Однос цена/заработка. Понизок P/E = можна потценетост. Повисок = можна преценетост. Зависи од секторот.',
+      tt_eps: 'Годишна промена на заработка по акција. Раст = подобрување на профитабилноста. Пад = намалување на заработката.',
+      tt_revenue: 'Годишна промена на вкупниот приход. Раст = проширување на бизнисот. Пад = знак за предупредување.',
+      tt_roe: 'Поврат на капиталот. Мери колку ефикасно компанијата генерира профит од капиталот. Подобрување = подобра ефикасност.',
+      tt_div: 'Годишна дивиденда по акција ÷ цена на акција. Повисок принос = повеќе приход, но може да значи и пад на цената.',
+      analysis_methodology: 'Методологија и ограничувања',
+      analysis_methodology_lines: [
+        '❌ Не се заснова на ниту еден специфичен финансиски експерт или рамка — без Graham, Buffett, Lynch, Dalio или методологија на инвестициска банка',
+        '❌ Не е DCF модел — без дисконтирани парични текови, без терминална вредност, без WACC',
+        '❌ Не е секторски свесен — P/E од 20 може да биде евтино за фармација, но скапо за банка; овој систем ги третира исто',
+        '❌ Без прилагодување за ризик — без бета, без Sharpe ratio, без пондерирање на волатилност',
+        '❌ Без компаративна анализа — не споредува со секторски колеги или поширокиот пазар (MBI10)',
+      ],
     },
 };
 
 let lang = localStorage.getItem('mse_lang') || 'en';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
+
+// EN → MK translation map for financial data / ratios labels
+const FIN_LABELS_MK = {
+  'Total Revenue from operation Activities': 'Вкупен приход од редовни активности',
+  'Operating profit': 'Оперативна добивка',
+  'Net profit': 'Добивка по оданочување',
+  'Equity': 'Главнина',
+  'Total liabilities': 'Вкупно обврски',
+  'Total assets': 'Вкупно средства',
+  'Market capitalization': 'Пазарна капитализација',
+  'Return on sales': 'Оперативна добивка/Приход од продажба (ROS)',
+  'Net earnings per share (EPS)': 'Нето добивка по акција (EPS)',
+  'Return on assets': 'Поврат на вкупните средства (ROA)',
+  'Return on equity': 'Поврат на капиталот (ROE)',
+  'Price to earnings': 'Коефициент цена/ добивка по акција',
+  'Book value per share': 'Книговодствена вредност по акција',
+  'Price to Book Value': 'Коефициент цена/книговодствена вредност по акција',
+  'Dividend Per Share': 'Дивиденда по акција',
+  'Dividend yield': 'Дивиденден принос',
+};
+function tl(label) {
+  // Translate a financial label; pass-through if EN or unknown
+  if (lang === 'mk' && FIN_LABELS_MK[label]) return FIN_LABELS_MK[label];
+  return label;
+}
 
 function applyStaticI18n() {
   const h = $('thead tr');
@@ -109,6 +247,14 @@ function applyStaticI18n() {
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
   $$('.side-title')[2].textContent = t('active');
+  // Financial tab labels
+  const tabBtns = $$('.fin-tab');
+  if (tabBtns.length >= 4) {
+    tabBtns[0].textContent = t('tab_chart');
+    tabBtns[1].textContent = t('tab_fin_data');
+    tabBtns[2].textContent = t('tab_ratios');
+    tabBtns[3].textContent = t('tab_analysis');
+  }
 }
 
 function fmt(n, dec = 2) {
@@ -138,20 +284,61 @@ function fmtDate(ts) {
 }
 
 // ---- batch history loader (replaces N individual sparkline API calls) ----
-async function loadSparkHistory() {
-  const needed = new Set();
-  // First 40 table rows + up to 15 sidebar items
-  for (const r of quotesCache.slice(0, 55)) {
-    const sym = r.symbol;
-    if (!historyCache[sym]) needed.add(sym);
-  }
-  if (!needed.size) return;
-  try {
-    const d = await fetch(`/api/history?symbols=${[...needed].join(',')}&range=1Y`).then((r) => r.json());
-    for (const [sym, rows] of Object.entries(d.queries || {})) {
-      historyCache[sym] = { rows, range: '1Y' };
+function redrawSparklines() {
+  // Gather all canvases that need a sparkline drawn
+  const all = [];
+  $$('canvas[data-spark]').forEach(cv => {
+    const sym = cv.dataset.spark;
+    if (sym && !sparkCache[sym] && historyCache[sym]) {
+      const quote = quotesCache.find(r => r.symbol === sym);
+      if (quote) all.push({ cv, sym, side: false, quote });
     }
-  } catch (e) { /* sparklines will load individually on cache miss */ }
+  });
+  $$('canvas[data-spark-side]').forEach(cv => {
+    const sym = cv.dataset.sparkSide;
+    if (sym && !sparkCache['s_' + sym] && historyCache[sym]) {
+      const quote = quotesCache.find(r => r.symbol === sym);
+      if (quote) all.push({ cv, sym, side: true, quote });
+    }
+  });
+  // Draw in batches of 20 per animation frame to avoid a multi-second
+  // main-thread freeze (Chart.js init ~15ms per instance × 140+ rows).
+  if (!all.length) return;
+  let i = 0;
+  function nextBatch() {
+    const end = Math.min(i + 20, all.length);
+    for (; i < end; i++) {
+      const { cv, sym, side, quote } = all[i];
+      if (side) drawSparkSide(cv, sym, quote.changePct);
+      else drawSpark(cv, sym, quote.changePct);
+    }
+    if (i < all.length) requestAnimationFrame(nextBatch);
+  }
+  requestAnimationFrame(nextBatch);
+}
+
+async function loadSparkHistory() {
+  // Cover every visible row (all quotes, not just first 55) so sparklines
+  // can be drawn for the full list, not just the top of the page.
+  const needed = new Set();
+  for (const r of quotesCache) {
+    if (!historyCache[r.symbol]) needed.add(r.symbol);
+  }
+  if (!needed.size) { redrawSparklines(); return; }
+  try {
+    // Split into chunks of 30 to avoid URL-length / server limits on the
+    // batch endpoint.
+    const syms = [...needed];
+    const CHUNK = 30;
+    for (let i = 0; i < syms.length; i += CHUNK) {
+      const slice = syms.slice(i, i + CHUNK);
+      const d = await fetch(`/api/history?symbols=${slice.join(',')}&range=1Y`).then((r) => r.json());
+      for (const [sym, rows] of Object.entries(d.queries || {})) {
+        historyCache[sym] = { rows, range: '1Y' };
+      }
+    }
+    redrawSparklines(); // re-draw empty canvases now that cache is populated
+  } catch (e) { /* fallback: per-symbol fetch on draw */ }
 }
 
 // ---- MBI10 chip ----
@@ -165,12 +352,42 @@ async function loadMBI() {
   } catch (e) {}
 }
 
+// Tracks the latest known market state so the UI knows whether it makes
+// sense to refetch on the next poll. Updated from each loadQuotes() response.
+let marketIsOpen = true;
+
+// 1Y sparkline history refreshes at most once per hour while the market is
+// open. Daily bars don't change meaningfully in 30s — and definitely don't
+// change at all while the market is closed. The 30s quote poll still
+// updates prices on the table without re-fetching history.
+const HISTORY_REFRESH_MS = 60 * 60 * 1000; // 1 hour
+let lastHistoryFetch = 0;
+if (typeof window !== 'undefined') { window.__lastHistoryFetch = () => lastHistoryFetch; window.__setLastHistoryFetch = (t) => { lastHistoryFetch = t; }; }
+
 // ---- MAIN TABLE ----
 async function loadQuotes() {
   try {
   const d = await fetch('/api/quotes').then((r) => r.json());
+  marketIsOpen = !!d.marketOpen;
+  const hasData = quotesCache && quotesCache.length > 0;
+
+  // Market closed AND we already have data: don't blow away the table
+  // (which would destroy sparklines) or re-fetch spark history. Just
+  // refresh the "as of" timestamp so the user knows how stale the data is.
+  if (!marketIsOpen && hasData) {
+    if (d.lastPoll) {
+      const timeStr = new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
+      const st = $('#marketStatus');
+      st.innerHTML = t('market_closed_at').replace('{time}', timeStr);
+      st.className = 'market-status closed';
+      $('#lastPoll').textContent = `${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString()}`;
+    }
+    return;
+  }
+
+  // Market open (or first load with no data yet): do the full refresh.
   quotesCache = d.quotes || [];
-  if (d.marketOpen) {
+  if (marketIsOpen) {
     const ms = t('market_open');
     const st = $('#marketStatus');
     st.innerHTML = ms;
@@ -190,12 +407,30 @@ async function loadQuotes() {
   }
   renderTable();
   renderSidebar();
-  loadSparkHistory(); // batch-fetch history for sparklines
+  // Sparkline history only refreshes once per hour while market is open.
+  // First load (lastHistoryFetch=0) always goes through; after that the
+  // 30s quote poll skips the history call until the hour elapses.
+  const now = Date.now();
+  if (marketIsOpen && (now - lastHistoryFetch) >= HISTORY_REFRESH_MS) {
+    lastHistoryFetch = now;
+    loadSparkHistory();
+  }
   } catch (e) {
     console.error('loadQuotes failed:', e);
     const body = $('#quotesBody');
     if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Failed to load data: ${e.message}</td></tr>`;
   }
+}
+
+// Schedule the next poll only if the market is currently open; otherwise
+// wait until the next regular interval to re-check. This avoids 30s of
+// pointless work between market close and the next open.
+function scheduleNextPoll() {
+  const interval = marketIsOpen ? 30000 : 60000; // slower checks while closed
+  setTimeout(async () => {
+    await loadQuotes();
+    scheduleNextPoll();
+  }, interval);
 }
 
 function getFilteredQuotes() {
@@ -225,6 +460,10 @@ function renderTable() {
   const body = $('#quotesBody');
   if (!body) { console.error('quotesBody not found'); return; }
   body.innerHTML = '';
+  // Wipe sparkCache — previous Chart.js instances are bound to the now-removed
+  // canvases. Without this, redrawSparklines sees truthy cache entries and
+  // skips drawing the freshly-created empty canvases.
+  sparkCache = {};
   for (const r of rows) {
     const tr = document.createElement('tr');
     tr.dataset.sym = r.symbol;
@@ -243,8 +482,13 @@ function renderTable() {
   }
   for (const r of rows.slice(0, 40)) {
     const cv = $(`canvas[data-spark="${r.symbol}"]`);
-    if (cv && !sparkCache[r.symbol]) drawSpark(cv, r.symbol, r.changePct);
+    if (cv && !sparkCache[r.symbol] && historyCache[r.symbol]) {
+      drawSpark(cv, r.symbol, r.changePct);
+    }
   }
+  // Deferred draw for remaining rows (beyond 40) — avoids 100+ Chart.js
+  // inits blocking the main thread on a single frame.
+  if (rows.length > 40) setTimeout(redrawSparklines, 0);
   } catch (e) {
     console.error('renderTable failed:', e);
     const body = $('#quotesBody');
@@ -310,6 +554,8 @@ function renderSidebar() {
 function renderSidePanel(containerId, items) {
   const el = $(`#${containerId}`);
   el.innerHTML = '';
+  // Sidebar canvases are also destroyed and recreated — wipe those cache entries.
+  for (const r of items) delete sparkCache['s_' + r.symbol];
   for (const r of items) {
     const div = document.createElement('div');
     div.className = 'side-item';
@@ -363,22 +609,35 @@ async function openCompany(symbol) {
   const content = $('#companyContent');
   modal.classList.remove('hidden');
   content.innerHTML = `<div class="muted">${t('loading')}</div>`;
+
+  // Reset tab panels
+  const tabBar = $('#finTabBar');
+  const chartSection = $('#chartSection');
+  const finDataContent = $('#finDataContent');
+  const finRatiosContent = $('#finRatiosContent');
+  const analysisContent = $('#analysisContent');
+  chartSection.innerHTML = '';
+  finDataContent.innerHTML = '';
+  finRatiosContent.innerHTML = '';
+  analysisContent.innerHTML = '';
+
   try {
-    const [q, hAll] = await Promise.all([
+    const [q, hAll, fin, mbi10h] = await Promise.all([
       fetch(`/api/quote/${symbol}`).then((r) => r.json()),
       fetch(`/api/history/${symbol}?range=ALL`).then((r) => r.json()),
+      fetch(`/api/financials/${symbol}`).then((r) => r.json()),
+      fetch('/api/history/MBI10?range=1Y').then((r) => r.json()),
     ]);
     // Cache full history once per modal open; range buttons slice client-side.
     const fullHistory = (hAll.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
     const chg = q.changePct ?? 0;
     const chgAbs = q.dailyChange ?? 0;
-    // Indices (MBI10 etc.) — most reliable signal: server returns a quote with
-    // 0 trades, 0 volume, 0 turnover, null 52-week range. Stock quotes always
-    // have at least one of these populated.
     const isIndex =
       symbol === 'MBI10' ||
       q.name === 'MBI10 Index' ||
       (q.trades == null && q.volume == null && q.value == null && q.week52Max == null);
+
+    // Render header + stats into companyContent (no chart section)
     content.innerHTML = `
       <div class="company-head">
         <h2>${symbol}</h2>
@@ -429,7 +688,13 @@ async function openCompany(symbol) {
         <div class="stat"><div class="k">${t('trades')}</div><div class="v-sm">${fmtInt(q.trades)}</div></div>
         <div class="stat"><div class="k">P/E</div><div class="v-sm">${q.peRatio != null ? fmt(q.peRatio) : '—'}</div></div>
       </div>`;
-      })()}
+      })()}`;
+
+    // Show tab bar (always visible now)
+    tabBar.classList.remove('hidden');
+
+    // Render chart into chartSection
+    chartSection.innerHTML = `
       <div class="chart-head">
         <div class="chart-price" id="chartPrice"></div>
         <div class="chart-chg" id="chartChg"></div>
@@ -443,17 +708,49 @@ async function openCompany(symbol) {
         <button data-r="ALL">${t('range_all')}</button>
       </div>
       <div class="chart-box" id="companyChart"></div>`;
+
+    // Render financial tables
+    const hasFinData = fin.financialData && fin.financialData.rows && fin.financialData.rows.length > 0;
+    const hasRatios = fin.financialRatios && fin.financialRatios.rows && fin.financialRatios.rows.length > 0;
+
+    if (hasFinData) {
+      finDataContent.innerHTML = buildFinTable(fin.financialData, false);
+    } else {
+      finDataContent.innerHTML = `<div class="muted" style="padding:20px;text-align:center">${t('fin_no_data')}</div>`;
+    }
+    if (hasRatios) {
+      finRatiosContent.innerHTML = buildFinTable(fin.financialRatios, true);
+    } else {
+      finRatiosContent.innerHTML = `<div class="muted" style="padding:20px;text-align:center">${t('fin_no_ratios')}</div>`;
+    }
+
+    // Render analysis (always available, no extra data needed)
+    const mbi10Rows = (mbi10h.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+    const analysis = buildAnalysisData(q, fullHistory, fin, mbi10Rows);
+    analysisContent.innerHTML = buildAnalysisHTML(analysis);
+
+    // Hide tabs with no data
+    const tabs = $$('.fin-tab');
+    tabs[0].classList.remove('hidden'); // Chart always visible
+    tabs[1].classList.toggle('hidden', !hasFinData);
+    tabs[2].classList.toggle('hidden', !hasRatios);
+    tabs[3].classList.remove('hidden'); // Analysis always visible
+
+    // Activate Chart tab by default
+    tabs.forEach(t => t.classList.remove('active'));
+    tabs[0].classList.add('active');
+    $$('.fin-tab-panel').forEach(p => p.classList.add('hidden'));
+    $('#finTabChart').classList.remove('hidden');
+
+    // ---- Chart logic (unchanged) ----
     let chart, candleSeries, volSeries, priceLine;
     let onResize = null;
     const draw = (range) => {
-      // Slice client-side from fullHistory; no network round-trip on range changes.
       let rows = fullHistory;
       if (range === '1M') rows = rows.slice(-22);
       else if (range === '3M') rows = rows.slice(-66);
       else if (range === '6M') rows = rows.slice(-132);
       else if (range === '1Y') rows = rows.slice(-252);
-      // Normalize history prices to match the live quote's current close (MSE history/quote
-      // endpoints occasionally use different price scales for the same symbol).
       const histLast = rows.length ? rows[rows.length - 1].last : null;
       const factor = (histLast && q.lastPrice && histLast !== q.lastPrice) ? q.lastPrice / histLast : 1;
       const candleData = [];
@@ -522,14 +819,451 @@ async function openCompany(symbol) {
     onResize = () => { if (chart) chart.applyOptions({ width: $('#companyChart').clientWidth }); };
     window.addEventListener('resize', onResize);
     setTimeout(onResize, 0);
-    const mc = $('#companyModal');
-    mc._chart = chart;
-    mc._resizeHandler = onResize;
-    mc.addEventListener('click', (e) => { if (e.target.id === 'companyModal' && chart) { chart.remove(); chart = null; } }, { once: true });
+    modal._chart = chart;
+    modal._resizeHandler = onResize;
   } catch (e) {
     content.innerHTML = `<div class="down">${t('failed')}</div>`;
   }
 }
+
+function buildFinTable(data, isRatios) {
+  const years = data.years || [];
+  const rows = data.rows || [];
+  if (!rows.length) return '';
+  // Number format: en uses commas, mk uses periods as thousands separator
+  const fmtNum = (v) => lang === 'mk' ? v.replace(/,/g, '.') : v;
+  let html = '<table class="fin-table">';
+  html += '<thead><tr><th></th>';
+  for (const y of years) html += `<th class="num">${y}</th>`;
+  html += '</tr></thead><tbody>';
+  for (const row of rows) {
+    html += '<tr>';
+    html += `<td class="fin-label">${tl(row[0])}</td>`;
+    for (let i = 1; i < row.length; i++) {
+      const val = row[i] || '—';
+      const isPct = typeof val === 'string' && val.includes('%');
+      const isNum = /^[\d.,]+$/.test(val.replace('%', ''));
+      const cls = isNum ? 'num' : '';
+      html += `<td class="${cls}">${isNum ? fmtNum(val) : val}</td>`;
+    }
+    // Fill missing cells if years > row values
+    for (let i = row.length; i <= years.length; i++) {
+      html += '<td class="num">—</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  if (!isRatios) {
+    html += `<div class="fin-note">${t('fin_note_000')}</div>`;
+  }
+  return html;
+}
+
+// ---- ANALYSIS ENGINE ----
+// Parses a number string (e.g. "1,254.61", "10.64%") to a float
+function pNum(s) {
+  if (s == null) return null;
+  const clean = String(s).replace(/,/g, '').replace('%', '');
+  const n = parseFloat(clean);
+  return isNaN(n) ? null : n;
+}
+
+function buildAnalysisData(quote, fullHistory, fin, mbi10Rows) {
+  const price = quote.lastPrice;
+  const closes = fullHistory.filter(r => r.last != null).map(r => r.last);
+  const volumes = fullHistory.filter(r => r.volume != null).map(r => r.volume);
+  const n = closes.length;
+
+  const signals = { positive: 0, negative: 0, total: 0 };
+  const details = [];
+
+  const addSig = (label, bullish) => {
+    signals.total++;
+    if (bullish) signals.positive++;
+    else signals.negative++;
+    return bullish;
+  };
+
+  const fd = fin.financialData;
+  const fr = fin.financialRatios;
+
+  // ---- MARKET COMPARISON (from quotesCache) ----
+  let mktPEs = [], mktROEs = [], mktPBVs = [];
+  for (const r of quotesCache) {
+    if (r.peRatio != null && r.peRatio > 0) mktPEs.push(r.peRatio);
+    // For ROE and PBV we need the ratios data — collect from cached financials if available
+  }
+  const avgMktPE = mktPEs.length ? mktPEs.reduce((a, b) => a + b, 0) / mktPEs.length : 15;
+
+  // ---- TECHNICAL ----
+  // SMA-50 / SMA-200
+  let sma50 = null, sma200 = null;
+  if (n >= 50) {
+    sma50 = closes.slice(-50).reduce((a, b) => a + b, 0) / 50;
+    addSig(t('analysis_sma50'), price > sma50);
+    details.push({ label: t('analysis_sma50'), val: sma50.toFixed(2), signal: price > sma50 ? t('analysis_uptrend') : t('analysis_downtrend'), up: price > sma50, ttKey: 'tt_sma50' });
+  }
+  if (n >= 200) {
+    sma200 = closes.slice(-200).reduce((a, b) => a + b, 0) / 200;
+    addSig(t('analysis_sma200'), price > sma200);
+    details.push({ label: t('analysis_sma200'), val: sma200.toFixed(2), signal: price > sma200 ? t('analysis_uptrend') : t('analysis_downtrend'), up: price > sma200, ttKey: 'tt_sma200' });
+  } else if (n >= 100) {
+    const sma100 = closes.slice(-100).reduce((a, b) => a + b, 0) / 100;
+    addSig(t('analysis_sma200'), price > sma100);
+    details.push({ label: t('analysis_sma200'), val: sma100.toFixed(2), signal: price > sma100 ? t('analysis_uptrend') : t('analysis_downtrend'), up: price > sma100, ttKey: 'tt_sma200' });
+  }
+
+  // RSI-14
+  let rsi = null;
+  if (n >= 15) {
+    const changes = [];
+    for (let i = closes.length - 14; i < closes.length; i++) changes.push(closes[i] - closes[i - 1]);
+    const gains = changes.filter(c => c > 0).reduce((a, b) => a + b, 0) / 14;
+    const losses = changes.filter(c => c < 0).reduce((a, b) => a - b, 0) / 14;
+    if (losses === 0) rsi = 100;
+    else rsi = 100 - (100 / (1 + gains / losses));
+    addSig(t('analysis_rsi'), rsi < 70 && rsi > 30);
+    const rsiSignal = rsi > 70 ? t('analysis_overbought') : rsi < 30 ? t('analysis_oversold') : t('analysis_neutral');
+    details.push({ label: t('analysis_rsi'), val: rsi.toFixed(1), signal: rsiSignal, up: rsi < 70 && rsi > 30, ttKey: 'tt_rsi' });
+  }
+
+  // 52-week position
+  const hi52 = quote.week52Max, lo52 = quote.week52Min;
+  let wkPos = null;
+  if (hi52 && lo52 && hi52 > lo52) {
+    wkPos = ((price - lo52) / (hi52 - lo52)) * 100;
+    addSig(t('analysis_52w'), wkPos >= 25 && wkPos <= 75);
+    const wkSignal = wkPos > 75 ? t('analysis_overbought') : wkPos < 25 ? t('analysis_oversold') : t('analysis_neutral');
+    details.push({ label: t('analysis_52w'), val: wkPos.toFixed(0) + '%', signal: wkSignal, up: wkPos >= 25 && wkPos <= 75, ttKey: 'tt_52w' });
+  }
+
+  // Momentum (last 20 days)
+  if (n >= 21) {
+    const mom20 = ((closes[closes.length - 1] - closes[closes.length - 21]) / closes[closes.length - 21]) * 100;
+    addSig(t('analysis_momentum'), mom20 > 0);
+    details.push({ label: t('analysis_momentum'), val: (mom20 >= 0 ? '+' : '') + mom20.toFixed(1) + '%', signal: mom20 > 0 ? t('analysis_positive') : t('analysis_negative'), up: mom20 > 0, ttKey: 'tt_momentum' });
+  }
+
+  // Volume trend
+  if (volumes.length >= 100) {
+    const avgVol20 = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+    const avgVol100 = volumes.slice(-100).reduce((a, b) => a + b, 0) / 100;
+    const volRatio = avgVol20 / avgVol100;
+    addSig(t('analysis_volume_trend'), volRatio > 1.2 || (volRatio > 0.8 && quote.dailyChange > 0));
+    details.push({ label: t('analysis_volume_trend'), val: (volRatio > 1 ? '+' : '') + ((volRatio - 1) * 100).toFixed(0) + '%', signal: volRatio > 1 ? t('analysis_positive') : t('analysis_negative'), up: volRatio > 1, ttKey: 'tt_volume' });
+  }
+
+  // ---- FUNDAMENTAL ----
+  // P/E (sector-relative: compare to market average P/E)
+  if (quote.peRatio != null && quote.peRatio > 0) {
+    const pe = quote.peRatio;
+    const belowMkt = pe < avgMktPE;
+    addSig('P/E vs Пазар', belowMkt);
+    details.push({ label: 'P/E vs Пазар', val: pe.toFixed(1) + ' / ø' + avgMktPE.toFixed(1), signal: belowMkt ? 'Поевтино' : 'Поскапо', up: belowMkt, ttKey: 'tt_pe' });
+  }
+
+  // EPS growth
+  if (fr && fr.rows) {
+    const epsRow = fr.rows.find(r => /eps/i.test(r[0]));
+    if (epsRow && epsRow.length >= 4) {
+      const eps1 = pNum(epsRow[1]), eps2 = pNum(epsRow[2]);
+      if (eps1 != null && eps2 != null && eps2 > 0) {
+        const epsGrowth = ((eps1 - eps2) / eps2) * 100;
+        addSig(t('analysis_eps_growth'), epsGrowth > 0);
+        details.push({ label: t('analysis_eps_growth'), val: (epsGrowth >= 0 ? '+' : '') + epsGrowth.toFixed(1) + '%', signal: epsGrowth > 0 ? t('analysis_positive') : t('analysis_negative'), up: epsGrowth > 0, ttKey: 'tt_eps' });
+      }
+    }
+  }
+
+  // Revenue growth
+  if (fd && fd.rows) {
+    const revRow = fd.rows.find(r => /revenue/i.test(r[0]));
+    if (revRow && revRow.length >= 4) {
+      const rev1 = pNum(revRow[1]), rev2 = pNum(revRow[2]), rev3 = pNum(revRow[3]);
+      const grow = [];
+      if (rev1 != null && rev2 != null && rev2 > 0) grow.push((rev1 - rev2) / rev2);
+      if (rev2 != null && rev3 != null && rev3 > 0) grow.push((rev2 - rev3) / rev3);
+      if (grow.length) {
+        const avgGrowth = (grow.reduce((a, b) => a + b, 0) / grow.length) * 100;
+        addSig(t('analysis_revenue_growth'), avgGrowth > 0);
+        details.push({ label: t('analysis_revenue_growth'), val: (avgGrowth >= 0 ? '+' : '') + avgGrowth.toFixed(1) + '%', signal: avgGrowth > 0 ? t('analysis_positive') : t('analysis_negative'), up: avgGrowth > 0, ttKey: 'tt_revenue' });
+      }
+    }
+  }
+
+  // ROE vs market (Buffett: ROE > 15%)
+  if (fr && fr.rows) {
+    const roeRow = fr.rows.find(r => /return on equity/i.test(r[0]));
+    if (roeRow && roeRow.length >= 2) {
+      const roe = pNum(roeRow[1]);
+      if (roe != null) {
+        const roeStrong = roe > 15;
+        addSig(t('analysis_roe'), roeStrong);
+        details.push({ label: t('analysis_roe'), val: roe.toFixed(1) + '%', signal: roeStrong ? '>15% ✅' : '<15%', up: roeStrong, ttKey: 'tt_roe' });
+      }
+      // ROE trend
+      if (roeRow.length >= 4) {
+        const roe3 = pNum(roeRow[3]);
+        if (roe3 != null && roe != null) {
+          const improving = roe >= roe3;
+          addSig('ROE Тренд', improving);
+          details.push({ label: 'ROE Тренд', val: roe.toFixed(1) + '%', signal: improving ? t('analysis_positive') : t('analysis_negative'), up: improving, ttKey: 'tt_roe' });
+        }
+      }
+    }
+  }
+
+  // Dividend yield
+  if (fr && fr.rows) {
+    const divRow = fr.rows.find(r => /dividend yield/i.test(r[0]));
+    if (divRow && divRow.length >= 2) {
+      const divY = pNum(divRow[1]);
+      if (divY != null) {
+        addSig(t('analysis_div_yield'), divY > 1.5);
+        details.push({ label: t('analysis_div_yield'), val: divY.toFixed(2) + '%', signal: divY > 1.5 ? t('analysis_positive') : t('analysis_negative'), up: divY > 1.5, ttKey: 'tt_div' });
+      }
+    }
+  }
+
+  // ---- GRAHAM VALUE CRITERIA ----
+  // Graham: P/E < 15 AND P/BV < 1.5 (or P/E × P/BV < 22.5)
+  if (quote.peRatio != null && quote.peRatio > 0 && fr && fr.rows) {
+    const pbvRow = fr.rows.find(r => /price to book/i.test(r[0]));
+    if (pbvRow && pbvRow.length >= 2) {
+      const pbv = pNum(pbvRow[1]);
+      if (pbv != null && pbv > 0) {
+        const grahamNum = quote.peRatio * pbv;
+        const grahamOk = grahamNum < 22.5;
+        addSig('Graham Number', grahamOk);
+        details.push({ label: 'Graham Number', val: grahamNum.toFixed(1), signal: grahamOk ? 'P/E×P/BV<22.5' : 'P/E×P/BV>22.5', up: grahamOk, ttKey: 'tt_pe' });
+      }
+    }
+  }
+
+  // Debt-to-equity (financial health)
+  if (fd && fd.rows) {
+    const liabRow = fd.rows.find(r => /liabilities/i.test(r[0]));
+    const eqRow = fd.rows.find(r => r[0].toLowerCase() === 'equity');
+    if (liabRow && eqRow && liabRow.length >= 2 && eqRow.length >= 2) {
+      const liab = pNum(liabRow[1]), eq = pNum(eqRow[1]);
+      if (liab != null && eq != null && eq > 0) {
+        const de = liab / eq;
+        const deOk = de < 1.5;
+        addSig('D/E Ratio', deOk);
+        details.push({ label: 'D/E Ratio', val: de.toFixed(2), signal: deOk ? '<1.5 ✅' : '>1.5 ⚠️', up: deOk, ttKey: 'tt_pe' });
+      }
+    }
+  }
+
+  // ---- RISK METRICS (Beta & Volatility vs MBI10) ----
+  if (n >= 30 && mbi10Rows && mbi10Rows.length >= 30) {
+    // Align dates between stock and MBI10
+    const mbi10Map = {};
+    for (const r of mbi10Rows) mbi10Map[r.date] = r.last;
+    const paired = [];
+    for (const r of fullHistory) {
+      if (r.last != null && mbi10Map[r.date] != null) {
+        paired.push({ stock: r.last, mbi: mbi10Map[r.date], date: r.date });
+      }
+    }
+    if (paired.length >= 30) {
+      // Calculate daily returns for both
+      const stockRet = [], mbiRet = [];
+      for (let i = 1; i < paired.length; i++) {
+        stockRet.push((paired[i].stock - paired[i - 1].stock) / paired[i - 1].stock);
+        mbiRet.push((paired[i].mbi - paired[i - 1].mbi) / paired[i - 1].mbi);
+      }
+      // Volatility (annualized std dev of stock returns)
+      const meanRet = stockRet.reduce((a, b) => a + b, 0) / stockRet.length;
+      const variance = stockRet.reduce((a, b) => a + (b - meanRet) ** 2, 0) / stockRet.length;
+      const vol = Math.sqrt(variance * 252) * 100; // annualized %
+      const lowVol = vol < 40; // threshold for MSE stocks
+      addSig('Volatility (год)', lowVol);
+      details.push({ label: 'Volatility (год)', val: vol.toFixed(1) + '%', signal: lowVol ? 'Ниска' : 'Висока', up: lowVol, ttKey: 'tt_rsi' });
+
+      // Beta: cov(stock, mbi) / var(mbi)
+      const meanMbi = mbiRet.reduce((a, b) => a + b, 0) / mbiRet.length;
+      const cov = stockRet.reduce((a, b, i) => a + (b - meanRet) * (mbiRet[i] - meanMbi), 0) / stockRet.length;
+      const mbiVar = mbiRet.reduce((a, b) => a + (b - meanMbi) ** 2, 0) / mbiRet.length;
+      const beta = mbiVar > 0 ? cov / mbiVar : 1;
+      const betaOk = beta < 1.2; // less volatile than market or inline
+      addSig('Beta (vs MBI10)', betaOk);
+      details.push({ label: 'Beta (vs MBI10)', val: beta.toFixed(2), signal: beta < 1 ? '<1 (понизок)' : beta < 1.2 ? '~1 (сличен)' : '>1.2 (повисок)', up: betaOk, ttKey: 'tt_rsi' });
+
+      // Sharpe-like ratio: annualized return / annualized volatility
+      const annualRet = Math.pow(1 + stockRet.reduce((a, b) => a + b, 0), 252 / stockRet.length) - 1;
+      const sharpe = vol > 0 ? (annualRet * 100) / vol : 0;
+      const sharpeOk = sharpe > 0.5;
+      addSig('Sharpe Ratio', sharpeOk);
+      details.push({ label: 'Sharpe Ratio', val: sharpe.toFixed(2), signal: sharpeOk ? '>0.5 ✅' : '<0.5', up: sharpeOk, ttKey: 'tt_rsi' });
+
+      // Performance vs MBI10
+      const stockTotalRet = stockRet.reduce((a, b) => a + b, 0);
+      const mbiTotalRet = mbiRet.reduce((a, b) => a + b, 0);
+      const outperf = stockTotalRet > mbiTotalRet;
+      addSig('Perf. vs MBI10', outperf);
+      details.push({ label: 'Perf. vs MBI10', val: (stockTotalRet * 100).toFixed(1) + '%', signal: outperf ? 'Над MBI10' : 'Под MBI10', up: outperf, ttKey: 'tt_momentum' });
+    }
+  }
+
+  // ---- SIMPLIFIED DCF / INTRINSIC VALUE ----
+  if (fd && fd.rows && fr && fr.rows) {
+    const npRow = fd.rows.find(r => /net profit/i.test(r[0]));
+    const sharesRow = fr.rows.find(r => /eps/i.test(r[0])); // we use EPS to derive shares
+    const revRow = fd.rows.find(r => /revenue/i.test(r[0]));
+    if (npRow && npRow.length >= 4) {
+      const np1 = pNum(npRow[1]), np2 = pNum(npRow[2]), np3 = pNum(npRow[3]);
+      const profits = [np3, np2, np1].filter(n => n != null && n > 0);
+      if (profits.length >= 2) {
+        // Growth rate from net profit
+        const gr = (profits[profits.length - 1] / profits[0]) ** (1 / (profits.length - 1)) - 1;
+        const growthRate = isNaN(gr) || !isFinite(gr) ? 0.05 : Math.max(-0.2, Math.min(0.3, gr));
+        // Simplified DCF: PV of 5yr growing FCF + terminal value
+        const wacc = 0.10; // 10% discount rate
+        const termGrowth = 0.02; // 2% terminal growth
+        let pv = 0;
+        let fcf = profits[profits.length - 1] * 1000; // scale (data in 000 MKD)
+        for (let yr = 1; yr <= 5; yr++) {
+          fcf *= (1 + growthRate);
+          pv += fcf / Math.pow(1 + wacc, yr);
+        }
+        const terminal = fcf * (1 + termGrowth) / (wacc - termGrowth);
+        pv += terminal / Math.pow(1 + wacc, 5);
+        // Intrinsic value per share
+        const mcap = quote.marketCap != null ? quote.marketCap * 1000 : (quote.lastPrice * (quote.totalShares || 1));
+        const sharesOut = quote.totalShares || 1;
+        const intrinsicPerShare = mcap > 0 && sharesOut > 0 ? pv / sharesOut : 0;
+        const undervalued = intrinsicPerShare > 0 && price > 0 && price < intrinsicPerShare * 0.85;
+        if (intrinsicPerShare > 0 && price > 0) {
+          addSig('DCF Intrinsic Value', undervalued);
+          details.push({ label: 'DCF Intrinsic Value', val: fmt(intrinsicPerShare) + ' MKD', signal: undervalued ? 'Потценета' : (price < intrinsicPerShare ? 'Блиску' : 'Преценета'), up: undervalued, ttKey: 'tt_pe' });
+        }
+      }
+    }
+  }
+
+  // ---- RATING ----
+  const score = signals.positive;
+  const maxScore = signals.total;
+  const pct = maxScore > 0 ? (score / maxScore) * 100 : 50;
+
+  let rating, ratingClass;
+  if (pct >= 65) { rating = t('analysis_buy'); ratingClass = 'up'; }
+  else if (pct >= 40) { rating = t('analysis_hold'); ratingClass = 'neutral'; }
+  else { rating = t('analysis_sell'); ratingClass = 'down'; }
+
+  // ---- ANALYST VERDICT ----
+  const strengthPoints = details.filter(d => d.up).length;
+  const weakPoints = details.filter(d => !d.up).length;
+  let commentary = '';
+
+  if (strengthPoints > weakPoints * 1.5) {
+    commentary = lang === 'mk'
+      ? `Акцијата покажува силни фундаментални и технички показатели. `
+      : `The stock shows strong fundamental and technical indicators. `;
+  } else if (strengthPoints >= weakPoints) {
+    commentary = lang === 'mk'
+      ? `Акцијата покажува мешани сигнали со благ позитивен наклон. `
+      : `The stock shows mixed signals with a slight positive bias. `;
+  } else {
+    commentary = lang === 'mk'
+      ? `Акцијата покажува претежно негативни сигнали. `
+      : `The stock shows predominantly negative signals. `;
+  }
+
+  if (details.length > 0) {
+    const strongest = details.filter(d => d.up).slice(0, 3);
+    const weakest = details.filter(d => !d.up).slice(0, 3);
+    if (lang === 'mk') {
+      if (strongest.length) commentary += `Предности: ${strongest.map(d => d.label).join(', ')}. `;
+      if (weakest.length) commentary += `Слабости: ${weakest.map(d => d.label).join(', ')}. `;
+      commentary += `Рејтингот се заснова на ${maxScore} фактори вклучувајќи технички, фундаментални, компаративни и ризик показатели.`;
+    } else {
+      if (strongest.length) commentary += `Strengths: ${strongest.map(d => d.label).join(', ')}. `;
+      if (weakest.length) commentary += `Weaknesses: ${weakest.map(d => d.label).join(', ')}. `;
+      commentary += `Rating based on ${maxScore} factors including technical, fundamental, comparative, and risk metrics.`;
+    }
+  }
+
+  return { rating, ratingClass, pct, score, maxScore, details, commentary };
+}
+
+function buildAnalysisHTML(analysis) {
+  if (!analysis || !analysis.details || !analysis.details.length) {
+    return '<div class="muted" style="padding:20px;text-align:center">' + t('fin_no_data') + '</div>';
+  }
+  var rating = analysis.rating, ratingClass = analysis.ratingClass, pct = analysis.pct;
+  var score = analysis.score, maxScore = analysis.maxScore, details = analysis.details;
+  var commentary = analysis.commentary;
+
+  var strengths = details.filter(function(d) { return d.up; });
+  var weaknesses = details.filter(function(d) { return !d.up; });
+
+  var html = '';
+
+  // Rating banner
+  html += '<div class="analysis-banner ' + ratingClass + '">';
+  html += '<div class="analysis-rating">' + t('analysis_rating') + ': <strong>' + rating + '</strong></div>';
+  html += '<div class="analysis-pct">' + pct.toFixed(0) + '% ' + t('analysis_confidence') + '</div>';
+  html += '<div class="analysis-bar"><div class="analysis-bar-fill ' + ratingClass + '" style="width:' + pct + '%"></div></div>';
+  html += '<div class="analysis-score">' + score + '/' + maxScore + ' ' + t('analysis_signals').toLowerCase() + '</div>';
+  html += '</div>';
+
+  // Two-column grid
+  html += '<div class="analysis-grid">';
+
+  // Signals detail card
+  html += '<div class="analysis-card"><div class="analysis-card-title">' + t('analysis_signals') + '</div><div class="analysis-details">';
+  for (var i = 0; i < details.length; i++) {
+    var d = details[i];
+    html += '<div class="analysis-detail">';
+    html += '<span class="analysis-dot ' + (d.up ? 'up' : 'down') + '"></span>';
+    html += '<span class="analysis-d-label">' + d.label;
+    if (d.ttKey) html += '<span class="analysis-tt" title="' + t(d.ttKey).replace(/"/g, '&quot;') + '">i</span>';
+    html += '</span>';
+    html += '<span class="analysis-d-val">' + d.val + '</span>';
+    html += '<span class="analysis-d-sig ' + (d.up ? 'up' : 'down') + '">' + d.signal + '</span>';
+    html += '</div>';
+  }
+  html += '</div></div>';
+
+  // Summary card
+  html += '<div class="analysis-card"><div class="analysis-card-title">' + t('analysis_verdict') + '</div>';
+  html += '<div class="analysis-verdict-text">' + commentary + '</div>';
+  html += '<div class="analysis-breakdown">';
+  html += '<div class="analysis-b-item"><span class="analysis-dot up"></span> ' + t('analysis_strength') + ': <strong>' + strengths.length + '</strong></div>';
+  html += '<div class="analysis-b-item"><span class="analysis-dot down"></span> ' + t('analysis_weakness') + ': <strong>' + weaknesses.length + '</strong></div>';
+  html += '<div class="analysis-b-item"><span class="analysis-dot" style="background:var(--md-sys-color-on-surface-variant)"></span> ' + t('analysis_neutral') + ': <strong>' + (maxScore - strengths.length - weaknesses.length) + '</strong></div>';
+  html += '</div></div>';
+
+  html += '</div>'; // close analysis-grid
+
+  // Disclaimer
+  var disc = lang === 'mk'
+    ? 'Оваа анализа е генерирана врз основа на историски податоци и фундаментални показатели. Не претставува инвестициски совет.'
+    : 'This analysis is generated based on historical data and fundamental indicators. It does not constitute investment advice.';
+  html += '<div class="analysis-disclaimer">' + disc + '</div>';
+
+  return html;
+}
+$('#finTabBar').addEventListener('click', (e) => {
+  const btn = e.target.closest('.fin-tab');
+  if (!btn || btn.classList.contains('hidden')) return;
+  const tab = btn.dataset.tab;
+  $$('.fin-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  $$('.fin-tab-panel').forEach(p => p.classList.add('hidden'));
+  const panel = tab === 'chart' ? $('#finTabChart') :
+    tab === 'data' ? $('#finTabData') : tab === 'ratios' ? $('#finTabRatios') : $('#finTabAnalysis');
+  if (panel) panel.classList.remove('hidden');
+  // Trigger chart resize when switching back to chart tab
+  if (tab === 'chart') {
+    const mc = $('#companyModal');
+    if (mc._chart) {
+      setTimeout(() => mc._chart.applyOptions({ width: $('#companyChart').clientWidth }), 0);
+    }
+  }
+});
 
 // ---- WIRE UP ----
 $('#search').addEventListener('input', () => { renderTable(); });
@@ -604,10 +1338,29 @@ $('#themeToggle').addEventListener('click', () => {
   applyStaticI18n();
   await loadMBI();
   await loadQuotes();
-  setInterval(loadQuotes, 30000);
-  setInterval(loadMBI, 60000);
+  // Market-aware scheduler: polls fast when open, slow when closed, no
+  // table re-render or sparkline rebuild when there's nothing new to show.
+  scheduleNextPoll();
+  scheduleNextMBIPoll();
   // MBI10 chip click opens company modal with index chart
   $('#mbiChip').addEventListener('click', () => {
     openCompany('MBI10');
   });
 })();
+
+// Dedicated scheduler for the MBI10 chip — slower cadence is fine since
+// the chip is just a price+change indicator on the navbar.
+function scheduleNextMBIPoll() {
+  setTimeout(async () => {
+    await loadMBI();
+    scheduleNextMBIPoll();
+  }, 60000);
+}
+
+// Expose internals on window for test harnesses / debugging.
+// These are no-ops in production since nothing reads them.
+if (typeof window !== 'undefined') {
+  window.__loadQuotes = loadQuotes;
+  window.__loadSparkHistory = loadSparkHistory;
+  window.__marketIsOpen = () => marketIsOpen;
+}

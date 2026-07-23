@@ -138,6 +138,26 @@
       <span class="material-symbols-outlined">close</span>
     </button>
     <div id="companyContent"></div>
+    <!-- Tab bar injected by JS -->
+    <div id="finTabBar" class="fin-tab-bar hidden">
+      <button class="fin-tab active" data-tab="chart">Chart</button>
+      <button class="fin-tab" data-tab="data">Financial Data</button>
+      <button class="fin-tab" data-tab="ratios">Financial Ratios</button>
+      <button class="fin-tab" data-tab="analysis">Analysis</button>
+    </div>
+    <!-- Tab panels -->
+    <div id="finTabChart" class="fin-tab-panel">
+      <div id="chartSection"></div>
+    </div>
+    <div id="finTabData" class="fin-tab-panel hidden">
+      <div id="finDataContent"></div>
+    </div>
+    <div id="finTabRatios" class="fin-tab-panel hidden">
+      <div id="finRatiosContent"></div>
+    </div>
+    <div id="finTabAnalysis" class="fin-tab-panel hidden">
+      <div id="analysisContent"></div>
+    </div>
   </div>
 </div>
 

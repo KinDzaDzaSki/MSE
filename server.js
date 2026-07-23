@@ -162,6 +162,13 @@ async function handleApi(req, res, url) {
     return sendJson(res, { lines: log.getRecent(n) });
   }
 
+  const fin = url.pathname.match(/^\/api\/financials\/([^/]+)$/);
+  if (fin) {
+    const sym = decodeURIComponent(fin[1]);
+    const data = await store.getFinancials(sym);
+    return sendJson(res, { symbol: sym, ...data });
+  }
+
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'unknown api' }));
 }
