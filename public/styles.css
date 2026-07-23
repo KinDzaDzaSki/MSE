@@ -599,6 +599,43 @@ table.quotes th.sorted-desc .sort-icon {
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
 }
 
+/* Rating column — narrow, centered */
+table.quotes th.rating-th {
+  width: 56px;
+  text-align: center;
+  cursor: pointer;
+}
+table.quotes td.rating-cell {
+  text-align: center;
+  vertical-align: middle;
+  padding: 4px 4px;
+}
+
+/* Rating badges */
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  line-height: 1.4;
+  min-width: 34px;
+  text-align: center;
+}
+.badge-buy {
+  color: var(--md-sys-color-on-positive);
+  background: var(--md-sys-color-positive-container);
+}
+.badge-hold {
+  color: var(--md-sys-color-on-secondary);
+  background: var(--md-sys-color-secondary-container);
+}
+.badge-sell {
+  color: var(--md-sys-color-on-negative);
+  background: var(--md-sys-color-negative-container);
+}
+
 table.quotes th.num,
 table.quotes td.num {
   text-align: right;

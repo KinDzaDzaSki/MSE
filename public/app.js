@@ -418,7 +418,7 @@ async function loadQuotes() {
   } catch (e) {
     console.error('loadQuotes failed:', e);
     const body = $('#quotesBody');
-    if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Failed to load data: ${e.message}</td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="10" class="muted" style="padding:20px;text-align:center">Failed to load data: ${e.message}</td></tr>`;
   }
 }
 
@@ -440,6 +440,32 @@ function getFilteredQuotes() {
   );
 }
 
+// Quick BUY/HOLD/SELL rating computed from quote data (no extra API calls)
+function computeRating(q) {
+  let score = 0;
+  if (q.peRatio != null && q.peRatio > 0) {
+    if (q.peRatio < 12) score += 2;
+    else if (q.peRatio < 20) score += 1;
+    else if (q.peRatio > 30) score -= 1;
+  }
+  if (q.dailyChange != null) {
+    if (q.dailyChange > 0) score += 1;
+    else if (q.lastPrice != null && q.lastPrice > 0 && q.dailyChange < -q.lastPrice * 0.02) score -= 1;
+  }
+  if (q.week52Chg != null) {
+    if (q.week52Chg > 10) score += 1;
+    else if (q.week52Chg < -10) score -= 1;
+  }
+  if (q.week52Max != null && q.week52Min != null && q.lastPrice != null && q.week52Max > q.week52Min) {
+    const pos = (q.lastPrice - q.week52Min) / (q.week52Max - q.week52Min);
+    if (pos < 0.3) score += 1;
+    else if (pos > 0.85) score -= 1;
+  }
+  if (score >= 3) return { label: 'BUY', cls: 'badge-buy', val: score };
+  if (score >= 0) return { label: 'HOLD', cls: 'badge-hold', val: score };
+  return { label: 'SELL', cls: 'badge-sell', val: score };
+}
+
 function renderTable() {
   try {
   const rows = getFilteredQuotes().sort((a, b) => {
@@ -452,6 +478,8 @@ function renderTable() {
     } else if (headerSortCol === 'week52Min') {
       const span = (r) => ((r.week52Max || 0) - (r.week52Min || 0));
       cmp = span(a) - span(b);
+    } else if (headerSortCol === 'rating') {
+      cmp = computeRating(a).val - computeRating(b).val;
     } else {
       cmp = (a[headerSortCol] || 0) - (b[headerSortCol] || 0);
     }
@@ -471,6 +499,7 @@ function renderTable() {
     tr.innerHTML = `
       <td class="sym">${r.symbol}</td>
       <td class="comp">${r.name || ''}</td>
+      <td class="rating-cell">${(() => { const rt = computeRating(r); return `<span class="badge ${rt.cls}">${rt.label}</span>`; })()}</td>
       <td class="spark"><canvas data-spark="${r.symbol}"></canvas></td>
       <td class="num">${fmt(r.lastPrice)}</td>
       <td class="num ${pctClass(r.dailyChange)}">${chgStr(r.dailyChange)}</td>
@@ -492,7 +521,7 @@ function renderTable() {
   } catch (e) {
     console.error('renderTable failed:', e);
     const body = $('#quotesBody');
-    if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Render failed: ${e.message}</td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="10" class="muted" style="padding:20px;text-align:center">Render failed: ${e.message}</td></tr>`;
   }
 }
 
