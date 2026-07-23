@@ -525,7 +525,7 @@ a:hover { color: var(--md-sys-color-primary-container); }
 
 table.quotes {
   width: 100%;
-  min-width: 880px;
+  min-width: 1000px;
   border-collapse: collapse;
   white-space: nowrap;
   font-size: 13px;
@@ -599,19 +599,13 @@ table.quotes th.sorted-desc .sort-icon {
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
 }
 
-/* Rating column — narrow, centered */
-table.quotes th.rating-th {
-  width: 56px;
+/* Sparkline column */
+table.quotes thead th.spark-th {
+  width: 72px;
   text-align: center;
-  cursor: pointer;
-}
-table.quotes td.rating-cell {
-  text-align: center;
-  vertical-align: middle;
-  padding: 4px 4px;
 }
 
-/* Rating badges */
+/* Rating badges (used in analysis tab) */
 .badge {
   display: inline-block;
   font-size: 10px;

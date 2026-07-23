@@ -162,6 +162,11 @@ async function handleApi(req, res, url) {
     return sendJson(res, { lines: log.getRecent(n) });
   }
 
+  if (url.pathname === '/api/ratings') {
+    const ratings = await store.computeRatings();
+    return sendJson(res, { ratings });
+  }
+
   const fin = url.pathname.match(/^\/api\/financials\/([^/]+)$/);
   if (fin) {
     const sym = decodeURIComponent(fin[1]);

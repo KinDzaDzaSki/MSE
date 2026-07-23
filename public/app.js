@@ -4,6 +4,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 let quotesCache = [];
 let sparkCache = {};
 let historyCache = {};    // symbol -> {rows, range}
+let ratingsCache = {};    // symbol -> {score, maxScore, pct}
 let headerSortCol = 'value';
 let headerSortDir = 'desc';
 
@@ -407,18 +408,18 @@ async function loadQuotes() {
   }
   renderTable();
   renderSidebar();
-  // Sparkline history only refreshes once per hour while market is open.
-  // First load (lastHistoryFetch=0) always goes through; after that the
-  // 30s quote poll skips the history call until the hour elapses.
+  // Sparkline history refreshes at most once per hour. Always load so the
+  // user sees sparklines regardless of market state — historical data is
+  // available even when the market is closed (it's just not changing).
   const now = Date.now();
-  if (marketIsOpen && (now - lastHistoryFetch) >= HISTORY_REFRESH_MS) {
+  if ((now - lastHistoryFetch) >= HISTORY_REFRESH_MS) {
     lastHistoryFetch = now;
     loadSparkHistory();
   }
   } catch (e) {
     console.error('loadQuotes failed:', e);
     const body = $('#quotesBody');
-    if (body) body.innerHTML = `<tr><td colspan="10" class="muted" style="padding:20px;text-align:center">Failed to load data: ${e.message}</td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Failed to load data: ${e.message}</td></tr>`;
   }
 }
 
@@ -440,8 +441,17 @@ function getFilteredQuotes() {
   );
 }
 
-// Quick BUY/HOLD/SELL rating computed from quote data (no extra API calls)
-function computeRating(q) {
+// Rating from backend (single source of truth). Falls back to quick calc if not yet loaded.
+function getRating(sym) {
+  const cached = ratingsCache[sym];
+  if (cached) {
+    if (cached.pct >= 65) return { label: t('analysis_buy'), cls: 'badge-buy', val: cached.score };
+    if (cached.pct >= 40) return { label: t('analysis_hold'), cls: 'badge-hold', val: cached.score };
+    return { label: t('analysis_sell'), cls: 'badge-sell', val: cached.score };
+  }
+  // Fallback: quick rating from quote data
+  const q = quotesCache.find(r => r.symbol === sym);
+  if (!q) return { label: '—', cls: '', val: 0 };
   let score = 0;
   if (q.peRatio != null && q.peRatio > 0) {
     if (q.peRatio < 12) score += 2;
@@ -461,9 +471,16 @@ function computeRating(q) {
     if (pos < 0.3) score += 1;
     else if (pos > 0.85) score -= 1;
   }
-  if (score >= 3) return { label: 'BUY', cls: 'badge-buy', val: score };
-  if (score >= 0) return { label: 'HOLD', cls: 'badge-hold', val: score };
-  return { label: 'SELL', cls: 'badge-sell', val: score };
+  if (score >= 3) return { label: t('analysis_buy'), cls: 'badge-buy', val: score };
+  if (score >= 0) return { label: t('analysis_hold'), cls: 'badge-hold', val: score };
+  return { label: t('analysis_sell'), cls: 'badge-sell', val: score };
+}
+
+async function loadRatings() {
+  try {
+    const d = await fetch('/api/ratings').then(r => r.json());
+    ratingsCache = d.ratings || {};
+  } catch (e) { /* ratings will fall back to local calc */ }
 }
 
 function renderTable() {
@@ -478,8 +495,6 @@ function renderTable() {
     } else if (headerSortCol === 'week52Min') {
       const span = (r) => ((r.week52Max || 0) - (r.week52Min || 0));
       cmp = span(a) - span(b);
-    } else if (headerSortCol === 'rating') {
-      cmp = computeRating(a).val - computeRating(b).val;
     } else {
       cmp = (a[headerSortCol] || 0) - (b[headerSortCol] || 0);
     }
@@ -499,7 +514,6 @@ function renderTable() {
     tr.innerHTML = `
       <td class="sym">${r.symbol}</td>
       <td class="comp">${r.name || ''}</td>
-      <td class="rating-cell">${(() => { const rt = computeRating(r); return `<span class="badge ${rt.cls}">${rt.label}</span>`; })()}</td>
       <td class="spark"><canvas data-spark="${r.symbol}"></canvas></td>
       <td class="num">${fmt(r.lastPrice)}</td>
       <td class="num ${pctClass(r.dailyChange)}">${chgStr(r.dailyChange)}</td>
@@ -521,7 +535,7 @@ function renderTable() {
   } catch (e) {
     console.error('renderTable failed:', e);
     const body = $('#quotesBody');
-    if (body) body.innerHTML = `<tr><td colspan="10" class="muted" style="padding:20px;text-align:center">Render failed: ${e.message}</td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Render failed: ${e.message}</td></tr>`;
   }
 }
 
@@ -756,6 +770,14 @@ async function openCompany(symbol) {
     // Render analysis (always available, no extra data needed)
     const mbi10Rows = (mbi10h.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
     const analysis = buildAnalysisData(q, fullHistory, fin, mbi10Rows);
+    // Override rating label with backend rating (single source of truth)
+    const backendRating = getRating(symbol);
+    if (backendRating && backendRating.label !== '—') {
+      analysis.rating = backendRating.label;
+      const clsMap = { 'badge-buy': 'up', 'badge-hold': 'neutral', 'badge-sell': 'down' };
+      analysis.ratingClass = clsMap[backendRating.cls] || 'neutral';
+      analysis.pct = ratingsCache[symbol] ? ratingsCache[symbol].pct : analysis.pct;
+    }
     analysisContent.innerHTML = buildAnalysisHTML(analysis);
 
     // Hide tabs with no data
@@ -1366,7 +1388,7 @@ $('#themeToggle').addEventListener('click', () => {
 (async function init() {
   applyStaticI18n();
   await loadMBI();
-  await loadQuotes();
+  await Promise.all([loadQuotes(), loadRatings()]);
   // Market-aware scheduler: polls fast when open, slow when closed, no
   // table re-render or sparkline rebuild when there's nothing new to show.
   scheduleNextPoll();
