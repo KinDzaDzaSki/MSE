@@ -689,7 +689,7 @@ async function drawSparkSide(canvas, symbol, chgPct) {
 async function openCompany(symbol) {
   const modal = $('#companyModal');
   const content = $('#companyContent');
-  modal.dataset.sym = symbol;
+  modal.dataset.company = symbol;
   modal.classList.remove('hidden');
   content.innerHTML = `<div class="muted">${t('loading')}</div>`;
 
@@ -1486,8 +1486,8 @@ $('#langToggle').addEventListener('click', () => {
   applyStaticI18n();
   // Re-render open company modal so all modal strings (stats, chart period, asOf) switch language
   const modal = $('#companyModal');
-  if (modal && !modal.classList.contains('hidden') && modal.dataset.sym) {
-    const sym = modal.dataset.sym;
+  if (modal && !modal.classList.contains('hidden') && modal.dataset.company) {
+    const sym = modal.dataset.company;
     // close chart before re-opening to avoid leak
     if (modal._chart) { try { modal._chart.remove(); } catch (_) {} modal._chart = null; }
     if (modal._resizeHandler) { window.removeEventListener('resize', modal._resizeHandler); modal._resizeHandler = null; }
