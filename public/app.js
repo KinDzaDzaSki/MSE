@@ -1409,26 +1409,26 @@ function switchFinTab(tab) {
   $$('.fin-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   $$('.fin-tab-panel').forEach(p => p.classList.add('hidden'));
-  const panel = tab === 'chart' ? $('#finTabChart') :
-    tab === 'data' ? $('#finTabData') : tab === 'ratios' ? $('#finTabRatios') : $('#finTabAnalysis');
+  const panel = tab === 'chart' ? document.getElementById('finTabChart') :
+    tab === 'data' ? document.getElementById('finTabData') : tab === 'ratios' ? document.getElementById('finTabRatios') : document.getElementById('finTabAnalysis');
   if (panel) panel.classList.remove('hidden');
   if (tab === 'chart') {
-    const mc = $('#companyModal');
-    if (mc._chart) {
-      setTimeout(() => mc._chart.applyOptions({ width: $('#companyChart').clientWidth }), 0);
+    const mc = document.getElementById('companyModal');
+    if (mc && mc._chart) {
+      setTimeout(() => { try { mc._chart.applyOptions({ width: document.getElementById('companyChart').clientWidth }); } catch(_){} }, 0);
     }
   }
 }
-const _finTabBar = $('#finTabBar');
+window.switchFinTab = switchFinTab;
+const _finTabBar = document.getElementById('finTabBar');
 if (_finTabBar) _finTabBar.addEventListener('click', (e) => {
   const btn = e.target.closest('.fin-tab');
-  if (btn) switchFinTab(btn.dataset.tab);
+  if (btn) { e.preventDefault(); switchFinTab(btn.dataset.tab); }
 });
-// Fallback: direct listeners + document delegation (covers re-renders / cache)
-$$('.fin-tab').forEach(b => b.addEventListener('click', () => switchFinTab(b.dataset.tab)));
+document.querySelectorAll('.fin-tab').forEach(b => b.addEventListener('click', (e) => { e.preventDefault(); switchFinTab(b.dataset.tab); }));
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.fin-tab');
-  if (btn && btn.closest('#finTabBar')) switchFinTab(btn.dataset.tab);
+  if (btn && btn.closest('#finTabBar')) { e.preventDefault(); switchFinTab(btn.dataset.tab); }
 });
 
 // ---- WIRE UP ----

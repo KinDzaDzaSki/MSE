@@ -1316,6 +1316,7 @@ table.quotes thead th.spark-th {
 
 .fin-tab {
   position: relative;
+  z-index: 1;
   background: transparent;
   border: none;
   color: var(--md-sys-color-on-surface-variant);
@@ -1328,6 +1329,7 @@ table.quotes thead th.spark-th {
   white-space: nowrap;
   transition: color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
   flex-shrink: 0;
+  pointer-events: auto;
 }
 .fin-tab:hover {
   color: var(--md-sys-color-on-surface);
