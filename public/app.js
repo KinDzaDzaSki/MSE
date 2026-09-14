@@ -74,6 +74,13 @@ const I18N = {
       analysis_hold: 'HOLD',
       analysis_sell: 'SELL',
       analysis_confidence: 'Confidence',
+      analysis_pros: 'Pros — why to hold',
+      analysis_cons: 'Cons — why to be cautious',
+      analysis_watch: 'What to watch next',
+      analysis_details: 'Details',
+      analysis_summary_hold: 'Mixed signals — fundamentally healthy but technically weak. No panic, no clear add.',
+      analysis_summary_buy: 'More strengths than weaknesses — fundamental and technical signals leaning positive.',
+      analysis_summary_sell: 'More weaknesses than strengths — caution warranted.',
       analysis_sma50: '50-day SMA',
       analysis_sma200: '200-day SMA',
       analysis_rsi: 'RSI (14)',
@@ -177,6 +184,13 @@ const I18N = {
       analysis_hold: 'ДРЖИ',
       analysis_sell: 'ПРОДАЈ',
       analysis_confidence: 'Сигурност',
+      analysis_pros: 'Предности — зошто да држиш',
+      analysis_cons: 'Слабости — зошто да внимаваш',
+      analysis_watch: 'Што да следиш',
+      analysis_details: 'Детали',
+      analysis_summary_hold: 'Мешани сигнали — фундаментално здрава но технички слаба. Не е момент за паника, ниту за јасно дополнување.',
+      analysis_summary_buy: 'Повеќе предности отколку слабости — сигналите се наклонети позитивно.',
+      analysis_summary_sell: 'Повеќе слабости отколку предности — потребна е претпазливост.',
       analysis_sma50: '50-дневен ПП',
       analysis_sma200: '200-дневен ПП',
       analysis_rsi: 'RSI (14)',
@@ -1227,24 +1241,57 @@ function buildAnalysisData(quote, fullHistory, fin, mbi10Rows) {
   else if (pct >= 40) { rating = t('analysis_hold'); ratingClass = 'neutral'; }
   else { rating = t('analysis_sell'); ratingClass = 'down'; }
 
+  // ---- WHAT TO WATCH (average-investor actionable levels) ----
+  const watchItems = [];
+  const isBank = /banka|банка|commercial|komercijalna/i.test(quote.name || '') || /bank/i.test(quote.segment || '');
+  const sma = sma200 ?? sma50;
+  const smaLabel = sma200 != null ? '200-дневен' : sma50 != null ? '50-дневен' : null;
+  if (sma != null && price != null && price < sma) {
+    watchItems.push(lang === 'mk'
+      ? `Враќање над ${fmt(sma)} (${smaLabel} просек) со зголемен волумен би го сменило трендот.`
+      : `Break above ${fmt(sma)} (${smaLabel} avg) on rising volume would flip the trend.`);
+  } else if (sma != null && price != null && price > sma) {
+    watchItems.push(lang === 'mk'
+      ? `Држење над ${fmt(sma)} го чува позитивниот тренд — пад под него е сигнал за претпазливост.`
+      : `Holding above ${fmt(sma)} keeps the uptrend — a drop below is caution.`);
+  }
+  if (wkPos != null && wkPos < 25) {
+    watchItems.push(lang === 'mk'
+      ? `Цена на ${wkPos.toFixed(0)}% од годишниот опсег — близу дно, можен отскок или пробив надолу.`
+      : `Price at ${wkPos.toFixed(0)}% of yearly range — near low, bounce or breakdown possible.`);
+  } else if (wkPos != null && wkPos > 75) {
+    watchItems.push(lang === 'mk'
+      ? `Цена на ${wkPos.toFixed(0)}% од годишниот опсег — близу врв, ризик од корекција.`
+      : `Price at ${wkPos.toFixed(0)}% of yearly range — near top, pullback risk.`);
+  }
+  if (rsi != null && rsi < 35) {
+    watchItems.push(lang === 'mk'
+      ? `RSI ${rsi.toFixed(0)} близу препродадено — следи потенцијален пресврт.`
+      : `RSI ${rsi.toFixed(0)} near oversold — watch for reversal.`);
+  } else if (rsi != null && rsi > 65) {
+    watchItems.push(lang === 'mk'
+      ? `RSI ${rsi.toFixed(0)} близу прекупено — можен пад.`
+      : `RSI ${rsi.toFixed(0)} near overbought — pullback risk.`);
+  }
+  if (isBank && watchItems.length < 3) {
+    watchItems.push(lang === 'mk'
+      ? `За банка, D/E ~7 е нормален — гледај дивиденда и ROE, не само долг.`
+      : `For a bank, D/E ~7 is normal — focus on dividend and ROE, not just debt.`);
+  }
+  if (watchItems.length < 2) {
+    watchItems.push(lang === 'mk'
+      ? `Следи дали волуменот расте со цената — потврда на трендот.`
+      : `Watch if volume rises with price — confirms the trend.`);
+  }
+
   // ---- ANALYST VERDICT ----
   const strengthPoints = details.filter(d => d.up).length;
   const weakPoints = details.filter(d => !d.up).length;
   let commentary = '';
-
-  if (strengthPoints > weakPoints * 1.5) {
-    commentary = lang === 'mk'
-      ? `Акцијата покажува силни фундаментални и технички показатели. `
-      : `The stock shows strong fundamental and technical indicators. `;
-  } else if (strengthPoints >= weakPoints) {
-    commentary = lang === 'mk'
-      ? `Акцијата покажува мешани сигнали со благ позитивен наклон. `
-      : `The stock shows mixed signals with a slight positive bias. `;
-  } else {
-    commentary = lang === 'mk'
-      ? `Акцијата покажува претежно негативни сигнали. `
-      : `The stock shows predominantly negative signals. `;
-  }
+  // Average-investor summary — short, plain language
+  if (pct >= 65) commentary = t('analysis_summary_buy') + ' ';
+  else if (pct >= 40) commentary = t('analysis_summary_hold') + ' ';
+  else commentary = t('analysis_summary_sell') + ' ';
 
   if (details.length > 0) {
     const strongest = details.filter(d => d.up).slice(0, 3);
@@ -1260,7 +1307,7 @@ function buildAnalysisData(quote, fullHistory, fin, mbi10Rows) {
     }
   }
 
-  return { rating, ratingClass, pct, score, maxScore, details, commentary };
+  return { rating, ratingClass, pct, score, maxScore, details, watchItems, commentary };
 }
 
 function buildAnalysisHTML(analysis) {
@@ -1274,21 +1321,61 @@ function buildAnalysisHTML(analysis) {
   var strengths = details.filter(function(d) { return d.up; });
   var weaknesses = details.filter(function(d) { return !d.up; });
 
+  var confKey = pct >= 65 ? 'висока' : pct >= 50 ? 'средна' : 'ниска';
+  if (lang !== 'mk') confKey = pct >= 65 ? 'high' : pct >= 50 ? 'medium' : 'low';
   var html = '';
 
-  // Rating banner
+  // Rating banner — demoted confidence, plain summary on top
   html += '<div class="analysis-banner ' + ratingClass + '">';
-  html += '<div class="analysis-rating">' + t('analysis_rating') + ': <strong>' + rating + '</strong></div>';
-  html += '<div class="analysis-pct">' + pct.toFixed(0) + '% ' + t('analysis_confidence') + '</div>';
+  html += '<div class="analysis-rating">' + rating + ' <span style="font-weight:400;font-size:13px;opacity:0.85">· ' + confKey + ' ' + t('analysis_confidence').toLowerCase() + '</span></div>';
+  html += '<div class="analysis-verdict-text" style="padding:8px 0 0">' + commentary + '</div>';
   html += '<div class="analysis-bar"><div class="analysis-bar-fill ' + ratingClass + '" style="width:' + pct + '%"></div></div>';
-  html += '<div class="analysis-score">' + score + '/' + maxScore + ' ' + t('analysis_signals').toLowerCase() + '</div>';
+  html += '<div class="analysis-score">' + score + '/' + maxScore + ' ' + t('analysis_signals').toLowerCase() + ' · ' + pct.toFixed(0) + '%</div>';
   html += '</div>';
 
-  // Two-column grid
+  // Pros / Cons — average-investor scannable
   html += '<div class="analysis-grid">';
+  html += '<div class="analysis-card"><div class="analysis-card-title">✓ ' + t('analysis_pros') + ' (' + strengths.length + ')</div><div class="analysis-details">';
+  for (var i = 0; i < Math.min(strengths.length, 6); i++) {
+    var d = strengths[i];
+    html += '<div class="analysis-detail">';
+    html += '<span class="analysis-dot up"></span>';
+    html += '<span class="analysis-d-label">' + d.label;
+    if (d.ttKey) html += '<span class="analysis-tt" title="' + t(d.ttKey).replace(/"/g, '&quot;') + '">i</span>';
+    html += '</span>';
+    html += '<span class="analysis-d-val">' + d.val + '</span>';
+    html += '<span class="analysis-d-sig up">' + d.signal + '</span>';
+    html += '</div>';
+  }
+  if (!strengths.length) html += '<div class="analysis-detail"><span class="analysis-d-label" style="opacity:0.6">' + (lang==='mk' ? 'Нема издвоени предности' : 'No clear strengths') + '</span></div>';
+  html += '</div></div>';
 
-  // Signals detail card
-  html += '<div class="analysis-card"><div class="analysis-card-title">' + t('analysis_signals') + '</div><div class="analysis-details">';
+  html += '<div class="analysis-card"><div class="analysis-card-title">✕ ' + t('analysis_cons') + ' (' + weaknesses.length + ')</div><div class="analysis-details">';
+  for (var i = 0; i < Math.min(weaknesses.length, 6); i++) {
+    var d = weaknesses[i];
+    html += '<div class="analysis-detail">';
+    html += '<span class="analysis-dot down"></span>';
+    html += '<span class="analysis-d-label">' + d.label;
+    if (d.ttKey) html += '<span class="analysis-tt" title="' + t(d.ttKey).replace(/"/g, '&quot;') + '">i</span>';
+    html += '</span>';
+    html += '<span class="analysis-d-val">' + d.val + '</span>';
+    html += '<span class="analysis-d-sig down">' + d.signal + '</span>';
+    html += '</div>';
+  }
+  if (!weaknesses.length) html += '<div class="analysis-detail"><span class="analysis-d-label" style="opacity:0.6">' + (lang==='mk' ? 'Нема издвоени слабости' : 'No clear weaknesses') + '</span></div>';
+  html += '</div></div>';
+  html += '</div>'; // close pros/cons grid
+
+  // What to watch — actionable levels
+  if (analysis.watchItems && analysis.watchItems.length) {
+    html += '<div class="analysis-card" style="margin-top:12px"><div class="analysis-card-title">👁 ' + t('analysis_watch') + '</div><div class="analysis-verdict-text" style="padding-top:0"><ul style="margin:0;padding-left:18px;line-height:1.6">';
+    for (var w = 0; w < analysis.watchItems.length; w++) html += '<li>' + analysis.watchItems[w] + '</li>';
+    html += '</ul></div></div>';
+  }
+
+  // Full details collapsible
+  html += '<details class="analysis-details-toggle" style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--md-sys-color-primary);padding:8px 0">' + t('analysis_details') + ' (' + maxScore + ' ' + t('analysis_signals').toLowerCase() + ')</summary>';
+  html += '<div class="analysis-card" style="margin-top:8px"><div class="analysis-details">';
   for (var i = 0; i < details.length; i++) {
     var d = details[i];
     html += '<div class="analysis-detail">';
@@ -1301,17 +1388,12 @@ function buildAnalysisHTML(analysis) {
     html += '</div>';
   }
   html += '</div></div>';
-
-  // Summary card
-  html += '<div class="analysis-card"><div class="analysis-card-title">' + t('analysis_verdict') + '</div>';
-  html += '<div class="analysis-verdict-text">' + commentary + '</div>';
-  html += '<div class="analysis-breakdown">';
+  html += '<div class="analysis-breakdown" style="padding-top:10px">';
   html += '<div class="analysis-b-item"><span class="analysis-dot up"></span> ' + t('analysis_strength') + ': <strong>' + strengths.length + '</strong></div>';
   html += '<div class="analysis-b-item"><span class="analysis-dot down"></span> ' + t('analysis_weakness') + ': <strong>' + weaknesses.length + '</strong></div>';
   html += '<div class="analysis-b-item"><span class="analysis-dot" style="background:var(--md-sys-color-on-surface-variant)"></span> ' + t('analysis_neutral') + ': <strong>' + (maxScore - strengths.length - weaknesses.length) + '</strong></div>';
-  html += '</div></div>';
-
-  html += '</div>'; // close analysis-grid
+  html += '</div>';
+  html += '</details>';
 
   // Disclaimer
   var disc = lang === 'mk'
