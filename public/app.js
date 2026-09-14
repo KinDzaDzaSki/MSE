@@ -1403,23 +1403,32 @@ function buildAnalysisHTML(analysis) {
 
   return html;
 }
-$('#finTabBar').addEventListener('click', (e) => {
-  const btn = e.target.closest('.fin-tab');
+function switchFinTab(tab) {
+  const btn = document.querySelector(`.fin-tab[data-tab="${tab}"]`);
   if (!btn || btn.classList.contains('hidden')) return;
-  const tab = btn.dataset.tab;
   $$('.fin-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   $$('.fin-tab-panel').forEach(p => p.classList.add('hidden'));
   const panel = tab === 'chart' ? $('#finTabChart') :
     tab === 'data' ? $('#finTabData') : tab === 'ratios' ? $('#finTabRatios') : $('#finTabAnalysis');
   if (panel) panel.classList.remove('hidden');
-  // Trigger chart resize when switching back to chart tab
   if (tab === 'chart') {
     const mc = $('#companyModal');
     if (mc._chart) {
       setTimeout(() => mc._chart.applyOptions({ width: $('#companyChart').clientWidth }), 0);
     }
   }
+}
+const _finTabBar = $('#finTabBar');
+if (_finTabBar) _finTabBar.addEventListener('click', (e) => {
+  const btn = e.target.closest('.fin-tab');
+  if (btn) switchFinTab(btn.dataset.tab);
+});
+// Fallback: direct listeners + document delegation (covers re-renders / cache)
+$$('.fin-tab').forEach(b => b.addEventListener('click', () => switchFinTab(b.dataset.tab)));
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.fin-tab');
+  if (btn && btn.closest('#finTabBar')) switchFinTab(btn.dataset.tab);
 });
 
 // ---- WIRE UP ----
