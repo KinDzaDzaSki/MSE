@@ -1,5 +1,9 @@
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+// Escape scraped strings (company names, labels) before innerHTML injection.
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[c]));
 
 let quotesCache = [];
 let sparkCache = {};
@@ -419,7 +423,7 @@ async function loadQuotes() {
   } catch (e) {
     console.error('loadQuotes failed:', e);
     const body = $('#quotesBody');
-    if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Failed to load data: ${e.message}</td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Failed to load data: ${esc(e.message)}</td></tr>`;
   }
 }
 
@@ -429,7 +433,8 @@ async function loadQuotes() {
 function scheduleNextPoll() {
   const interval = marketIsOpen ? 30000 : 60000; // slower checks while closed
   setTimeout(async () => {
-    await loadQuotes();
+    // Hidden tab = nobody watching: skip the fetch, just reschedule.
+    if (!document.hidden) await loadQuotes();
     scheduleNextPoll();
   }, interval);
 }
@@ -512,9 +517,9 @@ function renderTable() {
     tr.dataset.sym = r.symbol;
     const range = buildRangeBar(r);
     tr.innerHTML = `
-      <td class="sym">${r.symbol}</td>
-      <td class="comp">${r.name || ''}</td>
-      <td class="spark"><canvas data-spark="${r.symbol}"></canvas></td>
+      <td class="sym">${esc(r.symbol)}</td>
+      <td class="comp">${esc(r.name || '')}</td>
+      <td class="spark"><canvas data-spark="${esc(r.symbol)}"></canvas></td>
       <td class="num">${fmt(r.lastPrice)}</td>
       <td class="num ${pctClass(r.dailyChange)}">${chgStr(r.dailyChange)}</td>
       <td class="num ${pctClass(r.changePct)}">${pctStr(r.changePct)}</td>
@@ -535,7 +540,7 @@ function renderTable() {
   } catch (e) {
     console.error('renderTable failed:', e);
     const body = $('#quotesBody');
-    if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Render failed: ${e.message}</td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Render failed: ${esc(e.message)}</td></tr>`;
   }
 }
 
@@ -605,10 +610,10 @@ function renderSidePanel(containerId, items) {
     div.dataset.sym = r.symbol;
     div.innerHTML = `
       <div class="si-left">
-        <div class="si-sym">${r.symbol}</div>
-        <div class="si-name">${r.name || ''}</div>
+        <div class="si-sym">${esc(r.symbol)}</div>
+        <div class="si-name">${esc(r.name || '')}</div>
       </div>
-      <div class="si-spark"><canvas data-spark-side="${r.symbol}"></canvas></div>
+      <div class="si-spark"><canvas data-spark-side="${esc(r.symbol)}"></canvas></div>
       <div class="si-right">
         <div class="si-price">${fmt(r.lastPrice)}</div>
         <div class="si-chg ${pctClass(r.changePct)}">${chgStr(r.dailyChange)} (${pctStr(r.changePct)})</div>
@@ -683,12 +688,12 @@ async function openCompany(symbol) {
     // Render header + stats into companyContent (no chart section)
     content.innerHTML = `
       <div class="company-head">
-        <h2>${symbol}</h2>
+        <h2>${esc(symbol)}</h2>
         <span class="${pctClass(chg)}">
           <span class="material-symbols-outlined icon-fill" style="font-size:20px;vertical-align:middle">${chg >= 0 ? 'trending_up' : 'trending_down'}</span>
           ${chgStr(chgAbs)} (${pctStr(chg)})</span>
       </div>
-      <div class="company-sub">${q.name || ''} ${q.isin ? '· ISIN ' + q.isin : ''}</div>
+      <div class="company-sub">${esc(q.name || '')} ${q.isin ? '· ISIN ' + esc(q.isin) : ''}</div>
       <div class="as-of" id="asOf"></div>
       ${isIndex ? '' : (() => {
         const lo = q.minPrice, hi = q.maxPrice, lo52 = q.week52Min, hi52 = q.week52Max;
@@ -885,17 +890,17 @@ function buildFinTable(data, isRatios) {
   const fmtNum = (v) => lang === 'mk' ? v.replace(/,/g, '.') : v;
   let html = '<table class="fin-table">';
   html += '<thead><tr><th></th>';
-  for (const y of years) html += `<th class="num">${y}</th>`;
+  for (const y of years) html += `<th class="num">${esc(y)}</th>`;
   html += '</tr></thead><tbody>';
   for (const row of rows) {
     html += '<tr>';
-    html += `<td class="fin-label">${tl(row[0])}</td>`;
+    html += `<td class="fin-label">${esc(tl(row[0]))}</td>`;
     for (let i = 1; i < row.length; i++) {
       const val = row[i] || '—';
       const isPct = typeof val === 'string' && val.includes('%');
       const isNum = /^[\d.,]+$/.test(val.replace('%', ''));
       const cls = isNum ? 'num' : '';
-      html += `<td class="${cls}">${isNum ? fmtNum(val) : val}</td>`;
+      html += `<td class="${cls}">${isNum ? esc(fmtNum(val)) : esc(val)}</td>`;
     }
     // Fill missing cells if years > row values
     for (let i = row.length; i <= years.length; i++) {
@@ -1403,7 +1408,7 @@ $('#themeToggle').addEventListener('click', () => {
 // the chip is just a price+change indicator on the navbar.
 function scheduleNextMBIPoll() {
   setTimeout(async () => {
-    await loadMBI();
+    if (!document.hidden) await loadMBI();
     scheduleNextMBIPoll();
   }, 60000);
 }

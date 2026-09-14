@@ -1,8 +1,24 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const store = require('./lib/store');
 const log = require('./lib/logger');
+
+// Shared secret for expensive/admin endpoints (backfill, refresh, logs).
+// Unset = open (local dev). Set ADMIN_TOKEN in production and pass it as
+// ?token= or the x-admin-token header.
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+function isAdmin(url, req) {
+  if (!ADMIN_TOKEN) return true;
+  return url.searchParams.get('token') === ADMIN_TOKEN ||
+    req.headers['x-admin-token'] === ADMIN_TOKEN;
+}
+function needAdmin(url, req, res) {
+  if (isAdmin(url, req)) return true;
+  sendJson(res, { error: 'forbidden' }, 403);
+  return false;
+}
 
 const PORT = process.env.PORT || 8080;
 log.info(`config PORT env="${process.env.PORT}" listening on=${PORT}`);
@@ -17,13 +33,21 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
-function sendJson(res, obj, status = 200) {
-  const body = JSON.stringify(obj);
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(body);
+function sendRaw(res, buf, contentType, req, status = 200, extraHeaders = {}) {
+  const ae = (req && req.headers && req.headers['accept-encoding']) || '';
+  if (buf.length > 1024 && /\bgzip\b/.test(ae)) {
+    res.writeHead(status, { 'Content-Type': contentType, 'Content-Encoding': 'gzip', ...extraHeaders });
+    return res.end(zlib.gzipSync(buf));
+  }
+  res.writeHead(status, { 'Content-Type': contentType, ...extraHeaders });
+  return res.end(buf);
 }
 
-function sendFile(res, file) {
+function sendJson(res, obj, status = 200, req = null) {
+  sendRaw(res, Buffer.from(JSON.stringify(obj)), 'application/json; charset=utf-8', req, status);
+}
+
+function sendFile(res, file, req = null) {
   fs.readFile(file, (err, data) => {
     if (err) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -38,8 +62,7 @@ function sendFile(res, file) {
     } else if (ext === '.html') {
       cacheHeaders['Cache-Control'] = 'no-cache';
     }
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', ...cacheHeaders });
-    res.end(data);
+    sendRaw(res, data, MIME[ext] || 'application/octet-stream', req, 200, cacheHeaders);
   });
 }
 
@@ -59,7 +82,7 @@ async function handleApi(req, res, url) {
       arr = arr.filter((q) => active.has(q.symbol));
     }
     arr.sort((a, b) => (b.value || 0) - (a.value || 0));
-    return sendJson(res, { quotes: arr, marketOpen: store.isMarketOpen(), lastPoll: store.lastPoll });
+    return sendJson(res, { quotes: arr, marketOpen: store.isMarketOpen(), lastPoll: store.lastPoll }, 200, req);
   }
 
   if (url.pathname === '/api/indices') {
@@ -76,7 +99,7 @@ async function handleApi(req, res, url) {
     else if (range === '3M') rows = rows.slice(-66);
     else if (range === '6M') rows = rows.slice(-132);
     else if (range === '1Y') rows = rows.slice(-252);
-    return sendJson(res, { symbol: sym, rows });
+    return sendJson(res, { symbol: sym, rows }, 200, req);
   }
 
   const q = url.pathname.match(/^\/api\/quote\/([^/]+)$/);
@@ -110,6 +133,7 @@ async function handleApi(req, res, url) {
 
   const bf = url.pathname.match(/^\/api\/backfill\/([^/]+)$/);
   if (bf) {
+    if (!needAdmin(url, req, res)) return;
     const sym = decodeURIComponent(bf[1]);
     const days = parseInt(url.searchParams.get('days') || '365', 10);
     const rows = await store.backfillHistory(sym, days);
@@ -118,6 +142,7 @@ async function handleApi(req, res, url) {
 
   const bfIdx = url.pathname.match(/^\/api\/backfill-index\/([^/]+)$/);
   if (bfIdx) {
+    if (!needAdmin(url, req, res)) return;
     const code = decodeURIComponent(bfIdx[1]);
     const rows = await store.backfillIndexHistory(code);
     return sendJson(res, { code, count: rows.length });
@@ -125,40 +150,50 @@ async function handleApi(req, res, url) {
 
   const bfAll = url.pathname.match(/^\/api\/backfill-all$/);
   if (bfAll) {
-    const syms = store.getSymbols();
-    let done = 0;
-    // sequential to be polite to the server
-    for (const s of syms) {
-      await store.backfillHistory(s, 365);
-      done++;
-    }
-    return sendJson(res, { ok: true, symbolsDone: done, total: syms.length });
+    if (!needAdmin(url, req, res)) return;
+    // Runs in the background (full scrape takes minutes — far beyond any
+    // platform's request cap). Poll /api/job/{id} for progress.
+    const job = store.startBackfillAllJob();
+    return sendJson(res, { ok: true, job: job.id, total: job.total });
+  }
+
+  const jm = url.pathname.match(/^\/api\/job\/([^/]+)$/);
+  if (jm) {
+    if (!needAdmin(url, req, res)) return;
+    const job = store.getJob(decodeURIComponent(jm[1]));
+    if (!job) return sendJson(res, { error: 'unknown job' }, 404);
+    return sendJson(res, job);
   }
 
   if (url.pathname === '/api/history') {
     // Batch history: /api/history?symbols=ALK,ADIN,GRNT&range=1Y
     const syms = (url.searchParams.get('symbols') || '').split(',').filter(Boolean);
     const range = url.searchParams.get('range') || '1Y';
+    const pairs = await Promise.all(syms.map(async (sym) => [sym, await store.getHistory(sym)]));
     const queries = {};
-    for (const sym of syms) {
-      let rows = await store.getHistory(sym);
+    for (const [sym, allRows] of pairs) {
+      let rows = allRows;
       if (range === '1M') rows = rows.slice(-22);
       else if (range === '3M') rows = rows.slice(-66);
       else if (range === '6M') rows = rows.slice(-132);
       else if (range === '1Y') rows = rows.slice(-252);
       queries[sym] = rows;
     }
-    return sendJson(res, { queries });
+    return sendJson(res, { queries }, 200, req);
   }
 
   if (url.pathname === '/api/refresh') {
-    await store.pollQuotes();
-    await store.pollIndices();
-    return sendJson(res, { ok: true, lastPoll: store.lastPoll });
+    if (!needAdmin(url, req, res)) return;
+    // Fire-and-forget: a full poll takes ~60s+, beyond request caps.
+    store.pollQuotes()
+      .then(() => store.pollIndices())
+      .catch((e) => log.error(`manual refresh error: ${e.message}`));
+    return sendJson(res, { ok: true, started: true, lastPoll: store.lastPoll });
   }
 
   if (url.pathname === '/api/logs') {
-    const n = parseInt(url.searchParams.get('n') || '50', 10);
+    if (!needAdmin(url, req, res)) return;
+    const n = Math.min(parseInt(url.searchParams.get('n') || '50', 10) || 50, 500);
     return sendJson(res, { lines: log.getRecent(n) });
   }
 
@@ -199,7 +234,7 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(403);
     return res.end('forbidden');
   }
-  sendFile(res, filePath);
+  sendFile(res, filePath, req);
 });
 
 // Graceful shutdown — close server + DB pool so in-flight writes finish

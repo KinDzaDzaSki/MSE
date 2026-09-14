@@ -33,7 +33,7 @@ Data is scraped from the **public, free end-of-day** pages on
 npm install
 export DATABASE_URL="postgresql://user:pass@localhost:5432/mse"
 node server.js
-# open http://localhost:3000
+# open http://localhost:8080
 ```
 
 On first boot the schema is created automatically (`lib/db.js` → `migrate()`),
@@ -50,7 +50,7 @@ curl "http://localhost:3000/api/backfill-all"
 curl "http://localhost:3000/api/refresh"
 ```
 
-Set `PORT` to change the port (default 3000).
+Set `PORT` to change the port (default 8080).
 
 ## Deploy (free tier)
 
@@ -88,9 +88,14 @@ Free allowance: 3 shared-CPU VMs (256MB) + 1GB Postgres. The app uses
 | GET | `/api/quote/{SYM}` | single issuer detail |
 | GET | `/api/history/{SYM}?range=1M\|3M\|6M\|1Y` | historical OHLCV |
 | GET | `/api/indices` | MBI10 + OMB values |
-| GET | `/api/backfill/{SYM}?days=N` | fetch & store history |
-| GET | `/api/backfill-all` | backfill all symbols |
-| GET | `/api/refresh` | force quote + index refresh |
+| GET | `/api/backfill/{SYM}?days=N` | fetch & store history (admin) |
+| GET | `/api/backfill-all` | start background backfill job, returns `{ job }` (admin) |
+| GET | `/api/job/{id}` | backfill job progress (admin) |
+| GET | `/api/refresh` | trigger quote + index refresh in background (admin) |
+| GET | `/api/logs?n=50` | recent server log lines (admin) |
+
+Admin endpoints require `ADMIN_TOKEN` when set (pass `?token=` or the
+`x-admin-token` header). Unset = open, for local dev.
 
 ## Notes & limitations
 
