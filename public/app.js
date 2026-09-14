@@ -40,8 +40,14 @@ const I18N = {
       last_price: 'Last Price',
       avg_price: 'Avg Price',
       day_range: 'Day Range',
+      volume: 'Volume',
       turnover_l: 'Turnover',
       trades: 'Trades',
+      period_1m: 'past month',
+      period_3m: 'past 3 months',
+      period_6m: 'past 6 months',
+      period_1y: 'past year',
+      period_all: 'all time',
       range_1m: '1M',
       range_3m: '3M',
       range_6m: '6M',
@@ -137,8 +143,14 @@ const I18N = {
       last_price: 'Последна цена',
       avg_price: 'Просечна цена',
       day_range: 'Дневен опсег',
+      volume: 'Волумен',
       turnover_l: 'Промет',
       trades: 'Трансакции',
+      period_1m: 'изминат месец',
+      period_3m: 'изминати 3 месеци',
+      period_6m: 'изминати 6 месеци',
+      period_1y: 'измината година',
+      period_all: 'сето време',
       range_1m: '1М',
       range_3m: '3М',
       range_6m: '6М',
@@ -663,6 +675,7 @@ async function drawSparkSide(canvas, symbol, chgPct) {
 async function openCompany(symbol) {
   const modal = $('#companyModal');
   const content = $('#companyContent');
+  modal.dataset.sym = symbol;
   modal.classList.remove('hidden');
   content.innerHTML = `<div class="muted">${t('loading')}</div>`;
 
@@ -866,7 +879,7 @@ async function openCompany(symbol) {
       const chgEl = $('#chartChg');
       chgEl.textContent = `${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%`;
       chgEl.className = 'chart-chg ' + (chgPct >= 0 ? 'up' : 'down');
-      const rangeLabel = { '1M': 'past month', '3M': 'past 3 months', '6M': 'past 6 months', '1Y': 'past year', 'ALL': 'all time' }[range] || range;
+      const rangeLabel = { '1M': t('period_1m'), '3M': t('period_3m'), '6M': t('period_6m'), '1Y': t('period_1y'), 'ALL': t('period_all') }[range] || range;
       $('#chartPeriod').textContent = `${rangeLabel} · ${candleData.length ? fmtDate(candleData[0].time * 1000) + ' – ' + fmtDate(candleData[candleData.length - 1].time * 1000) : ''}`;
       if (candleData.length) {
         $('#asOf').textContent = `${t('as_of')} ${fmtDate(candleData[candleData.length - 1].time * 1000)} · ${t('eod_note')}`;
@@ -1380,6 +1393,15 @@ $('#langToggle').addEventListener('click', () => {
   lang = lang === 'en' ? 'mk' : 'en';
   localStorage.setItem('mse_lang', lang);
   applyStaticI18n();
+  // Re-render open company modal so all modal strings (stats, chart period, asOf) switch language
+  const modal = $('#companyModal');
+  if (modal && !modal.classList.contains('hidden') && modal.dataset.sym) {
+    const sym = modal.dataset.sym;
+    // close chart before re-opening to avoid leak
+    if (modal._chart) { try { modal._chart.remove(); } catch (_) {} modal._chart = null; }
+    if (modal._resizeHandler) { window.removeEventListener('resize', modal._resizeHandler); modal._resizeHandler = null; }
+    openCompany(sym);
+  }
 });
 
 // ---- THEME TOGGLE ----
