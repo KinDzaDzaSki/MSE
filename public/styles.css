@@ -1348,21 +1348,28 @@ table.quotes thead th.spark-th {
 
 .fin-tab-panel {
   padding-top: var(--md-space-sm);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--md-sys-color-outline) transparent;
 }
+.fin-tab-panel::-webkit-scrollbar { height: 6px; }
+.fin-tab-panel::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline); border-radius: var(--md-shape-full); }
 
 /* ==========================================================================
    FINANCIAL TABLES
    ========================================================================== */
 .fin-table {
   width: 100%;
-  min-width: 480px;
+  min-width: 560px;
   border-collapse: collapse;
   font-size: 13px;
   line-height: 1.4;
+  table-layout: auto;
 }
 .fin-table thead th {
   position: sticky;
   top: 0;
+  z-index: 1;
   padding: 8px 12px;
   font-size: 11px;
   font-weight: 600;
@@ -1373,25 +1380,40 @@ table.quotes thead th.spark-th {
   border-bottom: 1px solid var(--md-sys-color-outline);
   text-align: left;
   white-space: nowrap;
+  vertical-align: middle;
+}
+.fin-table thead th:first-child {
+  min-width: 180px;
+  text-align: left;
 }
 .fin-table thead th.num {
   text-align: right;
+  min-width: 90px;
 }
 .fin-table tbody td {
   padding: 7px 12px;
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
   color: var(--md-sys-color-on-surface);
+  vertical-align: middle;
+  white-space: nowrap;
 }
 .fin-table tbody td.num {
   text-align: right;
   font-feature-settings: 'tnum' 1;
+  white-space: nowrap;
+}
+.fin-table tbody td.num.muted {
+  color: var(--md-sys-color-on-surface-variant);
 }
 .fin-table tbody td.fin-label {
   font-weight: 500;
   color: var(--md-sys-color-on-surface);
   max-width: 280px;
+  min-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
 }
 .fin-table tbody tr:last-child td {
   border-bottom: none;
@@ -1408,11 +1430,11 @@ table.quotes thead th.spark-th {
   padding: 0 4px;
 }
 
-/* Compact: scroll financial tables horizontally */
+/* Compact: tighten financial tables on small screens */
 @media (max-width: 839px) {
-  .fin-tab-panel {
-    overflow-x: auto;
-  }
+  .fin-table { min-width: 480px; }
+  .fin-table thead th,
+  .fin-table tbody td { padding: 6px 8px; }
 }
 
 /* ==========================================================================

@@ -905,14 +905,12 @@ function buildFinTable(data, isRatios) {
     html += `<td class="fin-label">${esc(tl(row[0]))}</td>`;
     for (let i = 1; i < row.length; i++) {
       const val = row[i] || '—';
-      const isPct = typeof val === 'string' && val.includes('%');
-      const isNum = /^[\d.,]+$/.test(val.replace('%', ''));
-      const cls = isNum ? 'num' : '';
-      html += `<td class="${cls}">${isNum ? esc(fmtNum(val)) : esc(val)}</td>`;
+      const isNum = /^[\d.,]+%?$/.test(String(val).replace(/,/g, '').trim()) && val !== '—';
+      html += `<td class="num${isNum ? '' : ' muted'}">${isNum ? esc(fmtNum(val)) : esc(val)}</td>`;
     }
     // Fill missing cells if years > row values
     for (let i = row.length; i <= years.length; i++) {
-      html += '<td class="num">—</td>';
+      html += '<td class="num muted">—</td>';
     }
     html += '</tr>';
   }
