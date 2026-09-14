@@ -285,7 +285,7 @@ function chgStr(v) {
 function fmtDate(ts) {
   const d = new Date(ts);
   if (isNaN(d)) return '—';
-  return d.toLocaleDateString(lang === 'mk' ? 'mk-MK' : 'en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 // ---- batch history loader (replaces N individual sparkline API calls) ----
@@ -381,11 +381,17 @@ async function loadQuotes() {
   // refresh the "as of" timestamp so the user knows how stale the data is.
   if (!marketIsOpen && hasData) {
     if (d.lastPoll) {
-      const timeStr = new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
+      // Always display Skopje current time (not the stale lastPoll
+      // timestamp — that is hours old once the market has closed and
+      // no further polls fire). Data age is shown separately as
+      // "Updated {lastPoll}".
+      const timeStr = new Date().toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', {
+        timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true,
+      });
       const st = $('#marketStatus');
       st.innerHTML = t('market_closed_at').replace('{time}', timeStr);
       st.className = 'market-status closed';
-      $('#lastPoll').textContent = `${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString()}`;
+      $('#lastPoll').textContent = `${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true })}`;
     }
     return;
   }
@@ -399,8 +405,10 @@ async function loadQuotes() {
     st.className = 'market-status open';
   } else {
     const st = $('#marketStatus');
+    const timeStr = new Date().toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', {
+      timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true,
+    });
     if (d.lastPoll) {
-      const timeStr = new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
       st.innerHTML = t('market_closed_at').replace('{time}', timeStr);
     } else {
       st.innerHTML = t('market_closed');
@@ -408,7 +416,7 @@ async function loadQuotes() {
     st.className = 'market-status closed';
   }
   if (d.lastPoll) {
-    $('#lastPoll').textContent = `${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString()}`;
+    $('#lastPoll').textContent = `${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true })}`;
   }
   renderTable();
   renderSidebar();
