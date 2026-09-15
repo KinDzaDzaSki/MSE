@@ -1562,6 +1562,16 @@ table.quotes thead th.spark-th {
     grid-template-columns: 1fr;
   }
 
+  /* Very small screens: stack the controls full-width so labels never
+     overflow — big touch targets, one control per row. */
+  .panel-header { gap: var(--md-space-xs); }
+  .panel-header #mainTabs,
+  .panel-header #viewToggle { flex: 1 1 100%; }
+  .panel-header #mainTabs .main-tab,
+  .panel-header #viewToggle button { padding: 8px 6px; }
+  .panel-header .search-wrapper { flex: 1 1 auto; }
+  #lastPoll { margin-left: auto; }
+
   /* Touch-friendly table rows on compact */
   table.quotes th {
     padding: 8px 6px;
