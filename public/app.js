@@ -402,14 +402,22 @@ function applyStaticI18n() {
   if (legend) legend.textContent = t('chart_legend');
 }
 
-// Toggle labels show live counts; called from applyStaticI18n + loadQuotes
+// Toggle labels show live counts of the ACTIVE view — quotes companies on
+// Котации, dividend payers on Дивиденди.
 function updateToggleLabels() {
   const bl = $('#btnLiquid'), ba = $('#btnAll');
   if (!bl || !ba) return;
-  const primaries = quotesCache.filter(isPrimary);
-  const liq = primaries.filter((q) => q.liq === true).length;
-  bl.textContent = `${t('view_liquid')} (${liq})`;
-  ba.textContent = `${t('view_all')} (${primaries.length})`;
+  let liqCount, allCount;
+  if (mainView === 'dividends' && dividendsCache) {
+    allCount = dividendsCache.length;
+    liqCount = dividendsCache.filter((r) => r.liq === true).length;
+  } else {
+    const primaries = quotesCache.filter(isPrimary);
+    allCount = primaries.length;
+    liqCount = primaries.filter((q) => q.liq === true).length;
+  }
+  bl.textContent = `${t('view_liquid')} (${liqCount})`;
+  ba.textContent = `${t('view_all')} (${allCount})`;
   bl.classList.toggle('active', view === 'liquid');
   ba.classList.toggle('active', view === 'all');
 }
@@ -450,6 +458,7 @@ function setMainView(v) {
   if (qv) qv.classList.toggle('hidden', v !== 'quotes');
   if (dv) dv.classList.toggle('hidden', v !== 'dividends');
   $$('#mainTabs .main-tab').forEach((b) => b.classList.toggle('active', b.dataset.mtab === v));
+  updateToggleLabels();
   if (v === 'dividends' && !dividendsCache) loadDividends();
 }
 
@@ -570,6 +579,7 @@ function renderDivTable() {
   $('#divNote').textContent = rows.length < 10
     ? `${t('div_stale_note')} ${t('div_exdate_note')}`
     : t('div_exdate_note');
+  updateToggleLabels();
 }
 
 // Modal (Показатели tab): compact dividend summary above the ratios table.

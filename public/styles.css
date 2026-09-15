@@ -440,6 +440,7 @@ a:hover { color: var(--md-sys-color-primary-container); }
 .panel-header .search-wrapper { flex: 1; min-width: 200px; }
 .panel-header .search { height: 44px; font-size: 14px; }
 .panel-header .view-toggle { flex-shrink: 0; }
+.panel-header #lastPoll { margin-left: auto; flex-shrink: 0; }
 
 /* Quotes | Dividends view switcher — segmented, matches the Liquid toggle */
 .main-tabs {
