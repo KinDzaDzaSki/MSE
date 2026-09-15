@@ -109,6 +109,7 @@ const I18N = {
       eod_note: 'end-of-day data (latest trading session)',
       failed: 'Failed to load data.',
       source: 'Data scraped from mse.mk — free public end-of-day data — for educational use.',
+      widgets_link: 'Widgets for your site',
       lang_btn: 'МК',
       tab_chart: 'Chart',
       tab_fin_data: 'Financial Data',
@@ -243,6 +244,7 @@ const I18N = {
       eod_note: 'податоци на крај на ден (последната трговска сесија)',
       failed: 'Не успеа вчитувањето на податоците.',
       source: 'Податоци преземени од mse.mk — бесплатни јавни податоци — за едукативна намена.',
+      widgets_link: 'Виџети за твој сајт',
       lang_btn: 'EN',
       tab_chart: 'Графикон',
       tab_fin_data: 'Податоци',
@@ -376,7 +378,7 @@ function applyStaticI18n() {
   $('#search').placeholder = t('search');
   updateToggleLabels();
   renderWatchStrip();
-  $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')} · v${APP_VERSION}`;
+  $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')} · <a href="/widgets.html">${t('widgets_link')}</a> · v${APP_VERSION}`;
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
   $$('.side-title')[2].textContent = t('active');

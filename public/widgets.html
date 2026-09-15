@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="mk" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MSE Berza — Виџети за твој сајт</title>
+<meta name="description" content="Креирај embeddable виџети со податоци од Македонската берза: ticker лента, картичка за компанија, мини график или дивиденди." />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+<link rel="stylesheet" href="/widget.css" />
+<style>
+  .b-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; border-bottom: 1px solid var(--md-sys-color-outline);
+    background: var(--md-sys-color-surface); flex-shrink: 0;
+  }
+  .b-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; }
+  .b-brand a { color: inherit; text-decoration: none; }
+  .b-brand .material-symbols-outlined, .b-brand svg { width: 26px; height: 26px; }
+  body { overflow: auto; }
+  .b-main { flex: 1 1 auto; overflow: auto; padding: 20px; display: flex; flex-direction: column; gap: 18px; max-width: 1100px; margin: 0 auto; width: 100%; }
+  .b-step h2 { font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--md-sys-color-on-surface-variant); margin-bottom: 10px; }
+  .b-types { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  .b-type {
+    background: var(--md-sys-color-surface); border: 1px solid var(--md-sys-color-outline);
+    border-radius: 10px; padding: 12px 14px; cursor: pointer; text-align: left;
+    color: var(--md-sys-color-on-surface); font-family: inherit; transition: border-color .15s;
+  }
+  .b-type:hover { border-color: var(--md-sys-color-primary); }
+  .b-type.active { border-color: var(--md-sys-color-primary); background: var(--md-sys-color-surface-variant); }
+  .b-type .t-name { font-weight: 700; font-size: 14px; margin-bottom: 3px; }
+  .b-type .t-desc { font-size: 11px; color: var(--md-sys-color-on-surface-variant); line-height: 1.4; }
+  .b-cfg { display: flex; flex-direction: column; gap: 12px; }
+  .b-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .b-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; }
+  .b-field label { font-size: 11px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); text-transform: uppercase; letter-spacing: .4px; }
+  .b-field input, .b-field select {
+    background: var(--md-sys-color-surface-variant); border: 1px solid var(--md-sys-color-outline);
+    color: var(--md-sys-color-on-surface); border-radius: 6px; padding: 8px 10px;
+    font-family: inherit; font-size: 13px; outline: none;
+  }
+  .b-field input:focus, .b-field select:focus { border-color: var(--md-sys-color-primary); }
+  .b-seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--md-sys-color-surface-variant); border: 1px solid var(--md-sys-color-outline); border-radius: 8px; }
+  .b-seg button {
+    background: transparent; border: none; color: var(--md-sys-color-on-surface-variant);
+    font-family: inherit; font-size: 13px; font-weight: 600; padding: 6px 16px;
+    border-radius: 6px; cursor: pointer;
+  }
+  .b-seg button.active { background: var(--md-sys-color-surface); color: var(--md-sys-color-primary); box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .b-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .b-chip {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700;
+    background: var(--md-sys-color-surface-variant); border: 1px solid var(--md-sys-color-outline);
+    border-radius: 999px; padding: 3px 10px; color: var(--md-sys-color-primary);
+  }
+  .b-chip button { background: none; border: none; color: var(--md-sys-color-on-surface-variant); cursor: pointer; font-size: 11px; padding: 0; font-family: inherit; }
+  .b-chip button:hover { color: var(--md-sys-color-negative); }
+  .b-add { display: flex; gap: 6px; }
+  .b-add input { flex: 1; }
+  .b-add button, .b-copy {
+    background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
+    border: none; border-radius: 6px; padding: 8px 14px; font-family: inherit;
+    font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .b-preview { width: 100%; border: 1px solid var(--md-sys-color-outline); border-radius: 10px; background: var(--md-sys-color-surface); min-height: 120px; }
+  #snippet {
+    width: 100%; min-height: 84px; resize: vertical;
+    background: var(--md-sys-color-surface-variant); border: 1px solid var(--md-sys-color-outline);
+    color: var(--md-sys-color-on-surface); border-radius: 8px; padding: 10px 12px;
+    font-family: 'SF Mono', 'Consolas', monospace; font-size: 12px; line-height: 1.5;
+  }
+  .b-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .b-open { color: var(--md-sys-color-primary); font-size: 13px; text-decoration: none; }
+  .b-open:hover { text-decoration: underline; }
+  .b-foot { text-align: center; font-size: 11px; color: var(--md-sys-color-on-surface-variant); padding: 10px; flex-shrink: 0; }
+  .b-foot a { color: var(--md-sys-color-primary); text-decoration: none; }
+</style>
+</head>
+<body>
+<header class="b-header">
+  <div class="b-brand">
+    <a href="/" title="MSE Berza"><img src="/favicon.svg?v=2" alt="" width="26" height="26"></a>
+    <span>MSE Berza — <span style="color:var(--md-sys-color-on-surface-variant);font-weight:600">Виџети за твој сајт</span></span>
+  </div>
+  <div class="b-seg" id="builderTheme">
+    <button type="button" data-t="light">Светла</button>
+    <button type="button" data-t="dark" class="active">Темна</button>
+  </div>
+</header>
+
+<main class="b-main">
+  <section class="b-step">
+    <h2>1. Избери тип на виџет</h2>
+    <div class="b-types" id="types">
+      <button type="button" class="b-type active" data-type="quote">
+        <div class="t-name">Картичка</div>
+        <div class="t-desc">Цена, промена и мини тренд за една компанија или индекс</div>
+      </button>
+      <button type="button" class="b-type" data-type="chart">
+        <div class="t-name">Мини график</div>
+        <div class="t-desc">Историски тренд по избран период (зелено = раст, црвено = пад)</div>
+      </button>
+      <button type="button" class="b-type" data-type="ticker">
+        <div class="t-name">Ticker лента</div>
+        <div class="t-desc">Движечка лента со повеќе тикери — идеална за header</div>
+      </button>
+      <button type="button" class="b-type" data-type="dividends">
+        <div class="t-name">Дивиденди</div>
+        <div class="t-desc">Топ исплатери по принос — табела</div>
+      </button>
+    </div>
+  </section>
+
+  <section class="b-step">
+    <h2>2. Поставки</h2>
+    <div class="b-cfg">
+      <div class="b-row" id="rowSymbol">
+        <div class="b-field">
+          <label for="symbolInput">Компанија / индекс</label>
+          <input id="symbolInput" list="symList" value="KMB" placeholder="пр. KMB" />
+          <datalist id="symList"></datalist>
+        </div>
+      </div>
+      <div class="b-row" id="rowRange" style="display:none">
+        <div class="b-field">
+          <label for="rangeSel">Период</label>
+          <select id="rangeSel">
+            <option value="1M">1 месец</option>
+            <option value="3M">3 месеци</option>
+            <option value="6M">6 месеци</option>
+            <option value="1Y" selected>1 година</option>
+            <option value="ALL">Сето време</option>
+          </select>
+        </div>
+      </div>
+      <div class="b-row" id="rowN" style="display:none">
+        <div class="b-field">
+          <label for="nInput">Број на компании (топ по принос)</label>
+          <input id="nInput" type="number" min="3" max="30" value="10" />
+        </div>
+      </div>
+      <div class="b-row" id="rowSymbols" style="display:none">
+        <div class="b-field" style="flex:3 1 260px">
+          <label for="tickerInput">Додај тикер</label>
+          <div class="b-add">
+            <input id="tickerInput" list="symList" placeholder="пр. KMB" />
+            <button type="button" id="tickerAdd">Додај</button>
+          </div>
+          <div class="b-chips" id="tickerChips"></div>
+        </div>
+      </div>
+      <div class="b-row">
+        <div class="b-field" style="flex:0 0 auto">
+          <label>Тема</label>
+          <div class="b-seg" id="themeSeg">
+            <button type="button" data-t="light">Светла</button>
+            <button type="button" data-t="dark" class="active">Темна</button>
+          </div>
+        </div>
+        <div class="b-field" style="flex:0 0 120px">
+          <label for="hInput">Височина (px)</label>
+          <input id="hInput" type="number" min="40" max="1200" value="220" />
+        </div>
+        <div class="b-field" style="flex:0 0 120px">
+          <label for="wInput">Ширина (px или %)</label>
+          <input id="wInput" type="text" value="100%" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="b-step">
+    <h2>3. Преглед</h2>
+    <iframe class="b-preview" id="preview" title="Преглед на виџет" height="280"></iframe>
+  </section>
+
+  <section class="b-step">
+    <h2>4. Вгради го во твојот сајт</h2>
+    <textarea id="snippet" readonly></textarea>
+    <div class="b-actions">
+      <button type="button" class="b-copy" id="copyBtn">Копирај код</button>
+      <a class="b-open" id="openLink" target="_blank" rel="noopener">Отвори виџет во нов tab →</a>
+    </div>
+  </section>
+</main>
+
+<div class="b-foot">Податоци: <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · <a href="/">MSE Berza Info</a></div>
+
+<script src="/widget.js"></script>
+<script>
+const DEFAULT_H = { quote: 220, chart: 420, ticker: 46, dividends: 380 };
+const DEFAULT_W = { quote: '320', chart: '480', ticker: '100%', dividends: '100%' };
+const state = {
+  type: 'quote',
+  symbol: 'KMB',
+  symbols: [],
+  range: '1Y',
+  n: 10,
+  theme: 'dark',
+  height: DEFAULT_H.quote,
+  width: DEFAULT_W.quote,
+};
+
+// ---- theme (builder + widget together) ----
+function setBuilderTheme(t) {
+  state.theme = t;
+  document.documentElement.dataset.theme = t;
+  document.querySelectorAll('#themeSeg button, #builderTheme button').forEach((b) => b.classList.toggle('active', b.dataset.t === t));
+  update();
+}
+document.querySelectorAll('#themeSeg button').forEach((b) => b.addEventListener('click', () => setBuilderTheme(b.dataset.t)));
+document.querySelectorAll('#builderTheme button').forEach((b) => b.addEventListener('click', () => setBuilderTheme(b.dataset.t)));
+
+// ---- symbol datalist from live data ----
+(async () => {
+  try {
+    const d = await W.fetchJSON('/api/quotes');
+    const list = d.quotes.filter((q) => q.primary !== false).sort((a, b) => a.symbol.localeCompare(b.symbol));
+    document.getElementById('symList').innerHTML = list
+      .map((q) => `<option value="${q.symbol}">${(q.name || '').replace(/"/g, '')}</option>`).join('');
+  } catch (e) { /* datalist empty — manual entry still works */ }
+})();
+
+// ---- type switching ----
+const CFG_ROWS = {
+  quote: ['rowSymbol'],
+  chart: ['rowSymbol', 'rowRange'],
+  ticker: ['rowSymbols'],
+  dividends: ['rowN'],
+};
+document.querySelectorAll('.b-type').forEach((b) => b.addEventListener('click', () => {
+  state.type = b.dataset.type;
+  document.querySelectorAll('.b-type').forEach((x) => x.classList.toggle('active', x === b));
+  Object.keys(CFG_ROWS).forEach((t) => CFG_ROWS[t].forEach((id) => { document.getElementById(id).style.display = (t === state.type) ? '' : 'none'; }));
+  state.height = DEFAULT_H[state.type];
+  state.width = DEFAULT_W[state.type];
+  document.getElementById('hInput').value = state.height;
+  document.getElementById('wInput').value = state.width;
+  update();
+}));
+
+// ---- ticker multi-select ----
+const LIQUID_DEFAULT = ['KMB', 'ALK', 'TEL', 'TTK', 'REPL', 'GRNT', 'MPT', 'TNB', 'USJE', 'SBT', 'TKVS', 'UNI'];
+function renderTickerChips() {
+  document.getElementById('tickerChips').innerHTML = state.symbols.map((s) =>
+    `<span class="b-chip">${s}<button type="button" data-rm="${s}" title="Отстрани">✕</button></span>`).join('')
+    || '<span style="font-size:12px;color:var(--md-sys-color-on-surface-variant)">Нема додадени тикери</span>';
+  document.querySelectorAll('#tickerChips [data-rm]').forEach((b) => b.addEventListener('click', () => {
+    state.symbols = state.symbols.filter((s) => s !== b.dataset.rm);
+    renderTickerChips(); update();
+  }));
+}
+document.getElementById('tickerAdd').addEventListener('click', addTicker);
+document.getElementById('tickerInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTicker(); } });
+function addTicker() {
+  const inp = document.getElementById('tickerInput');
+  const s = inp.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (s && !state.symbols.includes(s) && state.symbols.length < 20) state.symbols.push(s);
+  inp.value = '';
+  renderTickerChips(); update();
+}
+
+// ---- inputs ----
+document.getElementById('symbolInput').addEventListener('input', (e) => {
+  state.symbol = e.target.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || 'KMB';
+  update();
+});
+document.getElementById('rangeSel').addEventListener('change', (e) => { state.range = e.target.value; update(); });
+document.getElementById('nInput').addEventListener('input', (e) => { state.n = Math.min(30, Math.max(3, parseInt(e.target.value, 10) || 10)); update(); });
+document.getElementById('hInput').addEventListener('input', (e) => { state.height = Math.min(1200, Math.max(40, parseInt(e.target.value, 10) || DEFAULT_H[state.type])); update(); });
+document.getElementById('wInput').addEventListener('input', (e) => { state.width = e.target.value.trim() || DEFAULT_W[state.type]; update(); });
+
+// ---- URL + snippet ----
+function embedURL() {
+  const p = new URLSearchParams();
+  p.set('theme', state.theme);
+  if (state.type === 'quote') p.set('symbol', state.symbol);
+  if (state.type === 'chart') { p.set('symbol', state.symbol); p.set('range', state.range); }
+  if (state.type === 'ticker') p.set('symbols', state.symbols.join(','));
+  if (state.type === 'dividends') p.set('n', state.n);
+  return `${location.origin}/embed/${state.type}.html?${p.toString()}`;
+}
+function snippet() {
+  const h = encodeURIComponent(state.height).replace(/%20/g, '') || state.height;
+  const w = state.width;
+  return `<iframe src="${embedURL()}" width="${w}" height="${state.height}" style="border:0;border-radius:8px" title="MSE Berza — виџет" loading="lazy"></iframe>`;
+}
+
+let previewTimer = null;
+function update() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => {
+    const url = embedURL();
+    const f = document.getElementById('preview');
+    if (f.src !== url) f.src = url;
+    document.getElementById('snippet').value = snippet();
+    document.getElementById('openLink').href = url;
+  }, 400);
+}
+
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  const ta = document.getElementById('snippet');
+  try {
+    await navigator.clipboard.writeText(ta.value);
+  } catch (_) {
+    ta.select(); document.execCommand('copy');
+  }
+  const btn = document.getElementById('copyBtn');
+  btn.textContent = 'Копирано ✓';
+  setTimeout(() => { btn.textContent = 'Копирај код'; }, 1500);
+});
+
+// ---- init: default ticker symbols = liquid top ----
+(async () => {
+  try {
+    const d = await W.fetchJSON('/api/quotes');
+    const liq = d.quotes.filter((q) => q.liq && q.primary !== false)
+      .sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 12).map((q) => q.symbol);
+    if (liq.length) state.symbols = liq;
+  } catch (e) { state.symbols = LIQUID_DEFAULT.slice(); }
+  renderTickerChips();
+  update();
+})();
+update();
+</script>
+</body>
+</html>

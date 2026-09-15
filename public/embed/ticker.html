@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="mk" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MSE Berza — виџет</title>
+<link rel="stylesheet" href="/widget.css" />
+<script src="/widget.js"></script>
+</head>
+<body>
+<div class="w-main">
+  <div class="w-ticker" id="ticker">
+    <div class="w-ticker-track" id="track"></div>
+  </div>
+  <div class="w-footer" id="wFooter"></div>
+</div>
+<script>
+W.setTheme(W.params().get('theme'));
+W.footer(document.getElementById('wFooter'));
+const SYMBOLS = (W.params().get('symbols') || '')
+  .split(',').map((s) => s.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean);
+
+function itemHTML(sym) {
+  return `<span class="w-t-item" data-sym="${sym}">
+    <span class="w-t-sym">${sym}</span>
+    <span class="w-t-price">—</span>
+    <span class="w-t-chg">…</span>
+  </span>`;
+}
+
+function renderTrack(items) {
+  // content duplicated once → translateX(-50%) loops seamlessly
+  const html = items.map(itemHTML).join('');
+  document.getElementById('track').innerHTML = html + html;
+}
+
+function updateValues(quotes) {
+  document.querySelectorAll('.w-t-item').forEach((el) => {
+    const q = quotes[el.dataset.sym];
+    if (!q) return;
+    el.querySelector('.w-t-price').textContent = W.fmt(q.lastPrice);
+    const chg = el.querySelector('.w-t-chg');
+    chg.textContent = W.pctStr(q.changePct);
+    chg.className = 'w-t-chg ' + W.pctClass(q.changePct);
+  });
+}
+
+async function load() {
+  try {
+    let syms = SYMBOLS;
+    if (!syms.length) {
+      // default: most traded liquid companies
+      const d = await W.fetchJSON('/api/quotes');
+      syms = d.quotes.filter((q) => q.liq && q.primary !== false)
+        .sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 12)
+        .map((q) => q.symbol);
+      if (!syms.length) syms = ['KMB', 'ALK', 'TEL'];
+    }
+    renderTrack(syms);
+    const d = await W.fetchJSON('/api/quotes');
+    const map = {};
+    for (const q of d.quotes) map[q.symbol] = q;
+    updateValues(map);
+  } catch (e) {
+    document.getElementById('track').innerHTML = '<span class="w-t-item">Нема податоци</span>';
+  }
+}
+load();
+W.autoRefresh(load);
+</script>
+</body>
+</html>

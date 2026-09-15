@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="mk" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MSE Berza — виџет</title>
+<link rel="stylesheet" href="/widget.css" />
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script src="/widget.js"></script>
+</head>
+<body>
+<div class="w-main">
+  <div class="w-chart-head">
+    <span class="w-sym" id="sym">—</span>
+    <span class="w-price" id="price">—</span>
+    <span class="w-chg" id="chg"></span>
+    <span class="w-range" id="rangeLbl"></span>
+  </div>
+  <div class="w-chart" id="chart"></div>
+  <div class="w-footer" id="wFooter"></div>
+</div>
+<script>
+W.setTheme(W.params().get('theme'));
+W.footer(document.getElementById('wFooter'));
+const SYM = (W.params().get('symbol') || 'KMB').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const RANGE = (W.params().get('range') || '1Y').toUpperCase();
+const N = { '1M': 22, '3M': 66, '6M': 132, '1Y': 252 }[RANGE] || Infinity;
+const RANGE_LBL = { '1M': 'изминат месец', '3M': 'изминати 3 месеци', '6M': 'изминати 6 месеци', '1Y': 'измината година', 'ALL': 'сето време' }[RANGE] || RANGE;
+
+async function load() {
+  try {
+    const [q, h] = await Promise.all([
+      W.fetchJSON('/api/quote/' + encodeURIComponent(SYM)),
+      W.fetchJSON('/api/history/' + encodeURIComponent(SYM) + '?range=ALL'),
+    ]);
+    document.getElementById('sym').textContent = SYM;
+    document.getElementById('price').textContent = W.fmt(q.lastPrice) + ' MKD';
+    let rows = (h.rows || []).filter((r) => r.last != null);
+    if (isFinite(N)) rows = rows.slice(-N);
+    const first = rows.length ? rows[0].last : null;
+    const last = rows.length ? rows[rows.length - 1].last : null;
+    const chg = first ? +(((last - first) / first) * 100).toFixed(2) : null;
+    const chgEl = document.getElementById('chg');
+    chgEl.textContent = W.pctStr(chg);
+    chgEl.className = 'w-chg ' + W.pctClass(chg);
+    document.getElementById('rangeLbl').textContent = RANGE_LBL;
+    const box = document.getElementById('chart');
+    box.innerHTML = '';
+    W.directionChart(box, rows);
+  } catch (e) {
+    document.getElementById('chart').innerHTML = '<div class="w-error">Нема податоци за ' + SYM + '</div>';
+  }
+}
+load();
+W.autoRefresh(load);
+</script>
+</body>
+</html>

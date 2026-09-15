@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="mk" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MSE Berza — виџет</title>
+<link rel="stylesheet" href="/widget.css" />
+<script src="/widget.js"></script>
+</head>
+<body>
+<div class="w-main">
+  <div class="w-div-wrap">
+    <table class="w-table">
+      <thead>
+        <tr><th>Тикер</th><th>Компанија</th><th>ДПС</th><th>Принос</th></tr>
+      </thead>
+      <tbody id="rows"><tr><td colspan="4" class="w-error">Вчитување…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="w-footer" id="wFooter"></div>
+</div>
+<script>
+W.setTheme(W.params().get('theme'));
+W.footer(document.getElementById('wFooter'));
+const N = Math.min(parseInt(W.params().get('n') || '10', 10) || 10, 30);
+
+async function load() {
+  try {
+    const d = await W.fetchJSON('/api/dividends');
+    const rows = (d.dividends || []).slice(0, N);
+    document.getElementById('rows').innerHTML = rows.length
+      ? rows.map((r) => `<tr>
+          <td>${r.symbol}</td>
+          <td class="w-name-cell" title="${r.name || ''}">${r.name || ''}</td>
+          <td>${r.dps[0] != null ? W.fmt(r.dps[0], 0) : '—'}</td>
+          <td class="${W.pctClass(r.yield[0])}">${r.yield[0] != null ? W.fmt(r.yield[0]) + '%' : '—'}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="4" class="w-error">Нема податоци за дивиденди</td></tr>';
+  } catch (e) {
+    document.getElementById('rows').innerHTML = '<tr><td colspan="4" class="w-error">Нема податоци</td></tr>';
+  }
+}
+load();
+W.autoRefresh(load);
+</script>
+</body>
+</html>
