@@ -444,8 +444,29 @@ function setMainView(v) {
 
 // ---- DIVIDENDS VIEW ----
 // Payers only, sorted by latest yield (server-side). Ignores the Liquid
-// toggle (Q4-r2). Stars reuse the watchlist (Q3-r2).
+// toggle (Q4-r2). Stars reuse the watchlist (Q3-r2). Headers are clickable
+// to sort (asc/desc toggle, same UX as the quotes table); nulls sort last.
 let dividendsCache = null;
+let divSortCol = 'yield';
+let divSortDir = 'desc';
+
+function divSortVal(r, col) {
+  switch (col) {
+    case 'price': return r.lastPrice;
+    case 'dps': return r.dps[0];
+    case 'yield': return r.yield[0];
+    case 'trend': return r.dps[0]; // trend sorts by the latest DPS
+    case 'payout': return r.payout[0];
+    default: return r.yield[0];
+  }
+}
+
+function syncDivHeader() {
+  $$('#divHead th').forEach((th) => {
+    th.classList.toggle('sorted-asc', th.dataset.divsort === divSortCol && divSortDir === 'asc');
+    th.classList.toggle('sorted-desc', th.dataset.divsort === divSortCol && divSortDir === 'desc');
+  });
+}
 
 async function loadDividends() {
   const body = $('#divBody');
@@ -462,28 +483,43 @@ async function loadDividends() {
 
 function buildDivHead(years) {
   const y0 = years ? years[0] : null;
-  const th = (label, cls = '') => `<th class="${cls}">${esc(label)}</th>`;
+  const th = (label, cls, col) => `<th class="${cls || ''}"${col ? ` data-divsort="${col}"` : ''}>${esc(label)}${col ? '<span class="material-symbols-outlined sort-icon">arrow_upward</span>' : ''}</th>`;
   $('#divHead').innerHTML = [
-    th(t('th_symbol')),
-    th(t('th_name')),
-    th(t('div_th_price'), 'num'),
-    th(t('div_th_dps').replace('{y}', y0 || ''), 'num'),
-    th(t('div_th_yield').replace('{y}', y0 || ''), 'num'),
-    th(t('div_th_trend'), 'num'),
-    th(t('div_th_payout'), 'num'),
+    th(t('th_symbol'), '', 'symbol'),
+    th(t('th_name'), '', 'name'),
+    th(t('div_th_price'), 'num', 'price'),
+    th(t('div_th_dps').replace('{y}', y0 || ''), 'num', 'dps'),
+    th(t('div_th_yield').replace('{y}', y0 || ''), 'num', 'yield'),
+    th(t('div_th_trend'), 'num', 'trend'),
+    th(t('div_th_payout'), 'num', 'payout'),
   ].join('');
 }
 
 function renderDivTable() {
   const body = $('#divBody');
   if (!body) return;
-  const rows = dividendsCache || [];
+  const rows = (dividendsCache || []).slice();
   buildDivHead(rows.length ? rows[0].years : null);
+  syncDivHeader();
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="7" class="muted" style="padding:20px;text-align:center">${esc(t('div_empty'))}</td></tr>`;
     $('#divNote').textContent = t('div_exdate_note');
     return;
   }
+  // Client-side sort; default (yield desc) reproduces the server order.
+  rows.sort((a, b) => {
+    let cmp;
+    if (divSortCol === 'symbol') cmp = a.symbol.localeCompare(b.symbol);
+    else if (divSortCol === 'name') cmp = (a.name || '').localeCompare(b.name || '');
+    else {
+      const va = divSortVal(a, divSortCol), vb = divSortVal(b, divSortCol);
+      if (va == null && vb == null) cmp = 0;
+      else if (va == null) return 1;  // nulls last regardless of direction
+      else if (vb == null) return -1;
+      cmp = va - vb;
+    }
+    return divSortDir === 'asc' ? cmp : -cmp;
+  });
   const trendArrow = (dps) => {
     const cur = dps[0], prev = dps[1];
     if (cur == null || prev == null) return '';
@@ -1722,6 +1758,15 @@ document.addEventListener('click', (e) => {
 
 // ---- WIRE UP ----
 $$('#mainTabs .main-tab').forEach((b) => b.addEventListener('click', () => setMainView(b.dataset.mtab)));
+// Dividends header sorting — delegation survives buildDivHead re-renders
+$('#divHead').addEventListener('click', (e) => {
+  const th = e.target.closest('th[data-divsort]');
+  if (!th) return;
+  const col = th.dataset.divsort;
+  if (divSortCol === col) divSortDir = divSortDir === 'asc' ? 'desc' : 'asc';
+  else { divSortCol = col; divSortDir = 'desc'; }
+  renderDivTable();
+});
 $('#btnLiquid').addEventListener('click', () => setView('liquid'));
 $('#btnAll').addEventListener('click', () => setView('all'));
 $('#search').addEventListener('input', () => { renderTable(); });
