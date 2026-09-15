@@ -664,6 +664,21 @@ a:hover { color: var(--md-sys-color-primary-container); }
   flex-wrap: wrap;
   margin-bottom: var(--md-space-xs);
   min-height: 32px;
+  /* Never compress under the table — the flex column shrinks the table
+     (which scrolls internally) instead. */
+  flex-shrink: 0;
+}
+.watch-strip .watch-chip { flex-shrink: 0; }
+/* Desktop: single ticker-like row — scrolls horizontally when many chips */
+@media (min-width: 840px) {
+  .watch-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--md-sys-color-outline) transparent;
+  }
+  .watch-strip::-webkit-scrollbar { height: 6px; }
+  .watch-strip::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline); border-radius: var(--md-shape-full); }
 }
 .watch-toggle {
   display: none;
