@@ -1204,7 +1204,6 @@ async function openCompany(symbol) {
     // yesterday, red = below. Same rule as the volume bars, so one legend
     // explains everything. Data is daily EOD bars (one point per session).
     let chart, volSeries, runSeries = [], priceLineHost = null, lastLine;
-    let onResize = null;
     const draw = (range) => {
       let rows = fullHistory;
       if (range === '1M') rows = rows.slice(-22);
@@ -1247,7 +1246,7 @@ async function openCompany(symbol) {
 
       if (!chart) {
         chart = LightweightCharts.createChart($('#companyChart'), {
-          width: $('#companyChart').clientWidth || 760,
+          autoSize: true,
           layout: { background: { color: 'transparent' }, textColor: '#a0a8b5', fontSize: 11 },
           grid: { vertLines: { color: '#2a3140' }, horzLines: { color: '#2a3140' } },
           rightPriceScale: { borderColor: '#2a3140' },
@@ -1319,11 +1318,7 @@ async function openCompany(symbol) {
         draw(b.dataset.r);
       })
     );
-    onResize = () => { if (chart) chart.applyOptions({ width: $('#companyChart').clientWidth }); };
-    window.addEventListener('resize', onResize);
-    setTimeout(onResize, 0);
     modal._chart = chart;
-    modal._resizeHandler = onResize;
   } catch (e) {
     content.innerHTML = `<div class="down">${t('failed')}</div>`;
   }
@@ -1902,10 +1897,8 @@ function closeModal() {
   modal.classList.add('hidden');
   // Cleanup: remove any chart stored on the modal element
   if (modal._chart) {
-    if (modal._resizeHandler) window.removeEventListener('resize', modal._resizeHandler);
     try { modal._chart.remove(); } catch (_) {}
     modal._chart = null;
-    modal._resizeHandler = null;
   }
 }
 $('#modalClose').addEventListener('click', closeModal);
@@ -1922,7 +1915,6 @@ $('#langToggle').addEventListener('click', () => {
     const sym = modal.dataset.company;
     // close chart before re-opening to avoid leak
     if (modal._chart) { try { modal._chart.remove(); } catch (_) {} modal._chart = null; }
-    if (modal._resizeHandler) { window.removeEventListener('resize', modal._resizeHandler); modal._resizeHandler = null; }
     openCompany(sym);
   }
 });

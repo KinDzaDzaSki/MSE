@@ -456,10 +456,10 @@ a:hover { color: var(--md-sys-color-primary-container); }
   border: none;
   color: var(--md-sys-color-on-surface-variant);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  padding: 6px 14px;
+  padding: 6px 16px;
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
@@ -619,10 +619,10 @@ a:hover { color: var(--md-sys-color-primary-container); }
   border: none;
   color: var(--md-sys-color-on-surface-variant);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  padding: 5px 12px;
+  padding: 5px 14px;
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
@@ -1625,12 +1625,17 @@ table.quotes thead th.spark-th {
 
 .fin-tab-panel {
   padding-top: var(--md-space-sm);
+}
+/* Horizontal scroll belongs to the wide financial tables only — the chart
+   must never scroll (autoSize keeps the canvas inside the container). */
+#finTabData, #finTabRatios {
   overflow-x: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--md-sys-color-outline) transparent;
 }
-.fin-tab-panel::-webkit-scrollbar { height: 6px; }
-.fin-tab-panel::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline); border-radius: var(--md-shape-full); }
+#finTabData::-webkit-scrollbar, #finTabRatios::-webkit-scrollbar { height: 6px; }
+#finTabData::-webkit-scrollbar-thumb, #finTabRatios::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline); border-radius: var(--md-shape-full); }
+#finTabChart { overflow: hidden; }
 
 /* ==========================================================================
    FINANCIAL TABLES

@@ -106,27 +106,37 @@ async function handleApi(req, res, url) {
   if (q) {
     const sym = decodeURIComponent(q[1]);
     // Special case: MBI10 index — return from indices store instead of quotes
-    if (sym === 'MBI10') {
-      const indices = await store.getIndices();
-      const idx = indices.MBI10;
-      if (idx) {
-        return sendJson(res, {
-          symbol: 'MBI10',
-          name: 'MBI10 Index',
-          lastPrice: idx.value,
-          changePct: idx.changePct,
-          dailyChange: null,
-          avgPrice: null,
-          minPrice: null,
-          maxPrice: null,
-          volume: null,
-          value: null,
-          trades: null,
-          week52Max: null,
-          week52Min: null,
-        });
-      }
+  if (sym === 'MBI10') {
+    const indices = await store.getIndices();
+    const idx = indices.MBI10;
+    if (idx) {
+      // Absolute daily change from the index's own history (last vs previous
+      // close) — the MSE index page only exposes the % change, and the head
+      // would otherwise show a misleading "+0.00 (-0.28%)".
+      let dailyChange = null;
+      try {
+        const rows = (await store.getHistory('MBI10')).filter((r) => r.last != null);
+        if (rows.length >= 2) {
+          dailyChange = +(rows[rows.length - 1].last - rows[rows.length - 2].last).toFixed(2);
+        }
+      } catch (e) { /* keep null — head falls back to 0 */ }
+      return sendJson(res, {
+        symbol: 'MBI10',
+        name: 'MBI10 Index',
+        lastPrice: idx.value,
+        changePct: idx.changePct,
+        dailyChange,
+        avgPrice: null,
+        minPrice: null,
+        maxPrice: null,
+        volume: null,
+        value: null,
+        trades: null,
+        week52Max: null,
+        week52Min: null,
+      });
     }
+  }
     const quotes = await store.getQuotes();
     return sendJson(res, quotes[sym] || { symbol: sym, error: 'no data' });
   }
