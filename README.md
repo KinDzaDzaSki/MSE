@@ -1,4 +1,4 @@
-# MSE Clone — Macedonian Stock Exchange Dashboard
+# MSE Berza — Македонска берза во живо
 
 A self-hosted clone of the Macedonian Stock Exchange (mse.mk) with a
 Yahoo-Finance-style dashboard: live-ish quotes, tickers, sparklines,

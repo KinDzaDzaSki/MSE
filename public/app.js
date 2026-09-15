@@ -335,6 +335,7 @@ const I18N = {
 };
 
 let lang = localStorage.getItem('mse_lang') || 'en';
+const APP_VERSION = '2.0.0';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -367,15 +368,15 @@ function applyStaticI18n() {
   $$('th', h)[0].textContent = t('th_symbol');
   $$('th', h)[1].textContent = t('th_name');
   $$('th', h)[3].textContent = t('th_price');
-  $$('th', h)[4].textContent = t('th_change');
-  $$('th', h)[5].textContent = t('th_change_pct');
-  $$('th', h)[6].textContent = t('th_volume');
-  $$('th', h)[7].textContent = t('th_52w_chg');
-  $$('th', h)[8].textContent = t('th_52w_range');
+  $$('th', h)[4].textContent = t('th_change_pct');
+  $$('th', h)[5].textContent = t('th_volume');
+  $$('th', h)[6].textContent = t('th_52w_chg');
+  $$('th', h)[7].textContent = t('th_52w_range');
+  // index 2 = sparkline column (no label)
   $('#search').placeholder = t('search');
   updateToggleLabels();
   renderWatchStrip();
-  $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')}`;
+  $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')} · v${APP_VERSION}`;
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
   $$('.side-title')[2].textContent = t('active');
@@ -568,7 +569,7 @@ function renderDivTable() {
     const y0 = r.yield[0];
     return `<tr data-sym="${esc(r.symbol)}">
       <td class="sym">${starBtnHTML(r.symbol)}<span class="sym-text">${esc(r.symbol)}</span></td>
-      <td class="comp">${esc(r.name || '')}${r.consistent ? ` <span class="pay-badge">${esc(t('div_consistent'))}</span>` : ''}</td>
+      <td class="comp">${esc(r.name || '')}</td>
       <td class="num">${fmt(r.lastPrice)}</td>
       <td class="num">${r.dps[0] != null ? fmt(r.dps[0], 0) : '—'}</td>
       <td class="num ${pctClass(y0)}">${y0 != null ? fmt(y0) + '%' : '—'}</td>
@@ -634,7 +635,15 @@ function chgStr(v) {
 function fmtDate(ts) {
   const d = new Date(ts);
   if (isNaN(d)) return '—';
-  return d.toLocaleDateString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', day: '2-digit', month: 'short', year: 'numeric' });
+  if (lang !== 'mk') {
+    return d.toLocaleDateString('en-GB', { timeZone: 'Europe/Skopje', day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  // Deterministic Macedonian months — toLocaleDateString('mk-MK') returns
+  // Latin/English month names in some browsers.
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Skopje', day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(d);
+  const get = (type) => parts.find((p) => p.type === type).value;
+  const months = ['јан', 'фев', 'мар', 'апр', 'мај', 'јун', 'јул', 'авг', 'сеп', 'окт', 'ное', 'дек'];
+  return `${get('day')} ${months[+get('month') - 1]} ${get('year')}`;
 }
 
 // ---- batch history loader (replaces N individual sparkline API calls) ----
@@ -782,7 +791,7 @@ async function loadQuotes() {
   } catch (e) {
     console.error('loadQuotes failed:', e);
     const body = $('#quotesBody');
-    if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Failed to load data: ${esc(e.message)}</td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="8" class="muted" style="padding:20px;text-align:center">Failed to load data: ${esc(e.message)}</td></tr>`;
   }
 }
 
@@ -891,7 +900,6 @@ function renderTable() {
       <td class="comp">${esc(r.name || '')}</td>
       <td class="spark"><canvas data-spark="${esc(r.symbol)}"></canvas></td>
       <td class="num">${fmt(r.lastPrice)}</td>
-      <td class="num ${pctClass(r.dailyChange)}">${chgStr(r.dailyChange)}</td>
       <td class="num ${pctClass(r.changePct)}">${pctStr(r.changePct)}</td>
       <td class="num">${fmtInt(r.volume)}</td>
       <td class="num ${pctClass(r.week52Chg)}">${pctStr(r.week52Chg)}</td>
@@ -910,7 +918,7 @@ function renderTable() {
   } catch (e) {
     console.error('renderTable failed:', e);
     const body = $('#quotesBody');
-    if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Render failed: ${esc(e.message)}</td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="8" class="muted" style="padding:20px;text-align:center">Render failed: ${esc(e.message)}</td></tr>`;
   }
 }
 
@@ -1176,14 +1184,6 @@ async function openCompany(symbol) {
     // Render analysis (always available, no extra data needed)
     const mbi10Rows = (mbi10h.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
     const analysis = buildAnalysisData(q, fullHistory, fin, mbi10Rows);
-    // Override rating label with backend rating (single source of truth)
-    const backendRating = getRating(symbol);
-    if (backendRating && backendRating.label !== '—') {
-      analysis.rating = backendRating.label;
-      const clsMap = { 'badge-buy': 'up', 'badge-hold': 'neutral', 'badge-sell': 'down' };
-      analysis.ratingClass = clsMap[backendRating.cls] || 'neutral';
-      analysis.pct = ratingsCache[symbol] ? ratingsCache[symbol].pct : analysis.pct;
-    }
     analysisContent.innerHTML = buildAnalysisHTML(analysis);
 
     // Hide tabs with no data
@@ -1191,7 +1191,7 @@ async function openCompany(symbol) {
     tabs[0].classList.remove('hidden'); // Chart always visible
     tabs[1].classList.toggle('hidden', !hasFinData);
     tabs[2].classList.toggle('hidden', !hasRatios);
-    tabs[3].classList.remove('hidden'); // Analysis always visible
+    tabs[3].classList.toggle('hidden', isIndex); // Analysis: stocks only (MBI10 is the market itself)
 
     // Activate Chart tab by default
     tabs.forEach(t => t.classList.remove('active'));
@@ -1721,24 +1721,13 @@ function buildAnalysisHTML(analysis) {
   if (!analysis || !analysis.details || !analysis.details.length) {
     return '<div class="muted" style="padding:20px;text-align:center">' + t('fin_no_data') + '</div>';
   }
-  var rating = analysis.rating, ratingClass = analysis.ratingClass, pct = analysis.pct;
-  var score = analysis.score, maxScore = analysis.maxScore, details = analysis.details;
-  var commentary = analysis.commentary;
+  var details = analysis.details;
+  var maxScore = analysis.maxScore;
 
   var strengths = details.filter(function(d) { return d.up; });
   var weaknesses = details.filter(function(d) { return !d.up; });
 
-  var confKey = pct >= 65 ? 'висока' : pct >= 50 ? 'средна' : 'ниска';
-  if (lang !== 'mk') confKey = pct >= 65 ? 'high' : pct >= 50 ? 'medium' : 'low';
   var html = '';
-
-  // Rating banner — demoted confidence, plain summary on top
-  html += '<div class="analysis-banner ' + ratingClass + '">';
-  html += '<div class="analysis-rating">' + rating + ' <span style="font-weight:400;font-size:13px;opacity:0.85">· ' + confKey + ' ' + t('analysis_confidence').toLowerCase() + '</span></div>';
-  html += '<div class="analysis-verdict-text" style="padding:8px 0 0">' + commentary + '</div>';
-  html += '<div class="analysis-bar"><div class="analysis-bar-fill ' + ratingClass + '" style="width:' + pct + '%"></div></div>';
-  html += '<div class="analysis-score">' + score + '/' + maxScore + ' ' + t('analysis_signals').toLowerCase() + ' · ' + pct.toFixed(0) + '%</div>';
-  html += '</div>';
 
   // Pros / Cons — average-investor scannable
   html += '<div class="analysis-grid">';
@@ -1937,7 +1926,7 @@ $('#themeToggle').addEventListener('click', () => {
   applyStaticI18n();
   renderWatchStrip();
   await loadMBI();
-  await Promise.all([loadQuotes(), loadRatings()]);
+  await Promise.all([loadQuotes()]);
   // Market-aware scheduler: polls fast when open, slow when closed, no
   // table re-render or sparkline rebuild when there's nothing new to show.
   scheduleNextPoll();
