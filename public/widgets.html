@@ -61,6 +61,8 @@
     border: none; border-radius: 6px; padding: 8px 14px; font-family: inherit;
     font-size: 13px; font-weight: 700; cursor: pointer;
   }
+  .b-check { display: flex; align-items: center; gap: 6px; color: var(--md-sys-color-on-surface); cursor: pointer; }
+  .b-check input { accent-color: var(--md-sys-color-primary); width: 14px; height: 14px; }
   .b-preview { width: 100%; border: 1px solid var(--md-sys-color-outline); border-radius: 10px; background: var(--md-sys-color-surface); min-height: 120px; }
   #snippet {
     width: 100%; min-height: 84px; resize: vertical;
@@ -96,8 +98,8 @@
         <div class="t-desc">Цена, промена и мини тренд за една компанија или индекс</div>
       </button>
       <button type="button" class="b-type" data-type="chart">
-        <div class="t-name">Мини график</div>
-        <div class="t-desc">Историски тренд по избран период (зелено = раст, црвено = пад)</div>
+        <div class="t-name">Преглед на симбол</div>
+        <div class="t-desc">Котации + график за една или повеќе компании, со избор на период — како TradingView Symbol Overview</div>
       </button>
       <button type="button" class="b-type" data-type="ticker">
         <div class="t-name">Ticker лента</div>
@@ -122,7 +124,7 @@
       </div>
       <div class="b-row" id="rowRange" style="display:none">
         <div class="b-field">
-          <label for="rangeSel">Период</label>
+          <label for="rangeSel">Почетен период</label>
           <select id="rangeSel">
             <option value="1M">1 месец</option>
             <option value="3M">3 месеци</option>
@@ -130,6 +132,30 @@
             <option value="1Y" selected>1 година</option>
             <option value="ALL">Сето време</option>
           </select>
+        </div>
+      </div>
+      <div class="b-row" id="rowChartOpts" style="display:none">
+        <div class="b-field" style="flex:0 0 auto">
+          <label>Стил</label>
+          <div class="b-seg" id="chartTypeSeg">
+            <button type="button" data-t="area" class="active">Област</button>
+            <button type="button" data-t="line">Линија</button>
+          </div>
+        </div>
+        <div class="b-field" style="flex:0 0 auto">
+          <label>Промена</label>
+          <select id="changeModeSel" style="font-size:13px">
+            <option value="pp">Цена и %</option>
+            <option value="p">Само %</option>
+          </select>
+        </div>
+        <div class="b-field" style="flex:1 1 auto">
+          <label>Опции</label>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+            <label class="b-check"><input type="checkbox" id="cbVolume" /> Прикажи волумен</label>
+            <label class="b-check"><input type="checkbox" id="cbPills" checked /> Избор на период во виџетот</label>
+            <label class="b-check"><input type="checkbox" id="cbOnly" /> Само график (без котации)</label>
+          </div>
         </div>
       </div>
       <div class="b-row" id="rowN" style="display:none">
@@ -192,13 +218,22 @@ const DEFAULT_W = { quote: '320', chart: '480', ticker: '100%', dividends: '100%
 const state = {
   type: 'quote',
   symbol: 'KMB',
-  symbols: [],
+  symbolsByType: { quote: [], chart: ['KMB', 'ALK', 'TEL'], ticker: [], dividends: [] },
   range: '1Y',
   n: 10,
   theme: 'dark',
   height: DEFAULT_H.quote,
   width: DEFAULT_W.quote,
+  chartType: 'area',
+  changeMode: 'pp',
+  showVolume: false,
+  chartOnly: false,
+  pills: true,
 };
+function curSyms() {
+  return state.type === 'ticker' ? state.symbolsByType.ticker
+    : state.type === 'chart' ? state.symbolsByType.chart : [];
+}
 
 // ---- theme (builder + widget together) ----
 function setBuilderTheme(t) {
@@ -223,7 +258,7 @@ document.querySelectorAll('#builderTheme button').forEach((b) => b.addEventListe
 // ---- type switching ----
 const CFG_ROWS = {
   quote: ['rowSymbol'],
-  chart: ['rowSymbol', 'rowRange'],
+  chart: ['rowSymbols', 'rowRange', 'rowChartOpts'],
   ticker: ['rowSymbols'],
   dividends: ['rowN'],
 };
@@ -231,21 +266,25 @@ document.querySelectorAll('.b-type').forEach((b) => b.addEventListener('click', 
   state.type = b.dataset.type;
   document.querySelectorAll('.b-type').forEach((x) => x.classList.toggle('active', x === b));
   Object.keys(CFG_ROWS).forEach((t) => CFG_ROWS[t].forEach((id) => { document.getElementById(id).style.display = (t === state.type) ? '' : 'none'; }));
+  // rowSymbols is shared by chart + ticker — visible for both
+  document.getElementById('rowSymbols').style.display = (state.type === 'chart' || state.type === 'ticker') ? '' : 'none';
   state.height = DEFAULT_H[state.type];
   state.width = DEFAULT_W[state.type];
   document.getElementById('hInput').value = state.height;
   document.getElementById('wInput').value = state.width;
+  renderTickerChips();
   update();
 }));
 
-// ---- ticker multi-select ----
-const LIQUID_DEFAULT = ['KMB', 'ALK', 'TEL', 'TTK', 'REPL', 'GRNT', 'MPT', 'TNB', 'USJE', 'SBT', 'TKVS', 'UNI'];
+// ---- multi-symbol chips (ticker + symbol overview) ----
 function renderTickerChips() {
-  document.getElementById('tickerChips').innerHTML = state.symbols.map((s) =>
-    `<span class="b-chip">${s}<button type="button" data-rm="${s}" title="Отстрани">✕</button></span>`).join('')
-    || '<span style="font-size:12px;color:var(--md-sys-color-on-surface-variant)">Нема додадени тикери</span>';
+  const syms = curSyms();
+  document.getElementById('tickerChips').innerHTML = syms.length
+    ? syms.map((s) => `<span class="b-chip">${s}<button type="button" data-rm="${s}" title="Отстрани">✕</button></span>`).join('')
+    : '<span style="font-size:12px;color:var(--md-sys-color-on-surface-variant)">Нема додадени тикери</span>';
   document.querySelectorAll('#tickerChips [data-rm]').forEach((b) => b.addEventListener('click', () => {
-    state.symbols = state.symbols.filter((s) => s !== b.dataset.rm);
+    state.symbolsByType[state.type === 'ticker' ? 'ticker' : 'chart'] =
+      curSyms().filter((s) => s !== b.dataset.rm);
     renderTickerChips(); update();
   }));
 }
@@ -254,10 +293,22 @@ document.getElementById('tickerInput').addEventListener('keydown', (e) => { if (
 function addTicker() {
   const inp = document.getElementById('tickerInput');
   const s = inp.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (s && !state.symbols.includes(s) && state.symbols.length < 20) state.symbols.push(s);
+  const list = curSyms();
+  if (s && !list.includes(s) && list.length < 20) list.push(s);
   inp.value = '';
   renderTickerChips(); update();
 }
+
+// ---- chart opts ----
+document.querySelectorAll('#chartTypeSeg button').forEach((b) => b.addEventListener('click', () => {
+  state.chartType = b.dataset.t;
+  document.querySelectorAll('#chartTypeSeg button').forEach((x) => x.classList.toggle('active', x === b));
+  update();
+}));
+document.getElementById('changeModeSel').addEventListener('change', (e) => { state.changeMode = e.target.value; update(); });
+document.getElementById('cbVolume').addEventListener('change', (e) => { state.showVolume = e.target.checked; update(); });
+document.getElementById('cbOnly').addEventListener('change', (e) => { state.chartOnly = e.target.checked; update(); });
+document.getElementById('cbPills').addEventListener('change', (e) => { state.pills = e.target.checked; update(); });
 
 // ---- inputs ----
 document.getElementById('symbolInput').addEventListener('input', (e) => {
@@ -274,8 +325,16 @@ function embedURL() {
   const p = new URLSearchParams();
   p.set('theme', state.theme);
   if (state.type === 'quote') p.set('symbol', state.symbol);
-  if (state.type === 'chart') { p.set('symbol', state.symbol); p.set('range', state.range); }
-  if (state.type === 'ticker') p.set('symbols', state.symbols.join(','));
+  if (state.type === 'chart') {
+    p.set('symbols', curSyms().join(','));
+    p.set('range', state.range);
+    p.set('chartType', state.chartType);
+    p.set('showVolume', state.showVolume ? '1' : '0');
+    p.set('chartOnly', state.chartOnly ? '1' : '0');
+    p.set('dateRanges', state.pills ? '1' : '0');
+    p.set('changeMode', state.changeMode);
+  }
+  if (state.type === 'ticker') p.set('symbols', curSyms().join(','));
   if (state.type === 'dividends') p.set('n', state.n);
   return `${location.origin}/embed/${state.type}.html?${p.toString()}`;
 }
@@ -315,8 +374,8 @@ document.getElementById('copyBtn').addEventListener('click', async () => {
     const d = await W.fetchJSON('/api/quotes');
     const liq = d.quotes.filter((q) => q.liq && q.primary !== false)
       .sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 12).map((q) => q.symbol);
-    if (liq.length) state.symbols = liq;
-  } catch (e) { state.symbols = LIQUID_DEFAULT.slice(); }
+    if (liq.length) state.symbolsByType.ticker = liq;
+  } catch (e) { state.symbolsByType.ticker = ['KMB', 'ALK', 'TEL']; }
   renderTickerChips();
   update();
 })();

@@ -10,45 +10,117 @@
 </head>
 <body>
 <div class="w-main">
-  <div class="w-chart-head">
+  <div class="ov-tabs" id="tabs"></div>
+  <div class="ov-head" id="head">
     <span class="w-sym" id="sym">—</span>
     <span class="w-price" id="price">—</span>
     <span class="w-chg" id="chg"></span>
-    <span class="w-range" id="rangeLbl"></span>
   </div>
   <div class="w-chart" id="chart"></div>
+  <div class="ov-ranges" id="ranges"></div>
   <div class="w-footer" id="wFooter"></div>
 </div>
 <script>
-W.setTheme(W.params().get('theme'));
+const P = W.params();
+W.setTheme(P.get('theme'));
 W.footer(document.getElementById('wFooter'));
-const SYM = (W.params().get('symbol') || 'KMB').toUpperCase().replace(/[^A-Z0-9]/g, '');
-const RANGE = (W.params().get('range') || '1Y').toUpperCase();
-const N = { '1M': 22, '3M': 66, '6M': 132, '1Y': 252 }[RANGE] || Infinity;
-const RANGE_LBL = { '1M': 'изминат месец', '3M': 'изминати 3 месеци', '6M': 'изминати 6 месеци', '1Y': 'измината година', 'ALL': 'сето време' }[RANGE] || RANGE;
+
+const state = {
+  syms: [],
+  cur: 0,
+  range: (P.get('range') || '1Y').toUpperCase(),
+  chartOnly: P.get('chartOnly') === '1',
+  showVolume: P.get('showVolume') === '1',
+  pills: P.get('dateRanges') !== '0',
+  changeMode: P.get('changeMode') === 'p' ? 'p' : 'pp',
+  chartType: P.get('chartType') === 'line' ? 'line' : 'area',
+  hist: {},
+  quotes: {},
+};
+
+// symbols: ?symbols=A,B,C (multi) or ?symbol=A (legacy single)
+state.syms = (P.get('symbols') || P.get('symbol') || 'KMB')
+  .split(',').map((s) => s.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean);
+if (!state.syms.length) state.syms = ['KMB'];
+if (state.chartOnly) document.getElementById('head').style.display = 'none';
+
+const RANGES = [
+  { id: '1M', n: 22, lbl: '1М' },
+  { id: '3M', n: 66, lbl: '3М' },
+  { id: '6M', n: 132, lbl: '6М' },
+  { id: '1Y', n: 252, lbl: '1Г' },
+  { id: 'ALL', n: Infinity, lbl: 'Сите' },
+];
+const RANGE_LBL = { '1M': 'изминат месец', '3M': 'изминати 3 месеци', '6M': 'изминати 6 месеци', '1Y': 'измината година', 'ALL': 'сето време' };
+
+function renderTabs() {
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = state.syms.map((s, i) =>
+    `<button type="button" data-i="${i}" class="${i === state.cur ? 'active' : ''}">${s}</button>`).join('');
+  tabs.style.display = state.syms.length > 1 ? '' : 'none';
+  tabs.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    state.cur = +b.dataset.i;
+    tabs.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active');
+    draw();
+  }));
+}
+
+function renderRanges() {
+  const el = document.getElementById('ranges');
+  el.style.display = state.pills ? '' : 'none';
+  el.innerHTML = RANGES.map((r) =>
+    `<button type="button" data-id="${r.id}" class="${state.range === r.id ? 'active' : ''}">${r.lbl}</button>`).join('');
+  el.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    state.range = b.dataset.id;
+    el.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active');
+    draw();
+  }));
+}
+
+function renderHead() {
+  const sym = state.syms[state.cur];
+  const q = state.quotes[sym] || {};
+  document.getElementById('sym').textContent = sym;
+  document.getElementById('price').textContent = W.fmt(q.lastPrice) + ' MKD';
+  const chgEl = document.getElementById('chg');
+  if (state.changeMode === 'p') {
+    chgEl.textContent = W.pctStr(q.changePct);
+  } else {
+    const abs = q.dailyChange != null ? q.dailyChange
+      : (q.changePct != null && q.lastPrice ? +(q.changePct / 100 * q.lastPrice).toFixed(2) : null);
+    chgEl.textContent = (abs >= 0 ? '+' : '') + W.fmt(abs) + ' (' + W.pctStr(q.changePct) + ')';
+  }
+  chgEl.className = 'w-chg ' + W.pctClass(q.changePct);
+}
+
+function draw() {
+  const sym = state.syms[state.cur];
+  const rowsAll = state.hist[sym] || [];
+  const r = RANGES.find((x) => x.id === state.range) || RANGES[3];
+  const rows = isFinite(r.n) ? rowsAll.slice(-r.n) : rowsAll.slice();
+  const box = document.getElementById('chart');
+  box.innerHTML = '';
+  W.directionChart(box, rows, { showVolume: state.showVolume, chartType: state.chartType });
+  renderHead();
+}
 
 async function load() {
   try {
-    const [q, h] = await Promise.all([
-      W.fetchJSON('/api/quote/' + encodeURIComponent(SYM)),
-      W.fetchJSON('/api/history/' + encodeURIComponent(SYM) + '?range=ALL'),
-    ]);
-    document.getElementById('sym').textContent = SYM;
-    document.getElementById('price').textContent = W.fmt(q.lastPrice) + ' MKD';
-    let rows = (h.rows || []).filter((r) => r.last != null);
-    if (isFinite(N)) rows = rows.slice(-N);
-    const first = rows.length ? rows[0].last : null;
-    const last = rows.length ? rows[rows.length - 1].last : null;
-    const chg = first ? +(((last - first) / first) * 100).toFixed(2) : null;
-    const chgEl = document.getElementById('chg');
-    chgEl.textContent = W.pctStr(chg);
-    chgEl.className = 'w-chg ' + W.pctClass(chg);
-    document.getElementById('rangeLbl').textContent = RANGE_LBL;
-    const box = document.getElementById('chart');
-    box.innerHTML = '';
-    W.directionChart(box, rows);
+    await Promise.all(state.syms.map(async (sym) => {
+      const [q, h] = await Promise.all([
+        W.fetchJSON('/api/quote/' + encodeURIComponent(sym)),
+        W.fetchJSON('/api/history/' + encodeURIComponent(sym) + '?range=ALL'),
+      ]);
+      state.quotes[sym] = q;
+      state.hist[sym] = (h.rows || []).filter((x) => x.last != null);
+    }));
+    renderTabs();
+    renderRanges();
+    draw();
   } catch (e) {
-    document.getElementById('chart').innerHTML = '<div class="w-error">Нема податоци за ' + SYM + '</div>';
+    document.getElementById('chart').innerHTML = '<div class="w-error">Нема податоци</div>';
   }
 }
 load();

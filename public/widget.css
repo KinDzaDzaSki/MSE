@@ -117,6 +117,38 @@ body {
 .w-range { font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-left: auto; }
 .w-chart { flex: 1 1 auto; min-height: 0; padding: 0 8px 8px; }
 
+/* ---- Symbol Overview (tabs + quote strip + range pills) ---- */
+.ov-tabs {
+  display: flex; gap: 2px; padding: 3px; flex-shrink: 0;
+  background: var(--md-sys-color-surface-variant);
+  border-bottom: 1px solid var(--md-sys-color-outline);
+  overflow-x: auto; scrollbar-width: none;
+}
+.ov-tabs::-webkit-scrollbar { display: none; }
+.ov-tabs button {
+  background: transparent; border: none; font-family: inherit;
+  color: var(--md-sys-color-on-surface-variant); font-size: 12px; font-weight: 700;
+  padding: 6px 14px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+}
+.ov-tabs button.active { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
+.ov-head {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 10px 14px 4px; flex-shrink: 0;
+}
+.ov-ranges {
+  display: flex; gap: 4px; padding: 6px 10px 8px; flex-shrink: 0;
+}
+.ov-ranges button {
+  background: transparent; border: 1px solid transparent; font-family: inherit;
+  color: var(--md-sys-color-on-surface-variant); font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 999px; cursor: pointer;
+}
+.ov-ranges button:hover { color: var(--md-sys-color-on-surface); }
+.ov-ranges button.active {
+  color: var(--md-sys-color-primary); background: var(--md-sys-color-surface-variant);
+  border-color: var(--md-sys-color-outline);
+}
+
 /* ---- Dividends table ---- */
 .w-div-wrap { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 4px 6px; }
 .w-table { width: 100%; border-collapse: collapse; font-size: 12px; }

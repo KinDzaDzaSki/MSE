@@ -57,9 +57,10 @@
     ctx.fill();
   };
 
-  // Direction-colored multi-run line chart (requires lightweight-charts).
+  // Direction-colored multi-run line/area chart (requires lightweight-charts).
   // Each maximal same-direction run is its own series — adjacent runs
   // alternate colors, so cross-connection is impossible.
+  // opts: { showVolume, chartType: 'area'|'line', height }
   W.directionChart = (container, rows, opts = {}) => {
     if (!window.LightweightCharts || !rows || !rows.length) return null;
     const cs = getComputedStyle(document.documentElement);
@@ -76,6 +77,9 @@
     const lineData = rows
       .filter((x) => x.last != null)
       .map((x) => ({ time: Math.floor(new Date(x.date).getTime() / 1000), value: x.last }));
+    const mkSeries = (color, fillTop, fillBottom) => (opts.chartType === 'line')
+      ? chart.addLineSeries({ color, lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false })
+      : chart.addAreaSeries({ lineColor: color, topColor: fillTop, bottomColor: fillBottom, lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
     const upRuns = [], downRuns = [];
     let cur = null, dir = null;
     for (let i = 1; i < lineData.length; i++) {
@@ -88,15 +92,18 @@
         cur.pts.push(lineData[i]);
       }
     }
-    const mk = (run) => {
-      const s = chart.addLineSeries({
-        color: run.dir === 'up' ? '#16c784' : '#ea3943',
-        lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
-      });
-      s.setData(run.pts);
-      return s;
-    };
-    const series = upRuns.map(mk).concat(downRuns.map(mk));
+    const series = upRuns.map((r) => { const s = mkSeries('#16c784', 'rgba(22,199,132,0.25)', 'rgba(22,199,132,0.02)'); s.setData(r.pts); return s; })
+      .concat(downRuns.map((r) => { const s = mkSeries('#ea3943', 'rgba(234,57,67,0.25)', 'rgba(234,57,67,0.02)'); s.setData(r.pts); return s; }));
+    if (opts.showVolume) {
+      const vol = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' });
+      vol.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+      let prev = null;
+      vol.setData(rows.filter((x) => x.last != null).map((x) => {
+        const up = prev == null ? true : x.last >= prev;
+        prev = x.last;
+        return { time: Math.floor(new Date(x.date).getTime() / 1000), value: x.volume || 0, color: up ? 'rgba(22,199,132,0.5)' : 'rgba(234,57,67,0.5)' };
+      }));
+    }
     const lastClose = lineData.length ? lineData[lineData.length - 1].value : null;
     if (lastClose != null && series.length) {
       series[0].createPriceLine({
