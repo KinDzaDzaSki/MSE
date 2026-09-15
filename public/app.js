@@ -1158,8 +1158,11 @@ async function openCompany(symbol) {
     $$('.fin-tab-panel').forEach(p => p.classList.add('hidden'));
     $('#finTabChart').classList.remove('hidden');
 
-    // ---- Chart logic (unchanged) ----
-    let chart, candleSeries, volSeries, priceLine;
+    // ---- Chart logic: Yahoo-style baseline area (green above the reference
+    // close, red below). Data is daily EOD bars — the baseline is the close
+    // of the session right before the visible window starts ("yesterday" for
+    // the range you are looking at); Сите falls back to the first close.
+    let chart, baseSeries, volSeries, baseLine, lastLine;
     let onResize = null;
     const draw = (range) => {
       let rows = fullHistory;
@@ -1169,18 +1172,30 @@ async function openCompany(symbol) {
       else if (range === '1Y') rows = rows.slice(-252);
       const histLast = rows.length ? rows[rows.length - 1].last : null;
       const factor = (histLast && q.lastPrice && histLast !== q.lastPrice) ? q.lastPrice / histLast : 1;
-      const candleData = [];
+
+      // Previous close per session, from FULL history so window edges know
+      // their reference: "green = closed above yesterday".
+      const prevCloseByDate = {};
+      let prev = null;
+      for (const x of fullHistory) { prevCloseByDate[x.date] = prev; prev = x.last; }
+
+      const lineData = [];
       const volData = [];
       for (let i = 0; i < rows.length; i++) {
         const x = rows[i];
         const ts = Math.floor(new Date(x.date).getTime() / 1000);
         const close = (x.last != null ? x.last : 0) * factor;
         const open = (i === 0 ? close : (rows[i - 1].last != null ? rows[i - 1].last : 0) * factor);
-        const high = (x.max != null ? x.max : x.last) * factor;
-        const low = (x.min != null ? x.min : x.last) * factor;
-        candleData.push({ time: ts, open, high, low, close });
-        volData.push({ time: ts, value: x.volume || 0, color: close >= open ? 'rgba(22,199,132,0.5)' : 'rgba(234,57,67,0.5)' });
+        const prevClose = prevCloseByDate[x.date];
+        const ref = prevClose != null ? prevClose * factor : open;
+        lineData.push({ time: ts, value: close });
+        volData.push({ time: ts, value: x.volume || 0, color: close >= ref ? 'rgba(22,199,132,0.5)' : 'rgba(234,57,67,0.5)' });
       }
+
+      const startIdx = fullHistory.length - rows.length;
+      const baseVal = startIdx > 0 ? fullHistory[startIdx - 1].last : (rows.length ? rows[0].last : null);
+      const baseline = baseVal != null ? baseVal * factor : null;
+
       if (!chart) {
         chart = LightweightCharts.createChart($('#companyChart'), {
           width: $('#companyChart').clientWidth || 760,
@@ -1192,36 +1207,58 @@ async function openCompany(symbol) {
           localization: { priceFormatter: (p) => fmt(p) },
           height: 360,
         });
-        candleSeries = chart.addCandlestickSeries({
-          upColor: '#16c784', downColor: '#ea3943', borderUpColor: '#16c784', borderDownColor: '#ea3943',
-          wickUpColor: '#16c784', wickDownColor: '#ea3943', priceLineVisible: false,
+        baseSeries = chart.addBaselineSeries({
+          baseValue: { type: 'price', price: baseline || 0 },
+          topLineColor: '#16c784',
+          topFillColor1: 'rgba(22,199,132,0.30)',
+          topFillColor2: 'rgba(22,199,132,0.02)',
+          bottomLineColor: '#ea3943',
+          bottomFillColor1: 'rgba(234,57,67,0.02)',
+          bottomFillColor2: 'rgba(234,57,67,0.30)',
+          lineWidth: 2,
+          priceLineVisible: false,
         });
         volSeries = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' });
         volSeries.priceScale().applyOptions({
           scaleMargins: { top: 0.8, bottom: 0 },
         });
       }
-      candleSeries.setData(candleData);
+      // The split point changes with the selected range — update it per draw.
+      if (baseline != null) baseSeries.applyOptions({ baseValue: { type: 'price', price: baseline } });
+      baseSeries.setData(lineData);
       volSeries.setData(volData);
       chart.timeScale().fitContent();
-      if (priceLine) candleSeries.removePriceLine(priceLine);
-      const lastClose = candleData.length ? candleData[candleData.length - 1].close : null;
+
+      // Dashed reference lines: gray at baseline, red at last close.
+      if (baseLine) baseSeries.removePriceLine(baseLine);
+      if (lastLine) baseSeries.removePriceLine(lastLine);
+      baseLine = null;
+      lastLine = null;
+      if (baseline != null) {
+        baseLine = baseSeries.createPriceLine({
+          price: baseline, color: 'rgba(230,233,239,0.55)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed,
+          axisLabelVisible: false, title: '',
+        });
+      }
+      const lastClose = lineData.length ? lineData[lineData.length - 1].value : null;
       if (lastClose != null) {
-        priceLine = candleSeries.createPriceLine({
-          price: lastClose, color: '#f5a623', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed,
+        lastLine = baseSeries.createPriceLine({
+          price: lastClose, color: '#ea3943', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed,
           axisLabelVisible: true, title: '',
         });
       }
-      const firstClose = candleData.length ? candleData[0].close : null;
-      const chgPct = firstClose ? ((lastClose - firstClose) / firstClose) * 100 : 0;
+
+      // Header change is measured against the baseline — it matches what the
+      // green/red fill shows ("vs yesterday" for the selected range).
+      const chgPct = baseline ? ((lastClose - baseline) / baseline) * 100 : 0;
       $('#chartPrice').textContent = lastClose != null ? fmt(lastClose) + ' MKD' : '—';
       const chgEl = $('#chartChg');
       chgEl.textContent = `${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%`;
       chgEl.className = 'chart-chg ' + (chgPct >= 0 ? 'up' : 'down');
       const rangeLabel = { '1M': t('period_1m'), '3M': t('period_3m'), '6M': t('period_6m'), '1Y': t('period_1y'), 'ALL': t('period_all') }[range] || range;
-      $('#chartPeriod').textContent = `${rangeLabel} · ${candleData.length ? fmtDate(candleData[0].time * 1000) + ' – ' + fmtDate(candleData[candleData.length - 1].time * 1000) : ''}`;
-      if (candleData.length) {
-        $('#asOf').textContent = `${t('as_of')} ${fmtDate(candleData[candleData.length - 1].time * 1000)} · ${t('eod_note')}`;
+      $('#chartPeriod').textContent = `${rangeLabel} · ${lineData.length ? fmtDate(lineData[0].time * 1000) + ' – ' + fmtDate(lineData[lineData.length - 1].time * 1000) : ''}`;
+      if (lineData.length) {
+        $('#asOf').textContent = `${t('as_of')} ${fmtDate(lineData[lineData.length - 1].time * 1000)} · ${t('eod_note')}`;
       }
     };
     draw('1Y');
