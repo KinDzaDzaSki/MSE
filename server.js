@@ -165,6 +165,20 @@ async function handleApi(req, res, url) {
     return sendJson(res, job);
   }
 
+  if (url.pathname === '/api/dividends') {
+    const dividends = await store.computeDividends();
+    return sendJson(res, { dividends, count: dividends.length }, 200, req);
+  }
+
+  const bfFin = url.pathname.match(/^\/api\/backfill-financials$/);
+  if (bfFin) {
+    if (!needAdmin(url, req, res)) return;
+    // Warm-up job: scrapes financial tables for all symbols (24h TTL skips
+    // fresh ones). Poll /api/job/{id} for progress.
+    const job = store.startFinancialsBackfillJob();
+    return sendJson(res, { ok: true, job: job.id, total: job.total });
+  }
+
   if (url.pathname === '/api/history') {
     // Batch history: /api/history?symbols=ALK,ADIN,GRNT&range=1Y
     const syms = (url.searchParams.get('symbols') || '').split(',').filter(Boolean);
