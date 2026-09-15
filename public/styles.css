@@ -557,6 +557,87 @@ a:hover { color: var(--md-sys-color-primary-container); }
 }
 
 /* ==========================================================================
+   WATCHLIST — strip above table + star buttons
+   ========================================================================== */
+.watch-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: var(--md-space-xs);
+  min-height: 32px;
+}
+.watch-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--md-sys-color-on-surface-variant);
+  flex-shrink: 0;
+}
+.watch-hint {
+  font-size: 12px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-style: italic;
+}
+.watch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--md-sys-color-surface-variant);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-full);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.4;
+  transition: border-color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+  white-space: nowrap;
+}
+.watch-chip:hover { border-color: var(--md-sys-color-primary); }
+.watch-chip.dim { opacity: 0.55; }
+.watch-chip .wc-sym { font-weight: 700; color: var(--md-sys-color-primary); }
+.watch-chip .wc-price { font-feature-settings: 'tnum' 1; color: var(--md-sys-color-on-surface); }
+.watch-chip .wc-chg { font-weight: 600; font-feature-settings: 'tnum' 1; }
+.watch-chip .wc-remove {
+  background: transparent;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 0 0 2px;
+  line-height: 1;
+  font-family: inherit;
+}
+.watch-chip .wc-remove:hover { color: var(--md-sys-color-negative); }
+
+/* Star button — hover-reveal inside the Symbol cell, always visible when
+   starred. Also used in the modal header (always visible there). */
+.star-btn {
+  background: transparent;
+  border: none;
+  padding: 0 5px 0 0;
+  margin: 0;
+  cursor: pointer;
+  line-height: 1;
+  vertical-align: middle;
+  opacity: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: opacity var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+}
+.star-btn .material-symbols-outlined { font-size: 16px; }
+table.quotes tr:hover .star-btn,
+.star-btn.starred,
+.star-btn:focus-visible { opacity: 1; }
+.star-btn:hover { color: var(--md-sys-color-secondary); }
+.star-btn.starred { color: var(--md-sys-color-secondary); }
+.star-btn.starred .material-symbols-outlined {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+.company-head .star-btn { opacity: 1; padding: 0 2px; }
+.company-head .star-btn .material-symbols-outlined { font-size: 22px; }
+
+/* ==========================================================================
    TABLE CARD — M3 Elevated Card
    ========================================================================== */
 .table-wrap {

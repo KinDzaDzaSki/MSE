@@ -28,6 +28,40 @@ function setView(v) {
   renderTable();
 }
 
+// ---- Watchlist (localStorage, no login) ----
+let watchlist = [];
+try {
+  const parsed = JSON.parse(localStorage.getItem('mse_watchlist') || '[]');
+  if (Array.isArray(parsed)) watchlist = parsed.filter((s) => typeof s === 'string');
+} catch (_) { watchlist = []; }
+function saveWatchlist() { localStorage.setItem('mse_watchlist', JSON.stringify(watchlist)); }
+function isWatched(sym) { return watchlist.includes(sym); }
+function toggleWatch(sym) {
+  const i = watchlist.indexOf(sym);
+  if (i >= 0) watchlist.splice(i, 1);
+  else watchlist.push(sym);
+  saveWatchlist();
+  refreshStars();
+  renderWatchStrip();
+}
+// Update every rendered star button (table rows + modal header) in place —
+// avoids a full table re-render (and sparkline rebuild) on each toggle.
+function refreshStars() {
+  $$('[data-star]').forEach((btn) => {
+    const on = isWatched(btn.dataset.star);
+    btn.classList.toggle('starred', on);
+    btn.title = on ? t('watch_remove') : t('watch_add');
+    const ic = btn.querySelector('.material-symbols-outlined');
+    if (ic) ic.style.fontVariationSettings = on
+      ? "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20"
+      : "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20";
+  });
+}
+function starBtnHTML(sym) {
+  const on = isWatched(sym);
+  return `<button type="button" class="star-btn${on ? ' starred' : ''}" data-star="${esc(sym)}" title="${esc(on ? t('watch_remove') : t('watch_add'))}"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' ${on ? 1 : 0}, 'wght' 400, 'GRAD' 0, 'opsz' 20">star</span></button>`;
+}
+
 // ---- i18n ----
 const I18N = {
   en: {
@@ -102,6 +136,10 @@ const I18N = {
       note_show_all: 'Show {n} more results from All',
       note_liquid_fallback: 'Data is updating — showing all companies for now',
       includes_series: 'Also includes series:',
+      watch_title: 'Watchlist',
+      watch_hint: 'Press ★ to add stocks to your watchlist',
+      watch_add: 'Add to watchlist',
+      watch_remove: 'Remove from watchlist',
       analysis_sma50: '50-day SMA',
       analysis_sma200: '200-day SMA',
       analysis_rsi: 'RSI (14)',
@@ -217,6 +255,10 @@ const I18N = {
       note_show_all: 'Прикажи уште {n} резултати од „Сите“',
       note_liquid_fallback: 'Податоците се ажурираат — привремено се прикажани сите компании',
       includes_series: 'Вклучува и сериите:',
+      watch_title: 'Листа за гледање',
+      watch_hint: 'Притисни ★ за да додадеш акции во листата',
+      watch_add: 'Додај во листата за гледање',
+      watch_remove: 'Отстрани од листата',
       analysis_sma50: '50-дневен ПП',
       analysis_sma200: '200-дневен ПП',
       analysis_rsi: 'RSI (14)',
@@ -301,6 +343,7 @@ function applyStaticI18n() {
   $$('th', h)[8].textContent = t('th_52w_range');
   $('#search').placeholder = t('search');
   updateToggleLabels();
+  renderWatchStrip();
   $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')}`;
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
@@ -325,6 +368,34 @@ function updateToggleLabels() {
   ba.textContent = `${t('view_all')} (${primaries.length})`;
   bl.classList.toggle('active', view === 'liquid');
   ba.classList.toggle('active', view === 'all');
+}
+
+// Watchlist strip — always visible (Q7): hint when empty, chips when starred.
+// Shows ALL starred symbols regardless of Liquid/All view (Q2); picks that
+// aren't in the current liquid set render dimmed.
+function renderWatchStrip() {
+  const el = $('#watchStrip');
+  if (!el) return;
+  if (!watchlist.length) {
+    el.innerHTML = `<span class="watch-label">${esc(t('watch_title'))}</span><span class="watch-hint">${esc(t('watch_hint'))}</span>`;
+    return;
+  }
+  const chips = watchlist.map((sym) => {
+    const q = quotesCache.find((r) => r.symbol === sym);
+    if (!q) {
+      return `<div class="watch-chip dim" data-sym="${esc(sym)}" title="${esc(sym)}">
+        <span class="wc-sym">${esc(sym)}</span><span class="wc-price">—</span>
+        <button type="button" class="wc-remove" data-unstar="${esc(sym)}" title="${esc(t('watch_remove'))}">✕</button>
+      </div>`;
+    }
+    return `<div class="watch-chip${q.liq ? '' : ' dim'}" data-sym="${esc(sym)}">
+      <span class="wc-sym">${esc(sym)}</span>
+      <span class="wc-price">${fmt(q.lastPrice)}</span>
+      <span class="wc-chg ${pctClass(q.changePct)}">${pctStr(q.changePct)}</span>
+      <button type="button" class="wc-remove" data-unstar="${esc(sym)}" title="${esc(t('watch_remove'))}">✕</button>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<span class="watch-label">${esc(t('watch_title'))}</span>${chips}`;
 }
 
 function fmt(n, dec = 2) {
@@ -464,6 +535,7 @@ async function loadQuotes() {
   // Market open (or first load with no data yet): do the full refresh.
   quotesCache = d.quotes || [];
   updateToggleLabels();
+  renderWatchStrip();
   if (marketIsOpen) {
     const ms = t('market_open');
     const st = $('#marketStatus');
@@ -602,7 +674,7 @@ function renderTable() {
     tr.dataset.sym = r.symbol;
     const range = buildRangeBar(r);
     tr.innerHTML = `
-      <td class="sym">${esc(r.symbol)}</td>
+      <td class="sym">${starBtnHTML(r.symbol)}<span class="sym-text">${esc(r.symbol)}</span></td>
       <td class="comp">${esc(r.name || '')}</td>
       <td class="spark"><canvas data-spark="${esc(r.symbol)}"></canvas></td>
       <td class="num">${fmt(r.lastPrice)}</td>
@@ -801,6 +873,7 @@ async function openCompany(symbol) {
     content.innerHTML = `
       <div class="company-head">
         <h2>${esc(symbol)}</h2>
+        ${starBtnHTML(symbol)}
         <span class="${pctClass(chg)}">
           <span class="material-symbols-outlined icon-fill" style="font-size:20px;vertical-align:middle">${chg >= 0 ? 'trending_up' : 'trending_down'}</span>
           ${chgStr(chgAbs)} (${pctStr(chg)})</span>
@@ -1542,6 +1615,14 @@ function syncHeaderIndicators() {
   });
 }
 document.addEventListener('click', (e) => {
+  // Star toggles (table rows, modal header) and chip ✕ removals are handled
+  // BEFORE the [data-sym] modal-open check — star buttons live inside rows
+  // that carry data-sym.
+  const starBtn = e.target.closest('[data-star],[data-unstar]');
+  if (starBtn) {
+    toggleWatch(starBtn.dataset.star || starBtn.dataset.unstar);
+    return;
+  }
   const item = e.target.closest('[data-sym]');
   if (item) openCompany(item.dataset.sym);
 });
@@ -1591,6 +1672,7 @@ $('#themeToggle').addEventListener('click', () => {
 
 (async function init() {
   applyStaticI18n();
+  renderWatchStrip();
   await loadMBI();
   await Promise.all([loadQuotes(), loadRatings()]);
   // Market-aware scheduler: polls fast when open, slow when closed, no
