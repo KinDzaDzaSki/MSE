@@ -506,6 +506,56 @@ a:hover { color: var(--md-sys-color-primary-container); }
   font-weight: 500;
 }
 
+/* Liquid / All segmented toggle (M3 segmented button) */
+.view-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--md-sys-color-surface-variant);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-small);
+  flex-shrink: 0;
+}
+.view-toggle button {
+  background: transparent;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+}
+.view-toggle button:hover { color: var(--md-sys-color-on-surface); }
+.view-toggle button.active {
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-primary);
+  box-shadow: var(--md-elevation-level-1);
+}
+
+/* Note line under toolbar: liquid fallback notice / show-all-results link */
+.toolbar-note {
+  font-size: 12px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin: -2px 0 8px;
+}
+.toolbar-note a {
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Modal: muted line listing aggregated series (STBP etc.) */
+.series-note {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  margin: -2px 0 6px;
+}
+
 /* ==========================================================================
    TABLE CARD — M3 Elevated Card
    ========================================================================== */

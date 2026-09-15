@@ -12,6 +12,22 @@ let ratingsCache = {};    // symbol -> {score, maxScore, pct}
 let headerSortCol = 'value';
 let headerSortDir = 'desc';
 
+// ---- View: Liquid (default) vs All ----
+// Server flags each quote: liq (data-driven liquidity), primary (issuer
+// series dedup). Secondary series are hidden in BOTH views; Liquid shows
+// only q.liq names.
+let view = localStorage.getItem('mse_view') === 'all' ? 'all' : 'liquid';
+function isPrimary(q) { return q && q.primary !== false; }
+function inView(q) { return view === 'all' ? true : q.liq === true; }
+function setView(v) {
+  view = v;
+  localStorage.setItem('mse_view', v);
+  const bl = $('#btnLiquid'), ba = $('#btnAll');
+  if (bl) bl.classList.toggle('active', v === 'liquid');
+  if (ba) ba.classList.toggle('active', v === 'all');
+  renderTable();
+}
+
 // ---- i18n ----
 const I18N = {
   en: {
@@ -81,6 +97,11 @@ const I18N = {
       analysis_summary_hold: 'Mixed signals — fundamentally healthy but technically weak. No panic, no clear add.',
       analysis_summary_buy: 'More strengths than weaknesses — fundamental and technical signals leaning positive.',
       analysis_summary_sell: 'More weaknesses than strengths — caution warranted.',
+      view_liquid: 'Liquid',
+      view_all: 'All',
+      note_show_all: 'Show {n} more results from All',
+      note_liquid_fallback: 'Data is updating — showing all companies for now',
+      includes_series: 'Also includes series:',
       analysis_sma50: '50-day SMA',
       analysis_sma200: '200-day SMA',
       analysis_rsi: 'RSI (14)',
@@ -191,6 +212,11 @@ const I18N = {
       analysis_summary_hold: 'Мешани сигнали — фундаментално здрава но технички слаба. Не е момент за паника, ниту за јасно дополнување.',
       analysis_summary_buy: 'Повеќе предности отколку слабости — сигналите се наклонети позитивно.',
       analysis_summary_sell: 'Повеќе слабости отколку предности — потребна е претпазливост.',
+      view_liquid: 'Ликвидни',
+      view_all: 'Сите',
+      note_show_all: 'Прикажи уште {n} резултати од „Сите“',
+      note_liquid_fallback: 'Податоците се ажурираат — привремено се прикажани сите компании',
+      includes_series: 'Вклучува и сериите:',
       analysis_sma50: '50-дневен ПП',
       analysis_sma200: '200-дневен ПП',
       analysis_rsi: 'RSI (14)',
@@ -274,6 +300,7 @@ function applyStaticI18n() {
   $$('th', h)[7].textContent = t('th_52w_chg');
   $$('th', h)[8].textContent = t('th_52w_range');
   $('#search').placeholder = t('search');
+  updateToggleLabels();
   $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')}`;
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
@@ -286,6 +313,18 @@ function applyStaticI18n() {
     tabBtns[2].textContent = t('tab_ratios');
     tabBtns[3].textContent = t('tab_analysis');
   }
+}
+
+// Toggle labels show live counts; called from applyStaticI18n + loadQuotes
+function updateToggleLabels() {
+  const bl = $('#btnLiquid'), ba = $('#btnAll');
+  if (!bl || !ba) return;
+  const primaries = quotesCache.filter(isPrimary);
+  const liq = primaries.filter((q) => q.liq === true).length;
+  bl.textContent = `${t('view_liquid')} (${liq})`;
+  ba.textContent = `${t('view_all')} (${primaries.length})`;
+  bl.classList.toggle('active', view === 'liquid');
+  ba.classList.toggle('active', view === 'all');
 }
 
 function fmt(n, dec = 2) {
@@ -424,6 +463,7 @@ async function loadQuotes() {
 
   // Market open (or first load with no data yet): do the full refresh.
   quotesCache = d.quotes || [];
+  updateToggleLabels();
   if (marketIsOpen) {
     const ms = t('market_open');
     const st = $('#marketStatus');
@@ -473,11 +513,13 @@ function scheduleNextPoll() {
   }, interval);
 }
 
+function matchesQuery(r, q) {
+  return !q || r.symbol.toLowerCase().includes(q) || (r.name || '').toLowerCase().includes(q);
+}
+
 function getFilteredQuotes() {
   const q = $('#search').value.trim().toLowerCase();
-  return quotesCache.filter(
-    (r) => !q || r.symbol.toLowerCase().includes(q) || (r.name || '').toLowerCase().includes(q)
-  );
+  return quotesCache.filter((r) => isPrimary(r) && inView(r) && matchesQuery(r, q));
 }
 
 // Rating from backend (single source of truth). Falls back to quick calc if not yet loaded.
@@ -524,7 +566,16 @@ async function loadRatings() {
 
 function renderTable() {
   try {
-  const rows = getFilteredQuotes().sort((a, b) => {
+  const query = $('#search').value.trim().toLowerCase();
+  const primaries = quotesCache.filter(isPrimary);
+  // Stale-data fallback: server flags (liq) arrive after the first poll.
+  // If Liquid view would be empty but companies exist, show all and say so.
+  const liquidCount = primaries.filter((q) => q.liq === true).length;
+  const effectiveView = (view === 'liquid' && liquidCount === 0 && primaries.length > 0) ? 'all' : view;
+  let rows = primaries.filter((q) => effectiveView === 'all' ? true : q.liq === true)
+    .filter((r) => matchesQuery(r, query));
+  updateViewNote(effectiveView, rows.length, primaries, query);
+  const rows2 = rows.sort((a, b) => {
     const dir = headerSortDir;
     let cmp;
     if (headerSortCol === 'symbol') {
@@ -570,12 +621,35 @@ function renderTable() {
   }
   // Deferred draw for remaining rows (beyond 40) — avoids 100+ Chart.js
   // inits blocking the main thread on a single frame.
-  if (rows.length > 40) setTimeout(redrawSparklines, 0);
+  if (rows2.length > 40) setTimeout(redrawSparklines, 0);
   } catch (e) {
     console.error('renderTable failed:', e);
     const body = $('#quotesBody');
     if (body) body.innerHTML = `<tr><td colspan="9" class="muted" style="padding:20px;text-align:center">Render failed: ${esc(e.message)}</td></tr>`;
   }
+}
+
+// Note area under the toolbar: stale-data fallback notice, or the
+// "show more results from All" link when a search matches outside Liquid.
+function updateViewNote(effectiveView, shown, primaries, query) {
+  const note = $('#viewNote');
+  if (!note) return;
+  if (view === 'liquid' && effectiveView === 'all') {
+    note.textContent = t('note_liquid_fallback');
+    note.classList.remove('hidden');
+    return;
+  }
+  if (view === 'liquid' && query) {
+    const extra = primaries.filter((q) => q.liq !== true && matchesQuery(q, query)).length;
+    if (extra > 0) {
+      note.innerHTML = `<a href="#" id="showAllLink">${esc(t('note_show_all').replace('{n}', extra))}</a>`;
+      note.classList.remove('hidden');
+      const link = $('#showAllLink');
+      if (link) link.addEventListener('click', (e) => { e.preventDefault(); setView('all'); });
+      return;
+    }
+  }
+  note.classList.add('hidden');
 }
 
 function buildRangeBar(r) {
@@ -621,15 +695,18 @@ async function drawSpark(canvas, symbol, chgPct) {
 }
 
 // ---- SIDEBAR ----
+// Sidebars are ALWAYS liquid-only (independent of the view toggle): a +20%
+// move on two shares is not a "top gainer".
 function renderSidebar() {
+  const pool = quotesCache.filter((r) => isPrimary(r) && r.liq === true);
   renderSidePanel('gainersItems',
-    quotesCache.filter((r) => r.changePct != null && r.changePct > 0)
+    pool.filter((r) => r.changePct != null && r.changePct > 0)
       .sort((a, b) => b.changePct - a.changePct).slice(0, 5));
   renderSidePanel('losersItems',
-    quotesCache.filter((r) => r.changePct != null && r.changePct < 0)
+    pool.filter((r) => r.changePct != null && r.changePct < 0)
       .sort((a, b) => a.changePct - b.changePct).slice(0, 5));
   renderSidePanel('activeItems',
-    quotesCache.filter((r) => (r.value || 0) > 0)
+    pool.filter((r) => (r.value || 0) > 0)
       .sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 5));
 }
 
@@ -729,6 +806,7 @@ async function openCompany(symbol) {
           ${chgStr(chgAbs)} (${pctStr(chg)})</span>
       </div>
       <div class="company-sub">${esc(q.name || '')} ${q.isin ? '· ISIN ' + esc(q.isin) : ''}</div>
+      ${q.seriesList && q.seriesList.length ? `<div class="series-note">${esc(t('includes_series'))} ${q.seriesList.map(esc).join(', ')}</div>` : ''}
       <div class="as-of" id="asOf"></div>
       ${isIndex ? '' : (() => {
         const lo = q.minPrice, hi = q.maxPrice, lo52 = q.week52Min, hi52 = q.week52Max;
@@ -1432,6 +1510,8 @@ document.addEventListener('click', (e) => {
 });
 
 // ---- WIRE UP ----
+$('#btnLiquid').addEventListener('click', () => setView('liquid'));
+$('#btnAll').addEventListener('click', () => setView('all'));
 $('#search').addEventListener('input', () => { renderTable(); });
 $('#search').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
