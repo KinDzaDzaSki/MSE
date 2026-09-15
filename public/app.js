@@ -423,14 +423,15 @@ function updateToggleLabels() {
   ba.classList.toggle('active', view === 'all');
 }
 
-// Watchlist strip — always visible (Q7): hint when empty, chips when starred.
-// Shows ALL starred symbols regardless of Liquid/All view (Q2); picks that
-// aren't in the current liquid set render dimmed.
+// Watchlist strip — always visible: label + chips inline on desktop; on
+// mobile it collapses to a toggle bar (★ Листа (N) ▾) that expands the chips.
 function renderWatchStrip() {
-  const el = $('#watchStrip');
-  if (!el) return;
+  const chipsEl = $('#watchChips');
+  const toggleEl = $('#watchToggle');
+  if (!chipsEl || !toggleEl) return;
+  toggleEl.textContent = `★ ${t('watch_title')} (${watchlist.length}) ▾`;
   if (!watchlist.length) {
-    el.innerHTML = `<span class="watch-label">${esc(t('watch_title'))}</span><span class="watch-hint">${esc(t('watch_hint'))}</span>`;
+    chipsEl.innerHTML = `<span class="watch-hint">${esc(t('watch_hint'))}</span>`;
     return;
   }
   const chips = watchlist.map((sym) => {
@@ -448,7 +449,7 @@ function renderWatchStrip() {
       <button type="button" class="wc-remove" data-unstar="${esc(sym)}" title="${esc(t('watch_remove'))}">✕</button>
     </div>`;
   }).join('');
-  el.innerHTML = `<span class="watch-label">${esc(t('watch_title'))}</span>${chips}`;
+  chipsEl.innerHTML = chips;
 }
 
 // ---- MAIN VIEW SWITCHER: Quotes | Dividends ----
@@ -1846,6 +1847,11 @@ $('#divHead').addEventListener('click', (e) => {
 $('#btnLiquid').addEventListener('click', () => setView('liquid'));
 $('#btnAll').addEventListener('click', () => setView('all'));
 $('#search').addEventListener('input', () => { renderTable(); if (dividendsCache) renderDivTable(); });
+// Watchlist collapse (mobile): ★ bar toggles the chips row. Default
+// collapsed on small screens; desktop ignores it via CSS.
+const watchStripEl = $('#watchStrip');
+$('#watchToggle').addEventListener('click', () => watchStripEl.classList.toggle('collapsed'));
+if (window.matchMedia('(max-width: 839px)').matches) watchStripEl.classList.add('collapsed');
 $('#search').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     const rows = getFilteredQuotes();

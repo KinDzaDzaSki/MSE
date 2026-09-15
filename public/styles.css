@@ -665,6 +665,20 @@ a:hover { color: var(--md-sys-color-primary-container); }
   margin-bottom: var(--md-space-xs);
   min-height: 32px;
 }
+.watch-toggle {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--md-sys-color-surface-variant);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-small);
+  color: var(--md-sys-color-on-surface);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
 .watch-label {
   font-size: 10px;
   font-weight: 700;
@@ -1453,10 +1467,20 @@ table.quotes thead th.spark-th {
   .toolbar {
     flex-wrap: wrap;
   }
-  #lastPoll {
-    width: 100%;
-    text-align: right;
-  }
+  /* Compact header: two equal segmented controls share row 1, search +
+     timestamp share row 2 — same size/space for Котации|Дивиденди and
+     Ликвидни|Сите. */
+  .panel-header #mainTabs,
+  .panel-header #viewToggle { flex: 1 1 calc(50% - 12px); }
+  .panel-header #mainTabs .main-tab,
+  .panel-header #viewToggle button { flex: 1; text-align: center; padding: 6px 8px; }
+  .panel-header .search-wrapper { flex: 1 1 0; min-width: 0; }
+  #lastPoll { width: auto; text-align: right; margin-left: auto; }
+
+  /* Watchlist collapses to a ★ toggle bar; chips expand on tap */
+  .watch-strip .watch-label { display: none; }
+  .watch-strip .watch-toggle { display: inline-flex; }
+  .watch-strip.collapsed .watch-chips { display: none; }
 
   .modal { padding: 16px 8px; }
   .modal-card { padding: 16px; }
