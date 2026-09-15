@@ -427,6 +427,94 @@ a:hover { color: var(--md-sys-color-primary-container); }
   overflow: hidden;
 }
 
+/* Quotes | Dividends view switcher (M3 primary tabs) */
+.main-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: var(--md-space-sm);
+  border-bottom: 1px solid var(--md-sys-color-outline);
+  flex-shrink: 0;
+}
+.main-tab {
+  position: relative;
+  background: transparent;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 8px 16px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+}
+.main-tab:hover { color: var(--md-sys-color-on-surface); }
+.main-tab.active { color: var(--md-sys-color-primary); }
+.main-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--md-sys-color-primary);
+  border-radius: 2px 2px 0 0;
+}
+
+/* View wrappers — flex chain so .table-wrap can hug or shrink correctly */
+.panel-view {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+/* ---- DIVIDENDS TABLE ---- */
+.div-table th, .div-table td { padding-left: 12px; padding-right: 12px; }
+.div-trend { white-space: nowrap; font-feature-settings: 'tnum' 1; color: var(--md-sys-color-on-surface-variant); font-size: 12px; }
+.pay-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 1px 6px;
+  border-radius: var(--md-shape-full);
+  background: var(--md-sys-color-positive-container);
+  color: var(--md-sys-color-on-positive);
+  vertical-align: middle;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.div-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--md-space-sm);
+}
+.div-chip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--md-sys-color-surface-variant);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-small);
+  padding: 8px 12px;
+}
+.div-chip .k {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.div-chip .v {
+  font-size: 14px;
+  font-weight: 700;
+  font-feature-settings: 'tnum' 1;
+  color: var(--md-sys-color-on-surface);
+}
+
 .sidebar {
   display: flex;
   flex-direction: column;

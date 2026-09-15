@@ -140,6 +140,17 @@ const I18N = {
       watch_hint: 'Press ★ to add stocks to your watchlist',
       watch_add: 'Add to watchlist',
       watch_remove: 'Remove from watchlist',
+      main_tab_quotes: 'Quotes',
+      main_tab_dividends: 'Dividends',
+      div_th_price: 'Price',
+      div_th_dps: 'DPS {y}',
+      div_th_yield: 'Yield {y}',
+      div_th_trend: 'DPS trend (3y)',
+      div_th_payout: 'Payout',
+      div_consistent: '3/3 payer',
+      div_exdate_note: 'Ex-date: follow the issuer announcements on mse.mk. Dividend data comes from the MSE financial ratios tables (latest published years).',
+      div_empty: 'No dividend data yet — the financials warm-up job fills this in the background (a few minutes after deploy).',
+      div_stale_note: 'Data loads progressively — only companies scraped so far are listed.',
       analysis_sma50: '50-day SMA',
       analysis_sma200: '200-day SMA',
       analysis_rsi: 'RSI (14)',
@@ -259,6 +270,17 @@ const I18N = {
       watch_hint: 'Притисни ★ за да додадеш акции во листата',
       watch_add: 'Додај во листата за гледање',
       watch_remove: 'Отстрани од листата',
+      main_tab_quotes: 'Котации',
+      main_tab_dividends: 'Дивиденди',
+      div_th_price: 'Цена',
+      div_th_dps: 'ДПС {y}',
+      div_th_yield: 'Принос {y}',
+      div_th_trend: 'ДПС тренд (3 год.)',
+      div_th_payout: 'Исплата',
+      div_consistent: 'редовен исплатник',
+      div_exdate_note: 'Ex-date: следете ги соопштенијата на издавачот на mse.mk. Податоците за дивиденди доаѓаат од табелите со финансиски показатели (последно објавени години).',
+      div_empty: 'Сè уште нема податоци за дивиденди — warm-up задачата ги пополнува во позадина (неколку минути по поставување).',
+      div_stale_note: 'Податоците се пополнуваат прогресивно — прикажани се само компаниите што се веќе превземени.',
       analysis_sma50: '50-дневен ПП',
       analysis_sma200: '200-дневен ПП',
       analysis_rsi: 'RSI (14)',
@@ -356,6 +378,17 @@ function applyStaticI18n() {
     tabBtns[2].textContent = t('tab_ratios');
     tabBtns[3].textContent = t('tab_analysis');
   }
+  // Main view tabs
+  $$('#mainTabs .main-tab').forEach((b) => {
+    b.textContent = b.dataset.mtab === 'quotes' ? t('main_tab_quotes') : t('main_tab_dividends');
+  });
+  // Dividends view re-renders with current language if data is loaded
+  if (dividendsCache) {
+    renderDivTable();
+  } else {
+    const note = $('#divNote');
+    if (note) note.textContent = t('div_exdate_note');
+  }
 }
 
 // Toggle labels show live counts; called from applyStaticI18n + loadQuotes
@@ -396,6 +429,111 @@ function renderWatchStrip() {
     </div>`;
   }).join('');
   el.innerHTML = `<span class="watch-label">${esc(t('watch_title'))}</span>${chips}`;
+}
+
+// ---- MAIN VIEW SWITCHER: Quotes | Dividends ----
+let mainView = 'quotes';
+function setMainView(v) {
+  mainView = v;
+  const qv = $('#quotesView'), dv = $('#dividendsView');
+  if (qv) qv.classList.toggle('hidden', v !== 'quotes');
+  if (dv) dv.classList.toggle('hidden', v !== 'dividends');
+  $$('#mainTabs .main-tab').forEach((b) => b.classList.toggle('active', b.dataset.mtab === v));
+  if (v === 'dividends' && !dividendsCache) loadDividends();
+}
+
+// ---- DIVIDENDS VIEW ----
+// Payers only, sorted by latest yield (server-side). Ignores the Liquid
+// toggle (Q4-r2). Stars reuse the watchlist (Q3-r2).
+let dividendsCache = null;
+
+async function loadDividends() {
+  const body = $('#divBody');
+  if (!body) return;
+  body.innerHTML = `<tr><td colspan="7" class="muted" style="padding:20px;text-align:center">${t('loading')}</td></tr>`;
+  try {
+    const d = await fetch('/api/dividends').then((r) => r.json());
+    dividendsCache = d.dividends || [];
+  } catch (e) {
+    dividendsCache = [];
+  }
+  renderDivTable();
+}
+
+function buildDivHead(years) {
+  const y0 = years ? years[0] : null;
+  const th = (label, cls = '') => `<th class="${cls}">${esc(label)}</th>`;
+  $('#divHead').innerHTML = [
+    th(t('th_symbol')),
+    th(t('th_name')),
+    th(t('div_th_price'), 'num'),
+    th(t('div_th_dps').replace('{y}', y0 || ''), 'num'),
+    th(t('div_th_yield').replace('{y}', y0 || ''), 'num'),
+    th(t('div_th_trend'), 'num'),
+    th(t('div_th_payout'), 'num'),
+  ].join('');
+}
+
+function renderDivTable() {
+  const body = $('#divBody');
+  if (!body) return;
+  const rows = dividendsCache || [];
+  buildDivHead(rows.length ? rows[0].years : null);
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="7" class="muted" style="padding:20px;text-align:center">${esc(t('div_empty'))}</td></tr>`;
+    $('#divNote').textContent = t('div_exdate_note');
+    return;
+  }
+  const trendArrow = (dps) => {
+    const cur = dps[0], prev = dps[1];
+    if (cur == null || prev == null) return '';
+    return cur > prev ? ' <span class="up">↑</span>' : cur < prev ? ' <span class="down">↓</span>' : ' <span class="muted">=</span>';
+  };
+  body.innerHTML = rows.map((r) => {
+    const trend = r.dps.map((v) => (v == null ? '—' : fmt(v, 0))).join(' → ') + trendArrow(r.dps);
+    const y0 = r.yield[0];
+    return `<tr data-sym="${esc(r.symbol)}">
+      <td class="sym">${starBtnHTML(r.symbol)}<span class="sym-text">${esc(r.symbol)}</span></td>
+      <td class="comp">${esc(r.name || '')}${r.consistent ? ` <span class="pay-badge">${esc(t('div_consistent'))}</span>` : ''}</td>
+      <td class="num">${fmt(r.lastPrice)}</td>
+      <td class="num">${r.dps[0] != null ? fmt(r.dps[0], 0) : '—'}</td>
+      <td class="num ${pctClass(y0)}">${y0 != null ? fmt(y0) + '%' : '—'}</td>
+      <td class="num div-trend">${trend}</td>
+      <td class="num">${r.payout[0] != null ? fmt(r.payout[0], 0) + '%' : '—'}</td>
+    </tr>`;
+  }).join('');
+  $('#divNote').textContent = rows.length < 10
+    ? `${t('div_stale_note')} ${t('div_exdate_note')}`
+    : t('div_exdate_note');
+}
+
+// Modal (Показатели tab): compact dividend summary above the ratios table.
+function buildDividendSummary(fin) {
+  const fr = fin && fin.financialRatios;
+  if (!fr || !fr.rows || !fr.years) return '';
+  const parse = (v) => {
+    if (v == null) return null;
+    const n = parseFloat(String(v).replace(/,/g, '').replace('%', '').trim());
+    return isNaN(n) ? null : n;
+  };
+  const row = (re) => fr.rows.find((r) => re.test(r[0] || ''));
+  const dpsRow = row(/dividend per share/i);
+  if (!dpsRow) return '';
+  const years = fr.years;
+  const dps = years.map((_, i) => parse(dpsRow[i + 1]));
+  if (!dps.some((v) => v != null && v > 0)) return '';
+  const yldRow = row(/dividend yield/i);
+  const epsRow = row(/earnings per share/i);
+  const yld = yldRow ? years.map((_, i) => parse(yldRow[i + 1])) : years.map(() => null);
+  const eps = epsRow ? years.map((_, i) => parse(epsRow[i + 1])) : years.map(() => null);
+  const pay0 = (dps[0] != null && eps[0] != null && eps[0] > 0) ? +((dps[0] / eps[0]) * 100).toFixed(1) : null;
+  const chip = (label, val) => `<div class="div-chip"><span class="k">${esc(label)}</span><span class="v">${val}</span></div>`;
+  return `<div class="div-summary">
+    ${chip(t('div_th_dps').replace('{y}', years[0]), dps[0] != null ? fmt(dps[0], 0) : '—')}
+    ${chip(t('div_th_yield').replace('{y}', years[0]), yld[0] != null ? fmt(yld[0]) + '%' : '—')}
+    ${chip(t('div_th_payout'), pay0 != null ? fmt(pay0, 0) + '%' : '—')}
+    ${chip(t('div_th_trend'), dps.map((v) => (v == null ? '—' : fmt(v, 0))).join(' → '))}
+  </div>`;
 }
 
 function fmt(n, dec = 2) {
@@ -953,7 +1091,7 @@ async function openCompany(symbol) {
       finDataContent.innerHTML = `<div class="muted" style="padding:20px;text-align:center">${t('fin_no_data')}</div>`;
     }
     if (hasRatios) {
-      finRatiosContent.innerHTML = buildFinTable(fin.financialRatios, true);
+      finRatiosContent.innerHTML = buildDividendSummary(fin) + buildFinTable(fin.financialRatios, true);
     } else {
       finRatiosContent.innerHTML = `<div class="muted" style="padding:20px;text-align:center">${t('fin_no_ratios')}</div>`;
     }
@@ -1583,6 +1721,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ---- WIRE UP ----
+$$('#mainTabs .main-tab').forEach((b) => b.addEventListener('click', () => setMainView(b.dataset.mtab)));
 $('#btnLiquid').addEventListener('click', () => setView('liquid'));
 $('#btnAll').addEventListener('click', () => setView('all'));
 $('#search').addEventListener('input', () => { renderTable(); });

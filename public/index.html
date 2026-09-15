@@ -17,7 +17,7 @@
 <!-- Material Symbols variable font -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
-<link rel="stylesheet" href="/styles.css?v=4.7" />
+<link rel="stylesheet" href="/styles.css?v=4.8" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js" defer></script>
 </head>
@@ -50,6 +50,11 @@
 <main class="layout">
   <!-- LEFT: MAIN TABLE -->
   <section class="main-panel">
+    <div class="main-tabs" id="mainTabs">
+      <button type="button" class="main-tab active" data-mtab="quotes">Котации</button>
+      <button type="button" class="main-tab" data-mtab="dividends">Дивиденди</button>
+    </div>
+    <div id="quotesView" class="panel-view">
     <div class="toolbar">
       <div class="search-wrapper">
         <span class="material-symbols-outlined">search</span>
@@ -108,6 +113,22 @@
           <tbody id="quotesBody"></tbody>
         </table>
       </div>
+    </div>
+    </div>
+
+    <!-- DIVIDENDS VIEW -->
+    <div id="dividendsView" class="panel-view hidden">
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table class="quotes div-table">
+            <thead>
+              <tr id="divHead"></tr>
+            </thead>
+            <tbody id="divBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="fin-note" id="divNote"></div>
     </div>
   </section>
 
@@ -172,6 +193,6 @@
   Data scraped from <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — free public end-of-day data — for educational use.
 </footer>
 
-<script src="/app.js?v=4.6"></script>
+<script src="/app.js?v=4.8"></script>
 </body>
 </html>
