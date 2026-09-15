@@ -26,6 +26,7 @@ function setView(v) {
   if (bl) bl.classList.toggle('active', v === 'liquid');
   if (ba) ba.classList.toggle('active', v === 'all');
   renderTable();
+  if (dividendsCache) renderDivTable();
 }
 
 // ---- Watchlist (localStorage, no login) ----
@@ -151,6 +152,9 @@ const I18N = {
       div_exdate_note: 'Ex-date: follow the issuer announcements on mse.mk. Dividend data comes from the MSE financial ratios tables (latest published years).',
       div_empty: 'No dividend data yet — the financials warm-up job fills this in the background (a few minutes after deploy).',
       div_stale_note: 'Data loads progressively — only companies scraped so far are listed.',
+      div_liquid_empty: 'No dividends among liquid companies.',
+      div_show_all: 'Show all dividends',
+      div_no_results: 'No results.',
       chart_legend: 'Green = closed above yesterday · Red = closed below yesterday',
       analysis_sma50: '50-day SMA',
       analysis_sma200: '200-day SMA',
@@ -282,6 +286,9 @@ const I18N = {
       div_exdate_note: 'Ex-date: следете ги соопштенијата на издавачот на mse.mk. Податоците за дивиденди доаѓаат од табелите со финансиски показатели (последно објавени години).',
       div_empty: 'Сè уште нема податоци за дивиденди — warm-up задачата ги пополнува во позадина (неколку минути по поставување).',
       div_stale_note: 'Податоците се пополнуваат прогресивно — прикажани се само компаниите што се веќе превземени.',
+      div_liquid_empty: 'Нема дивиденди кај ликвидните компании.',
+      div_show_all: 'Прикажи сите дивиденди',
+      div_no_results: 'Нема резултати.',
       chart_legend: 'Зелено = затворено над вчера · Црвено = затворено под вчера',
       analysis_sma50: '50-дневен ПП',
       analysis_sma200: '200-дневен ПП',
@@ -502,12 +509,30 @@ function buildDivHead(years) {
 function renderDivTable() {
   const body = $('#divBody');
   if (!body) return;
-  const rows = (dividendsCache || []).slice();
-  buildDivHead(rows.length ? rows[0].years : null);
+  const all = dividendsCache || [];
+  buildDivHead(all.length ? all[0].years : null);
   syncDivHeader();
-  if (!rows.length) {
+  // Shared header filters (same controls as the quotes tab): Liquid/All
+  // view first, then search. Payers only comes from the server.
+  const query = $('#search').value.trim().toLowerCase();
+  const matches = (r) => !query || r.symbol.toLowerCase().includes(query) || (r.name || '').toLowerCase().includes(query);
+  let rows = all.filter((r) => (view === 'liquid' ? r.liq === true : true)).filter(matches);
+  $('#divNote').textContent = t('div_exdate_note');
+
+  if (!all.length) {
     body.innerHTML = `<tr><td colspan="7" class="muted" style="padding:20px;text-align:center">${esc(t('div_empty'))}</td></tr>`;
-    $('#divNote').textContent = t('div_exdate_note');
+    return;
+  }
+  if (!rows.length) {
+    // Distinguish: liquid view empty (offer show-all) vs search no-match.
+    const liquidCount = all.filter((r) => r.liq === true).length;
+    if (view === 'liquid' && liquidCount === 0) {
+      body.innerHTML = `<tr><td colspan="7" class="muted" style="padding:20px;text-align:center">${esc(t('div_liquid_empty'))} <a href="#" id="divShowAll">${esc(t('div_show_all'))}</a></td></tr>`;
+      const link = $('#divShowAll');
+      if (link) link.addEventListener('click', (e) => { e.preventDefault(); setView('all'); });
+    } else {
+      body.innerHTML = `<tr><td colspan="7" class="muted" style="padding:20px;text-align:center">${esc(t('div_no_results'))}</td></tr>`;
+    }
     return;
   }
   // Client-side sort; default (yield desc) reproduces the server order.
@@ -1079,8 +1104,8 @@ async function openCompany(symbol) {
           <div class="u">MKD</div>
         </div>
         <div class="stat">
-          <div class="k">${t('avg_price')}</div>
-          <div class="v">${fmt(q.avgPrice)}</div>
+          <div class="k" id="avgPriceLabel">${t('avg_price')}</div>
+          <div class="v" id="avgPriceVal">${fmt(q.avgPrice)}</div>
           <div class="u">MKD</div>
         </div>
         <div class="stat stat-with-bar">
@@ -1263,6 +1288,13 @@ async function openCompany(symbol) {
       const chgEl = $('#chartChg');
       chgEl.textContent = `${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%`;
       chgEl.className = 'chart-chg ' + (chgPct >= 0 ? 'up' : 'down');
+      // Avg Price box = mean of the charted closes for the selected period.
+      const avgEl = $('#avgPriceVal'), avgLb = $('#avgPriceLabel');
+      if (avgEl) {
+        const avgPeriod = lineData.length ? lineData.reduce((s, p) => s + p.value, 0) / lineData.length : null;
+        avgEl.textContent = avgPeriod != null ? fmt(avgPeriod) : '—';
+      }
+      if (avgLb) avgLb.textContent = `${t('avg_price')} · ${t('range_' + range.toLowerCase()) || range}`;
       const rangeLabel = { '1M': t('period_1m'), '3M': t('period_3m'), '6M': t('period_6m'), '1Y': t('period_1y'), 'ALL': t('period_all') }[range] || range;
       $('#chartPeriod').textContent = `${rangeLabel} · ${lineData.length ? fmtDate(lineData[0].time * 1000) + ' – ' + fmtDate(lineData[lineData.length - 1].time * 1000) : ''}`;
       if (lineData.length) {
@@ -1814,7 +1846,7 @@ $('#divHead').addEventListener('click', (e) => {
 });
 $('#btnLiquid').addEventListener('click', () => setView('liquid'));
 $('#btnAll').addEventListener('click', () => setView('all'));
-$('#search').addEventListener('input', () => { renderTable(); });
+$('#search').addEventListener('input', () => { renderTable(); if (dividendsCache) renderDivTable(); });
 $('#search').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     const rows = getFilteredQuotes();

@@ -427,39 +427,48 @@ a:hover { color: var(--md-sys-color-primary-container); }
   overflow: hidden;
 }
 
-/* Quotes | Dividends view switcher (M3 primary tabs) */
-.main-tabs {
+/* Shared panel header: view tabs + search + liquid toggle (both views) */
+.panel-header {
   display: flex;
-  gap: 0;
+  align-items: center;
+  gap: var(--md-space-sm);
   margin-bottom: var(--md-space-sm);
-  border-bottom: 1px solid var(--md-sys-color-outline);
+  flex-wrap: wrap;
   flex-shrink: 0;
 }
+.panel-header .main-tabs { margin-bottom: 0; flex-shrink: 0; }
+.panel-header .search-wrapper { flex: 1; min-width: 200px; }
+.panel-header .search { height: 44px; font-size: 14px; }
+.panel-header .view-toggle { flex-shrink: 0; }
+
+/* Quotes | Dividends view switcher — segmented, matches the Liquid toggle */
+.main-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--md-sys-color-surface-variant);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-small);
+}
 .main-tab {
-  position: relative;
   background: transparent;
   border: none;
   color: var(--md-sys-color-on-surface-variant);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  padding: 8px 16px 10px;
+  padding: 6px 14px;
+  border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
-  transition: color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+  transition: all var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
 .main-tab:hover { color: var(--md-sys-color-on-surface); }
-.main-tab.active { color: var(--md-sys-color-primary); }
-.main-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--md-sys-color-primary);
-  border-radius: 2px 2px 0 0;
+.main-tab.active {
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-primary);
+  box-shadow: var(--md-elevation-level-1);
 }
 
 /* View wrappers — flex chain so .table-wrap can hug or shrink correctly */
