@@ -1168,7 +1168,7 @@ async function openCompany(symbol) {
     // that day's close vs the previous close — green = closed above
     // yesterday, red = below. Same rule as the volume bars, so one legend
     // explains everything. Data is daily EOD bars (one point per session).
-    let chart, upSeries, downSeries, volSeries, lastLine;
+    let chart, volSeries, runSeries = [], priceLineHost = null, lastLine;
     let onResize = null;
     const draw = (range) => {
       let rows = fullHistory;
@@ -1192,9 +1192,11 @@ async function openCompany(symbol) {
         volData.push({ time: ts, value: x.volume || 0, color: close >= ref ? 'rgba(22,199,132,0.5)' : 'rgba(234,57,67,0.5)' });
       }
 
-      // Group consecutive same-direction segments into runs. Each run is one
-      // colored block; whitespace between runs of the same series prevents
-      // wrong cross-connections through opposite-colored segments.
+      // Group consecutive same-direction segments into runs. Each run becomes
+      // its OWN LineSeries — adjacent runs alternate colors, so a series can
+      // never cross-connect through an opposite-colored segment. (Whitespace
+      // does NOT break LineSeries lines in v4.1, so a two-series split is not
+      // an option.)
       const upRuns = [], downRuns = [];
       let curRun = null, curDir = null;
       for (let i = 1; i < lineData.length; i++) {
@@ -1207,18 +1209,6 @@ async function openCompany(symbol) {
           curRun.pts.push(lineData[i]);
         }
       }
-      const runsToData = (runs) => {
-        const out = [];
-        for (const run of runs) {
-          if (out.length) {
-            const lastT = out[out.length - 1].time;
-            const nextT = run.pts[0].time;
-            if (nextT > lastT + 1) out.push({ time: Math.floor((lastT + nextT) / 2) });
-          }
-          out.push(...run.pts);
-        }
-        return out;
-      };
 
       if (!chart) {
         chart = LightweightCharts.createChart($('#companyChart'), {
@@ -1231,24 +1221,36 @@ async function openCompany(symbol) {
           localization: { priceFormatter: (p) => fmt(p) },
           height: 360,
         });
-        upSeries = chart.addLineSeries({ color: '#16c784', lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerBorderColor: '#16c784' });
-        downSeries = chart.addLineSeries({ color: '#ea3943', lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerBorderColor: '#ea3943' });
         volSeries = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' });
         volSeries.priceScale().applyOptions({
           scaleMargins: { top: 0.8, bottom: 0 },
         });
       }
-      upSeries.setData(runsToData(upRuns));
-      downSeries.setData(runsToData(downRuns));
+      // Runs change with the selected range — rebuild the run series each draw.
+      for (const s of runSeries) chart.removeSeries(s);
+      runSeries.length = 0;
+      const mkRun = (run) => {
+        const s = chart.addLineSeries({
+          color: run.dir === 'up' ? '#16c784' : '#ea3943',
+          lineWidth: 2, priceLineVisible: false, lastValueVisible: false,
+          crosshairMarkerVisible: false,
+        });
+        s.setData(run.pts);
+        runSeries.push(s);
+        return s;
+      };
+      for (const run of upRuns) mkRun(run);
+      for (const run of downRuns) mkRun(run);
       volSeries.setData(volData);
       chart.timeScale().fitContent();
 
       // Red dashed reference at the last close (Yahoo-style "where we ended").
-      if (lastLine) upSeries.removePriceLine(lastLine);
+      if (lastLine && priceLineHost) priceLineHost.removePriceLine(lastLine);
       lastLine = null;
+      priceLineHost = runSeries.length ? runSeries[0] : null;
       const lastClose = lineData.length ? lineData[lineData.length - 1].value : null;
-      if (lastClose != null) {
-        lastLine = upSeries.createPriceLine({
+      if (lastClose != null && priceLineHost) {
+        lastLine = priceLineHost.createPriceLine({
           price: lastClose, color: '#ea3943', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed,
           axisLabelVisible: true, title: '',
         });
