@@ -433,6 +433,10 @@ a:hover { color: var(--md-sys-color-primary-container); }
   gap: var(--md-space-sm);
   overflow-y: auto;
   min-width: 0;
+  /* Grid children default to min-height:auto — without 0 the column grows to
+     its content height, gets clipped by .layout's overflow:hidden, and the
+     scrollbar never engages. */
+  min-height: 0;
   scrollbar-width: thin;
   scrollbar-color: var(--md-sys-color-outline) transparent;
 }
@@ -720,6 +724,13 @@ table.quotes thead th.spark-th {
   border: 1px solid var(--md-sys-color-outline);
   border-radius: var(--md-shape-medium);
   overflow: hidden;
+  /* Flex column so .side-items can scroll internally while the title stays
+     pinned. Cards keep natural height when there's room (no grow) but shrink
+     (scrolling items inside) when the sidebar is too short. */
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-height: 0;
   transition: box-shadow var(--md-motion-duration-medium-1) var(--md-motion-easing-standard);
 }
 
@@ -732,6 +743,7 @@ table.quotes thead th.spark-th {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 .side-title .material-symbols-outlined {
   font-size: 18px;
@@ -741,7 +753,14 @@ table.quotes thead th.spark-th {
 .side-items {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--md-sys-color-outline) transparent;
 }
+.side-items::-webkit-scrollbar { width: 6px; }
+.side-items::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline); border-radius: var(--md-shape-full); }
 
 .side-item {
   display: grid;
