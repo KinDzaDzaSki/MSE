@@ -644,7 +644,10 @@ table.quotes tr:hover .star-btn,
   background: var(--md-sys-color-surface);
   border: 1px solid var(--md-sys-color-outline);
   border-radius: var(--md-shape-medium);
-  flex: 1;
+  /* Hug content (no grow): the Liquid view is short and must not stretch
+     into empty space. flex-shrink + min-height:0 still cap it to the panel
+     in the full list, where .table-scroll takes over with internal scroll. */
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
   min-width: 0;
