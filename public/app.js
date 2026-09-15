@@ -151,6 +151,7 @@ const I18N = {
       div_exdate_note: 'Ex-date: follow the issuer announcements on mse.mk. Dividend data comes from the MSE financial ratios tables (latest published years).',
       div_empty: 'No dividend data yet — the financials warm-up job fills this in the background (a few minutes after deploy).',
       div_stale_note: 'Data loads progressively — only companies scraped so far are listed.',
+      chart_legend: 'Green = closed above yesterday · Red = closed below yesterday',
       analysis_sma50: '50-day SMA',
       analysis_sma200: '200-day SMA',
       analysis_rsi: 'RSI (14)',
@@ -281,6 +282,7 @@ const I18N = {
       div_exdate_note: 'Ex-date: следете ги соопштенијата на издавачот на mse.mk. Податоците за дивиденди доаѓаат од табелите со финансиски показатели (последно објавени години).',
       div_empty: 'Сè уште нема податоци за дивиденди — warm-up задачата ги пополнува во позадина (неколку минути по поставување).',
       div_stale_note: 'Податоците се пополнуваат прогресивно — прикажани се само компаниите што се веќе превземени.',
+      chart_legend: 'Зелено = затворено над вчера · Црвено = затворено под вчера',
       analysis_sma50: '50-дневен ПП',
       analysis_sma200: '200-дневен ПП',
       analysis_rsi: 'RSI (14)',
@@ -389,6 +391,8 @@ function applyStaticI18n() {
     const note = $('#divNote');
     if (note) note.textContent = t('div_exdate_note');
   }
+  const legend = $('#chartLegend');
+  if (legend) legend.textContent = t('chart_legend');
 }
 
 // Toggle labels show live counts; called from applyStaticI18n + loadQuotes
@@ -1115,7 +1119,9 @@ async function openCompany(symbol) {
         <button class="active" data-r="1Y">${t('range_1y')}</button>
         <button data-r="ALL">${t('range_all')}</button>
       </div>
-      <div class="chart-box" id="companyChart"></div>`;
+      <div class="chart-box" id="companyChart"></div>
+      <div class="chart-legend-note" id="chartLegend"></div>`;
+    $('#chartLegend').textContent = t('chart_legend');
 
     // Render financial tables
     const hasFinData = fin.financialData && fin.financialData.rows && fin.financialData.rows.length > 0;
@@ -1158,11 +1164,11 @@ async function openCompany(symbol) {
     $$('.fin-tab-panel').forEach(p => p.classList.add('hidden'));
     $('#finTabChart').classList.remove('hidden');
 
-    // ---- Chart logic: Yahoo-style baseline area (green above the reference
-    // close, red below). Data is daily EOD bars — the baseline is the close
-    // of the session right before the visible window starts ("yesterday" for
-    // the range you are looking at); Сите falls back to the first close.
-    let chart, baseSeries, volSeries, baseLine, lastLine;
+    // ---- Chart logic: daily-direction line. Every segment is colored by
+    // that day's close vs the previous close — green = closed above
+    // yesterday, red = below. Same rule as the volume bars, so one legend
+    // explains everything. Data is daily EOD bars (one point per session).
+    let chart, upSeries, downSeries, volSeries, lastLine;
     let onResize = null;
     const draw = (range) => {
       let rows = fullHistory;
@@ -1173,12 +1179,6 @@ async function openCompany(symbol) {
       const histLast = rows.length ? rows[rows.length - 1].last : null;
       const factor = (histLast && q.lastPrice && histLast !== q.lastPrice) ? q.lastPrice / histLast : 1;
 
-      // Previous close per session, from FULL history so window edges know
-      // their reference: "green = closed above yesterday".
-      const prevCloseByDate = {};
-      let prev = null;
-      for (const x of fullHistory) { prevCloseByDate[x.date] = prev; prev = x.last; }
-
       const lineData = [];
       const volData = [];
       for (let i = 0; i < rows.length; i++) {
@@ -1186,15 +1186,39 @@ async function openCompany(symbol) {
         const ts = Math.floor(new Date(x.date).getTime() / 1000);
         const close = (x.last != null ? x.last : 0) * factor;
         const open = (i === 0 ? close : (rows[i - 1].last != null ? rows[i - 1].last : 0) * factor);
-        const prevClose = prevCloseByDate[x.date];
+        const prevClose = i > 0 ? rows[i - 1].last : null;
         const ref = prevClose != null ? prevClose * factor : open;
         lineData.push({ time: ts, value: close });
         volData.push({ time: ts, value: x.volume || 0, color: close >= ref ? 'rgba(22,199,132,0.5)' : 'rgba(234,57,67,0.5)' });
       }
 
-      const startIdx = fullHistory.length - rows.length;
-      const baseVal = startIdx > 0 ? fullHistory[startIdx - 1].last : (rows.length ? rows[0].last : null);
-      const baseline = baseVal != null ? baseVal * factor : null;
+      // Group consecutive same-direction segments into runs. Each run is one
+      // colored block; whitespace between runs of the same series prevents
+      // wrong cross-connections through opposite-colored segments.
+      const upRuns = [], downRuns = [];
+      let curRun = null, curDir = null;
+      for (let i = 1; i < lineData.length; i++) {
+        const dir = lineData[i].value >= lineData[i - 1].value ? 'up' : 'down';
+        if (dir !== curDir) {
+          curRun = { dir, pts: [lineData[i - 1], lineData[i]] };
+          curDir = dir;
+          (dir === 'up' ? upRuns : downRuns).push(curRun);
+        } else {
+          curRun.pts.push(lineData[i]);
+        }
+      }
+      const runsToData = (runs) => {
+        const out = [];
+        for (const run of runs) {
+          if (out.length) {
+            const lastT = out[out.length - 1].time;
+            const nextT = run.pts[0].time;
+            if (nextT > lastT + 1) out.push({ time: Math.floor((lastT + nextT) / 2) });
+          }
+          out.push(...run.pts);
+        }
+        return out;
+      };
 
       if (!chart) {
         chart = LightweightCharts.createChart($('#companyChart'), {
@@ -1207,50 +1231,32 @@ async function openCompany(symbol) {
           localization: { priceFormatter: (p) => fmt(p) },
           height: 360,
         });
-        baseSeries = chart.addBaselineSeries({
-          baseValue: { type: 'price', price: baseline || 0 },
-          topLineColor: '#16c784',
-          topFillColor1: 'rgba(22,199,132,0.30)',
-          topFillColor2: 'rgba(22,199,132,0.02)',
-          bottomLineColor: '#ea3943',
-          bottomFillColor1: 'rgba(234,57,67,0.02)',
-          bottomFillColor2: 'rgba(234,57,67,0.30)',
-          lineWidth: 2,
-          priceLineVisible: false,
-        });
+        upSeries = chart.addLineSeries({ color: '#16c784', lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerBorderColor: '#16c784' });
+        downSeries = chart.addLineSeries({ color: '#ea3943', lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerBorderColor: '#ea3943' });
         volSeries = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' });
         volSeries.priceScale().applyOptions({
           scaleMargins: { top: 0.8, bottom: 0 },
         });
       }
-      // The split point changes with the selected range — update it per draw.
-      if (baseline != null) baseSeries.applyOptions({ baseValue: { type: 'price', price: baseline } });
-      baseSeries.setData(lineData);
+      upSeries.setData(runsToData(upRuns));
+      downSeries.setData(runsToData(downRuns));
       volSeries.setData(volData);
       chart.timeScale().fitContent();
 
-      // Dashed reference lines: gray at baseline, red at last close.
-      if (baseLine) baseSeries.removePriceLine(baseLine);
-      if (lastLine) baseSeries.removePriceLine(lastLine);
-      baseLine = null;
+      // Red dashed reference at the last close (Yahoo-style "where we ended").
+      if (lastLine) upSeries.removePriceLine(lastLine);
       lastLine = null;
-      if (baseline != null) {
-        baseLine = baseSeries.createPriceLine({
-          price: baseline, color: 'rgba(230,233,239,0.55)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed,
-          axisLabelVisible: false, title: '',
-        });
-      }
       const lastClose = lineData.length ? lineData[lineData.length - 1].value : null;
       if (lastClose != null) {
-        lastLine = baseSeries.createPriceLine({
+        lastLine = upSeries.createPriceLine({
           price: lastClose, color: '#ea3943', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed,
           axisLabelVisible: true, title: '',
         });
       }
 
-      // Header change is measured against the baseline — it matches what the
-      // green/red fill shows ("vs yesterday" for the selected range).
-      const chgPct = baseline ? ((lastClose - baseline) / baseline) * 100 : 0;
+      // Header = performance over the selected period (first close → last).
+      const firstClose = lineData.length ? lineData[0].value : null;
+      const chgPct = firstClose ? ((lastClose - firstClose) / firstClose) * 100 : 0;
       $('#chartPrice').textContent = lastClose != null ? fmt(lastClose) + ' MKD' : '—';
       const chgEl = $('#chartChg');
       chgEl.textContent = `${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%`;
