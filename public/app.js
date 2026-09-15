@@ -8,7 +8,6 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
 let quotesCache = [];
 let sparkCache = {};
 let historyCache = {};    // symbol -> {rows, range}
-let ratingsCache = {};    // symbol -> {score, maxScore, pct}
 let headerSortCol = 'value';
 let headerSortDir = 'desc';
 
@@ -118,21 +117,10 @@ const I18N = {
       fin_no_ratios: 'No financial ratios available.',
       fin_note_000: '* data in 000 MKD',
       tab_analysis: 'Analysis',
-      analysis_rating: 'Rating',
-      analysis_technical: 'Technical Analysis',
-      analysis_fundamental: 'Fundamental Analysis',
-      analysis_verdict: 'Analyst Verdict',
-      analysis_buy: 'BUY',
-      analysis_hold: 'HOLD',
-      analysis_sell: 'SELL',
-      analysis_confidence: 'Confidence',
       analysis_pros: 'Pros — why to hold',
       analysis_cons: 'Cons — why to be cautious',
       analysis_watch: 'What to watch next',
       analysis_details: 'Details',
-      analysis_summary_hold: 'Mixed signals — fundamentally healthy but technically weak. No panic, no clear add.',
-      analysis_summary_buy: 'More strengths than weaknesses — fundamental and technical signals leaning positive.',
-      analysis_summary_sell: 'More weaknesses than strengths — caution warranted.',
       view_liquid: 'Liquid',
       view_all: 'All',
       note_show_all: 'Show {n} more results from All',
@@ -149,7 +137,6 @@ const I18N = {
       div_th_yield: 'Yield {y}',
       div_th_trend: 'DPS trend (3y)',
       div_th_payout: 'Payout',
-      div_consistent: '3/3 payer',
       div_exdate_note: 'Ex-date: follow the issuer announcements on mse.mk. Dividend data comes from the MSE financial ratios tables (latest published years).',
       div_empty: 'No dividend data yet — the financials warm-up job fills this in the background (a few minutes after deploy).',
       div_stale_note: 'Data loads progressively — only companies scraped so far are listed.',
@@ -176,7 +163,6 @@ const I18N = {
       analysis_oversold: 'Oversold territory',
       analysis_uptrend: 'Uptrend',
       analysis_downtrend: 'Downtrend',
-      analysis_signals: 'Signals',
       analysis_positive: 'Positive',
       analysis_negative: 'Negative',
       // Tooltip explanations (EN)
@@ -253,21 +239,10 @@ const I18N = {
       fin_no_ratios: 'Нема финансиски показатели.',
       fin_note_000: '* податоците се во 000 денари',
       tab_analysis: 'Анализа',
-      analysis_rating: 'Рејтинг',
-      analysis_technical: 'Техничка анализа',
-      analysis_fundamental: 'Фундаментална анализа',
-      analysis_verdict: 'Аналитички преглед',
-      analysis_buy: 'КУПИ',
-      analysis_hold: 'ДРЖИ',
-      analysis_sell: 'ПРОДАЈ',
-      analysis_confidence: 'Сигурност',
       analysis_pros: 'Предности — зошто да држиш',
       analysis_cons: 'Слабости — зошто да внимаваш',
       analysis_watch: 'Што да следиш',
       analysis_details: 'Детали',
-      analysis_summary_hold: 'Мешани сигнали — фундаментално здрава но технички слаба. Не е момент за паника, ниту за јасно дополнување.',
-      analysis_summary_buy: 'Повеќе предности отколку слабости — сигналите се наклонети позитивно.',
-      analysis_summary_sell: 'Повеќе слабости отколку предности — потребна е претпазливост.',
       view_liquid: 'Ликвидни',
       view_all: 'Сите',
       note_show_all: 'Прикажи уште {n} резултати од „Сите“',
@@ -284,7 +259,6 @@ const I18N = {
       div_th_yield: 'Принос {y}',
       div_th_trend: 'ДПС тренд (3 год.)',
       div_th_payout: 'Исплата',
-      div_consistent: 'редовен исплатник',
       div_exdate_note: 'Ex-date: следете ги соопштенијата на издавачот на mse.mk. Податоците за дивиденди доаѓаат од табелите со финансиски показатели (последно објавени години).',
       div_empty: 'Сè уште нема податоци за дивиденди — warm-up задачата ги пополнува во позадина (неколку минути по поставување).',
       div_stale_note: 'Податоците се пополнуваат прогресивно — прикажани се само компаниите што се веќе превземени.',
@@ -311,7 +285,6 @@ const I18N = {
       analysis_oversold: 'Препродадена територија',
       analysis_uptrend: 'Растечки тренд',
       analysis_downtrend: 'Паѓачки тренд',
-      analysis_signals: 'Сигнали',
       analysis_positive: 'Позитивни',
       analysis_negative: 'Негативни',
       tt_sma50: '50-дневен прост просек. Цената над него = краткорочен растечки тренд. Подолу = краткорочен пад.',
@@ -817,48 +790,6 @@ function matchesQuery(r, q) {
 function getFilteredQuotes() {
   const q = $('#search').value.trim().toLowerCase();
   return quotesCache.filter((r) => isPrimary(r) && inView(r) && matchesQuery(r, q));
-}
-
-// Rating from backend (single source of truth). Falls back to quick calc if not yet loaded.
-function getRating(sym) {
-  const cached = ratingsCache[sym];
-  if (cached) {
-    if (cached.pct >= 65) return { label: t('analysis_buy'), cls: 'badge-buy', val: cached.score };
-    if (cached.pct >= 40) return { label: t('analysis_hold'), cls: 'badge-hold', val: cached.score };
-    return { label: t('analysis_sell'), cls: 'badge-sell', val: cached.score };
-  }
-  // Fallback: quick rating from quote data
-  const q = quotesCache.find(r => r.symbol === sym);
-  if (!q) return { label: '—', cls: '', val: 0 };
-  let score = 0;
-  if (q.peRatio != null && q.peRatio > 0) {
-    if (q.peRatio < 12) score += 2;
-    else if (q.peRatio < 20) score += 1;
-    else if (q.peRatio > 30) score -= 1;
-  }
-  if (q.dailyChange != null) {
-    if (q.dailyChange > 0) score += 1;
-    else if (q.lastPrice != null && q.lastPrice > 0 && q.dailyChange < -q.lastPrice * 0.02) score -= 1;
-  }
-  if (q.week52Chg != null) {
-    if (q.week52Chg > 10) score += 1;
-    else if (q.week52Chg < -10) score -= 1;
-  }
-  if (q.week52Max != null && q.week52Min != null && q.lastPrice != null && q.week52Max > q.week52Min) {
-    const pos = (q.lastPrice - q.week52Min) / (q.week52Max - q.week52Min);
-    if (pos < 0.3) score += 1;
-    else if (pos > 0.85) score -= 1;
-  }
-  if (score >= 3) return { label: t('analysis_buy'), cls: 'badge-buy', val: score };
-  if (score >= 0) return { label: t('analysis_hold'), cls: 'badge-hold', val: score };
-  return { label: t('analysis_sell'), cls: 'badge-sell', val: score };
-}
-
-async function loadRatings() {
-  try {
-    const d = await fetch('/api/ratings').then(r => r.json());
-    ratingsCache = d.ratings || {};
-  } catch (e) { /* ratings will fall back to local calc */ }
 }
 
 function renderTable() {
@@ -1641,15 +1572,9 @@ function buildAnalysisData(quote, fullHistory, fin, mbi10Rows) {
     }
   }
 
-  // ---- RATING ----
+  // ---- SIGNAL COUNTS (pros/cons + details reuse these) ----
   const score = signals.positive;
   const maxScore = signals.total;
-  const pct = maxScore > 0 ? (score / maxScore) * 100 : 50;
-
-  let rating, ratingClass;
-  if (pct >= 65) { rating = t('analysis_buy'); ratingClass = 'up'; }
-  else if (pct >= 40) { rating = t('analysis_hold'); ratingClass = 'neutral'; }
-  else { rating = t('analysis_sell'); ratingClass = 'down'; }
 
   // ---- WHAT TO WATCH (average-investor actionable levels) ----
   const watchItems = [];
@@ -1694,30 +1619,7 @@ function buildAnalysisData(quote, fullHistory, fin, mbi10Rows) {
       : `Watch if volume rises with price — confirms the trend.`);
   }
 
-  // ---- ANALYST VERDICT ----
-  const strengthPoints = details.filter(d => d.up).length;
-  const weakPoints = details.filter(d => !d.up).length;
-  let commentary = '';
-  // Average-investor summary — short, plain language
-  if (pct >= 65) commentary = t('analysis_summary_buy') + ' ';
-  else if (pct >= 40) commentary = t('analysis_summary_hold') + ' ';
-  else commentary = t('analysis_summary_sell') + ' ';
-
-  if (details.length > 0) {
-    const strongest = details.filter(d => d.up).slice(0, 3);
-    const weakest = details.filter(d => !d.up).slice(0, 3);
-    if (lang === 'mk') {
-      if (strongest.length) commentary += `Предности: ${strongest.map(d => d.label).join(', ')}. `;
-      if (weakest.length) commentary += `Слабости: ${weakest.map(d => d.label).join(', ')}. `;
-      commentary += `Рејтингот се заснова на ${maxScore} фактори вклучувајќи технички, фундаментални, компаративни и ризик показатели.`;
-    } else {
-      if (strongest.length) commentary += `Strengths: ${strongest.map(d => d.label).join(', ')}. `;
-      if (weakest.length) commentary += `Weaknesses: ${weakest.map(d => d.label).join(', ')}. `;
-      commentary += `Rating based on ${maxScore} factors including technical, fundamental, comparative, and risk metrics.`;
-    }
-  }
-
-  return { rating, ratingClass, pct, score, maxScore, details, watchItems, commentary };
+  return { score, maxScore, details, watchItems };
 }
 
 function buildAnalysisHTML(analysis) {
@@ -1816,12 +1718,6 @@ function switchFinTab(tab) {
   const panel = tab === 'chart' ? document.getElementById('finTabChart') :
     tab === 'data' ? document.getElementById('finTabData') : tab === 'ratios' ? document.getElementById('finTabRatios') : document.getElementById('finTabAnalysis');
   if (panel) panel.classList.remove('hidden');
-  if (tab === 'chart') {
-    const mc = document.getElementById('companyModal');
-    if (mc && mc._chart) {
-      setTimeout(() => { try { mc._chart.applyOptions({ width: document.getElementById('companyChart').clientWidth }); } catch(_){} }, 0);
-    }
-  }
 }
 window.switchFinTab = switchFinTab;
 const _finTabBar = document.getElementById('finTabBar');
@@ -1858,7 +1754,7 @@ $('#search').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     const rows = getFilteredQuotes();
     if (rows.length) {
-      const first = $$('tbody tr')[0];
+      const first = document.querySelector('#quotesBody tr');
       if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }
