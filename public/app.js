@@ -1769,27 +1769,32 @@ function buildAnalysisHTML(analysis) {
     html += '</ul></div></div>';
   }
 
-  // Full details collapsible
-  html += '<details class="analysis-details-toggle" style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--md-sys-color-primary);padding:8px 0">' + t('analysis_details') + ' (' + maxScore + ' ' + t('analysis_signals').toLowerCase() + ')</summary>';
-  html += '<div class="analysis-card" style="margin-top:8px"><div class="analysis-details">';
-  for (var i = 0; i < details.length; i++) {
-    var d = details[i];
-    html += '<div class="analysis-detail">';
-    html += '<span class="analysis-dot ' + (d.up ? 'up' : 'down') + '"></span>';
-    html += '<span class="analysis-d-label">' + d.label;
-    if (d.ttKey) html += '<span class="analysis-tt" title="' + t(d.ttKey).replace(/"/g, '&quot;') + '">i</span>';
-    html += '</span>';
-    html += '<span class="analysis-d-val">' + d.val + '</span>';
-    html += '<span class="analysis-d-sig ' + (d.up ? 'up' : 'down') + '">' + d.signal + '</span>';
+  // Details collapsible — only the signals NOT already shown in the
+  // pros/cons cards (those cards render the first 6 of each).
+  var PROS_CONS_SHOWN = 6;
+  var remaining = strengths.slice(PROS_CONS_SHOWN).concat(weaknesses.slice(PROS_CONS_SHOWN));
+  if (remaining.length) {
+    html += '<details class="analysis-details-toggle" style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--md-sys-color-primary);padding:8px 0">' + t('analysis_details') + ' (' + remaining.length + ')</summary>';
+    html += '<div class="analysis-card" style="margin-top:8px"><div class="analysis-details">';
+    for (var i = 0; i < remaining.length; i++) {
+      var d = remaining[i];
+      html += '<div class="analysis-detail">';
+      html += '<span class="analysis-dot ' + (d.up ? 'up' : 'down') + '"></span>';
+      html += '<span class="analysis-d-label">' + d.label;
+      if (d.ttKey) html += '<span class="analysis-tt" title="' + t(d.ttKey).replace(/"/g, '&quot;') + '">i</span>';
+      html += '</span>';
+      html += '<span class="analysis-d-val">' + d.val + '</span>';
+      html += '<span class="analysis-d-sig ' + (d.up ? 'up' : 'down') + '">' + d.signal + '</span>';
+      html += '</div>';
+    }
+    html += '</div></div>';
+    html += '<div class="analysis-breakdown" style="padding-top:10px">';
+    html += '<div class="analysis-b-item"><span class="analysis-dot up"></span> ' + t('analysis_strength') + ': <strong>' + strengths.length + '</strong></div>';
+    html += '<div class="analysis-b-item"><span class="analysis-dot down"></span> ' + t('analysis_weakness') + ': <strong>' + weaknesses.length + '</strong></div>';
+    html += '<div class="analysis-b-item"><span class="analysis-dot" style="background:var(--md-sys-color-on-surface-variant)"></span> ' + t('analysis_neutral') + ': <strong>' + (maxScore - strengths.length - weaknesses.length) + '</strong></div>';
     html += '</div>';
+    html += '</details>';
   }
-  html += '</div></div>';
-  html += '<div class="analysis-breakdown" style="padding-top:10px">';
-  html += '<div class="analysis-b-item"><span class="analysis-dot up"></span> ' + t('analysis_strength') + ': <strong>' + strengths.length + '</strong></div>';
-  html += '<div class="analysis-b-item"><span class="analysis-dot down"></span> ' + t('analysis_weakness') + ': <strong>' + weaknesses.length + '</strong></div>';
-  html += '<div class="analysis-b-item"><span class="analysis-dot" style="background:var(--md-sys-color-on-surface-variant)"></span> ' + t('analysis_neutral') + ': <strong>' + (maxScore - strengths.length - weaknesses.length) + '</strong></div>';
-  html += '</div>';
-  html += '</details>';
 
   // Disclaimer
   var disc = lang === 'mk'
