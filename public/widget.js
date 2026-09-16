@@ -119,5 +119,89 @@
     if (el) el.innerHTML = 'Податоци: <a href="https://mseberza.info" target="_blank" rel="noopener">MSE Berza Info — mseberza.info</a>';
   };
 
+  // Shared topbar (same markup as the dashboard): theme toggle, market
+  // status, MBI10 + FX chips, lang preference. Builder pages call this;
+  // embed pages ignore it (they stay minimal by design).
+  W.initTopbar = (opts = {}) => {
+    const onTheme = opts.onTheme || null;
+    const applyTheme = (theme) => {
+      document.documentElement.dataset.theme = theme;
+      try { localStorage.setItem('mse_theme', theme); } catch (_) {}
+      const icon = document.getElementById('themeIcon');
+      if (icon) icon.textContent = theme === 'light' ? 'light_mode' : 'dark_mode';
+      if (onTheme) onTheme(theme);
+    };
+    const themeBtn = document.getElementById('themeToggle');
+    if (themeBtn && !themeBtn.dataset.wired) {
+      themeBtn.dataset.wired = '1';
+      themeBtn.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme || 'dark';
+        applyTheme(cur === 'dark' ? 'light' : 'dark');
+      });
+    }
+    let stored = 'dark';
+    try { stored = localStorage.getItem('mse_theme') || 'dark'; } catch (_) {}
+    applyTheme(stored);
+    const langBtn = document.getElementById('langToggle');
+    if (langBtn && !langBtn.dataset.wired) {
+      langBtn.dataset.wired = '1';
+      langBtn.addEventListener('click', () => {
+        let cur = 'en';
+        try { cur = localStorage.getItem('mse_lang') || 'en'; } catch (_) {}
+        try { localStorage.setItem('mse_lang', cur === 'en' ? 'mk' : 'en'); } catch (_) {}
+      });
+    }
+    const load = async () => {
+      try {
+        const [q, idx, fx] = await Promise.all([
+          W.fetchJSON('/api/quotes').catch(() => null),
+          W.fetchJSON('/api/indices').catch(() => null),
+          W.fetchJSON('/api/fx').catch(() => null),
+        ]);
+        const st = document.getElementById('marketStatus');
+        if (st && q) {
+          if (q.marketOpen) {
+            st.innerHTML = '<span class="material-symbols-outlined icon-fill" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Пазарот е отворен';
+            st.className = 'market-status open';
+          } else {
+            const time = q.lastPoll ? new Date(q.lastPoll).toLocaleTimeString('mk-MK', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit' }) : '';
+            st.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px">block</span> Пазарот е затворен · ' + time;
+            st.className = 'market-status closed';
+          }
+        }
+        const chip = document.getElementById('mbiChip');
+        if (chip && idx && idx.MBI10) {
+          const chg = idx.MBI10.changePct ?? 0;
+          chip.innerHTML = 'MBI10 <span class="mbi-val">' + W.fmt(idx.MBI10.value) + '</span> <span class="mbi-chg ' + W.pctClass(chg) + '">' + W.pctStr(chg) + '</span>';
+        }
+        const fxEl = document.getElementById('fxChip');
+        if (fxEl && fx && fx.eur != null && fx.usd != null) {
+          fxEl.innerHTML = '€' + W.fmt(fx.eur) + ' <span class="fx-usd">· $' + W.fmt(fx.usd) + '</span>';
+          if (fx.date) {
+            const parts = String(fx.date).split('-');
+            if (parts.length === 3) fxEl.title = `НБРМ среден курс, ${parts[2]}.${parts[1]}.${parts[0]}`;
+          }
+        }
+      } catch (e) { /* keep placeholders */ }
+    };
+    load();
+    setInterval(() => { if (!document.hidden) load(); }, 60000);
+  };
+
+  // Dashboard footer markup (same links + version as index.html).
+  W.renderFoot = async () => {
+    const el = document.querySelector('.foot');
+    if (!el) return;
+    let version = '';
+    try {
+      const v = await W.fetchJSON('/api/version');
+      if (v && v.version) version = ' · v' + v.version;
+    } catch (_) {}
+    el.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>'
+      + 'Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · '
+      + '<a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · '
+      + '<a href="/widgets.html">Виџети за твој сајт</a>' + version;
+  };
+
   window.W = W;
 })();

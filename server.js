@@ -5,6 +5,7 @@ const zlib = require('zlib');
 const store = require('./lib/store');
 const log = require('./lib/logger');
 const { getFX } = require('./lib/fx');
+const PKG = require('./package.json');
 
 // Shared secret for expensive/admin endpoints (backfill, refresh, logs).
 // Unset = open (local dev). Set ADMIN_TOKEN in production and pass it as
@@ -88,12 +89,12 @@ ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script
 </style>
 </head>
 <body>
-<header class="seo-top"><a href="/"><img src="/favicon.svg?v=2" width="22" height="22" alt="" /><span>MSE Berza</span></a></header>
+<header class="seo-top"><a href="/"><img src="/logo.png" height="26" alt="MSE Berza — Македонска берза во живо" /></a></header>
 <main class="seo-wrap">
 <h1>${esc(h1)}</h1>
 ${bodyHtml}
 </main>
-<footer><a href="${SITE_URL}/">MSE Berza Info</a> · Податоци: <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · Не е инвестициски совет.</footer>
+<footer><a href="${SITE_URL}/">MSE Berza Info</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети за твој сајт</a> · Податоци: <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · Не е инвестициски совет. · v${esc(PKG.version)}</footer>
 </body>
 </html>`;
 }
@@ -270,6 +271,10 @@ async function handleApi(req, res, url) {
     // NBRM daily middle rates (EUR/USD), refreshed once per day server-side.
     const fx = await getFX();
     return sendJson(res, fx, 200, req, 3600);
+  }
+
+  if (url.pathname === '/api/version') {
+    return sendJson(res, { version: PKG.version }, 200, req, 3600);
   }
 
   const bfFin = url.pathname.match(/^\/api\/backfill-financials$/);
