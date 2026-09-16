@@ -333,7 +333,7 @@ const I18N = {
 };
 
 let lang = localStorage.getItem('mse_lang') || 'en';
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.2.1';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels

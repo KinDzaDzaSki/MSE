@@ -224,6 +224,11 @@ body {
   color: var(--md-sys-color-on-surface);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Column flex: header (fixed) + layout (flexes) + footer (auto height,
+     so the footer can wrap to multiple lines without squeezing the page). */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 a {
@@ -435,8 +440,11 @@ a:hover { color: var(--md-sys-color-primary-container); }
   gap: var(--md-space-md);
   padding: var(--md-space-md) var(--md-space-md);
   max-width: 1600px;
+  width: 100%;
   margin: 0 auto;
-  height: calc(100vh - 56px - 44px);
+  /* Fills whatever height is left after the topbar + footer (body flex). */
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -1398,14 +1406,14 @@ table.quotes thead th.spark-th {
 .foot {
   text-align: center;
   color: var(--md-sys-color-on-surface-variant);
-  padding: 12px;
+  padding: 10px 14px;
   font-size: 11px;
+  line-height: 1.8;
   border-top: 1px solid var(--md-sys-color-outline);
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* Block flow (not flex) so the text wraps naturally; links never split. */
+  flex-shrink: 0;
 }
+.foot a { white-space: nowrap; }
 
 /* ==========================================================================
    SCROLLBAR STYLING
@@ -1450,8 +1458,7 @@ table.quotes thead th.spark-th {
 @media (max-width: 839px) {
   .layout {
     grid-template-columns: 1fr;
-    height: auto;
-    min-height: 100vh;
+    min-height: 0;
     padding: var(--md-space-sm);
     gap: var(--md-space-sm);
     max-width: none;
@@ -1629,8 +1636,8 @@ table.quotes thead th.spark-th {
 
   .foot {
     font-size: 10px;
-    padding: 8px;
-    height: 36px;
+    padding: 10px 12px;
+    line-height: 1.9;
   }
 }
 
