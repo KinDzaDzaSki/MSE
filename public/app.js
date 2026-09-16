@@ -65,7 +65,7 @@ function starBtnHTML(sym) {
 // ---- i18n ----
 const I18N = {
   en: {
-      market_open: '<span class="material-symbols-outlined icon-fill" style="font-size:14px;color:var(--md-sys-color-positive)">signal_cellular_alt</span> Market Open',
+      market_open: '<span class="material-symbols-outlined icon-fill" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Market Open',
       market_closed: '<span class="material-symbols-outlined" style="font-size:14px">block</span> Market Closed',
       market_closed_at: '<span class="material-symbols-outlined" style="font-size:14px">block</span> Market Closed · {time}',
       search: 'Search ticker or company…',
@@ -187,7 +187,7 @@ const I18N = {
       ],
     },
     mk: {
-      market_open: '<span class="material-symbols-outlined icon-fill" style="font-size:14px;color:var(--md-sys-color-positive)">signal_cellular_alt</span> Пазарот е отворен',
+      market_open: '<span class="material-symbols-outlined icon-fill" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Пазарот е отворен',
       market_closed: '<span class="material-symbols-outlined" style="font-size:14px">block</span> Пазарот е затворен',
       market_closed_at: '<span class="material-symbols-outlined" style="font-size:14px">block</span> Пазарот е затворен · {time}',
       search: 'Пребарај тикер или компанија…',

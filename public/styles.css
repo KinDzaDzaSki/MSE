@@ -56,9 +56,11 @@
   --md-sys-color-positive: #16C784;
   --md-sys-color-on-positive: #00391E;
   --md-sys-color-positive-container: #00522B;
+  --md-sys-color-on-positive-container: #B8F6D8;
   --md-sys-color-negative: #EA3943;
   --md-sys-color-on-negative: #600009;
   --md-sys-color-negative-container: #8C0014;
+  --md-sys-color-on-negative-container: #FFB4AB;
 
   /* Fixed accent colors (keep same across themes) */
   --md-sys-color-primary-fixed: #D6E3FF;
@@ -123,9 +125,11 @@
   --md-sys-color-positive: #0FA76C;
   --md-sys-color-on-positive: #FFFFFF;
   --md-sys-color-positive-container: #B8F0D6;
+  --md-sys-color-on-positive-container: #00391E;
   --md-sys-color-negative: #DC2626;
   --md-sys-color-on-negative: #FFFFFF;
   --md-sys-color-negative-container: #FFD6D6;
+  --md-sys-color-on-negative-container: #600009;
 
   /* Fixed accent colors (keep same across themes) */
   --md-sys-color-primary-fixed: #D6E3FF;
@@ -315,8 +319,11 @@ a:hover { color: var(--md-sys-color-primary-container); }
   gap: 6px;
 }
 .market-status.open {
-  color: var(--md-sys-color-on-positive);
+  color: var(--md-sys-color-on-positive-container);
   background: var(--md-sys-color-positive-container);
+}
+.market-status.open .material-symbols-outlined {
+  color: var(--md-sys-color-on-positive-container);
 }
 .market-status.closed {
   color: var(--md-sys-color-on-surface-variant);
@@ -900,15 +907,15 @@ table.quotes thead th.spark-th {
   text-align: center;
 }
 .badge-buy {
-  color: var(--md-sys-color-on-positive);
+  color: var(--md-sys-color-on-positive-container);
   background: var(--md-sys-color-positive-container);
 }
 .badge-hold {
-  color: var(--md-sys-color-on-secondary);
+  color: var(--md-sys-color-on-secondary-container);
   background: var(--md-sys-color-secondary-container);
 }
 .badge-sell {
-  color: var(--md-sys-color-on-negative);
+  color: var(--md-sys-color-on-negative-container);
   background: var(--md-sys-color-negative-container);
 }
 

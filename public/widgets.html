@@ -21,24 +21,73 @@
   .b-step h2 { font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--md-sys-color-on-surface-variant); margin-bottom: 10px; }
   .b-types { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
   .b-type {
+    position: relative;
     background: var(--md-sys-color-surface); border: 1px solid var(--md-sys-color-outline);
-    border-radius: 10px; padding: 12px 14px; cursor: pointer; text-align: left;
-    color: var(--md-sys-color-on-surface); font-family: inherit; transition: border-color .15s;
+    border-radius: 10px; padding: 12px 34px 12px 14px; cursor: pointer; text-align: left;
+    color: var(--md-sys-color-on-surface); font-family: inherit; transition: border-color .15s, background .15s;
   }
   .b-type:hover { border-color: var(--md-sys-color-primary); }
   .b-type.active { border-color: var(--md-sys-color-primary); background: var(--md-sys-color-surface-variant); }
   .b-type .t-name { font-weight: 700; font-size: 14px; margin-bottom: 3px; }
   .b-type .t-desc { font-size: 11px; color: var(--md-sys-color-on-surface-variant); line-height: 1.4; }
+  .b-type .t-check {
+    position: absolute; top: 12px; right: 12px;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
+    font-size: 13px; opacity: 0; transform: scale(.6); transition: opacity .15s, transform .15s;
+  }
+  .b-type.active .t-check { opacity: 1; transform: scale(1); }
   .b-cfg { display: flex; flex-direction: column; gap: 12px; }
   .b-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   .b-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 180px; }
-  .b-field label { font-size: 11px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); text-transform: uppercase; letter-spacing: .4px; }
+  .b-field label { font-size: 12px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); letter-spacing: .3px; }
   .b-field input, .b-field select {
-    background: var(--md-sys-color-surface-variant); border: 1px solid var(--md-sys-color-outline);
-    color: var(--md-sys-color-on-surface); border-radius: 6px; padding: 8px 10px;
-    font-family: inherit; font-size: 13px; outline: none;
+    width: 100%;
+    background: var(--md-sys-color-surface);
+    border: 1px solid var(--md-sys-color-outline);
+    color: var(--md-sys-color-on-surface);
+    border-radius: 6px; padding: 10px 12px;
+    font-family: inherit; font-size: 14px; outline: none;
+    transition: border-color .15s, box-shadow .15s;
   }
-  .b-field input:focus, .b-field select:focus { border-color: var(--md-sys-color-primary); }
+  .b-field input:focus, .b-field select:focus {
+    border-color: var(--md-sys-color-primary);
+    box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+  }
+  .b-field input:hover, .b-field select:hover { border-color: var(--md-sys-color-on-surface-variant); }
+
+  /* M3 dropdown combobox */
+  .m3-cmb { position: relative; }
+  .m3-cmb .m3-cmb-input {
+    padding-right: 36px;
+  }
+  .m3-cmb-btn {
+    position: absolute; right: 2px; top: 2px; bottom: 2px; width: 32px;
+    background: transparent; border: none; color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer; font-size: 18px; border-radius: 6px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .m3-cmb-btn:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); color: var(--md-sys-color-on-surface); }
+  .m3-menu {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 40;
+    background: var(--md-sys-color-surface);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0,0,0,.4);
+    max-height: 260px; overflow-y: auto; padding: 6px;
+    animation: m3MenuIn .12s ease;
+  }
+  @keyframes m3MenuIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  .m3-menu button {
+    display: flex; gap: 8px; align-items: baseline; width: 100%; text-align: left;
+    background: transparent; border: none; color: var(--md-sys-color-on-surface);
+    font-family: inherit; font-size: 13px; padding: 9px 12px; border-radius: 6px; cursor: pointer;
+  }
+  .m3-menu button:hover, .m3-menu button.active { background: var(--md-sys-color-surface-variant); }
+  .m3-menu .m3-sym { font-weight: 700; color: var(--md-sys-color-primary); flex-shrink: 0; }
+  .m3-menu .m3-name { color: var(--md-sys-color-on-surface-variant); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .m3-menu .m3-empty { padding: 10px 12px; color: var(--md-sys-color-on-surface-variant); font-size: 12px; }
   .b-seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--md-sys-color-surface-variant); border: 1px solid var(--md-sys-color-outline); border-radius: 8px; }
   .b-seg button {
     background: transparent; border: none; color: var(--md-sys-color-on-surface-variant);
@@ -56,11 +105,12 @@
   .b-chip button:hover { color: var(--md-sys-color-negative); }
   .b-add { display: flex; gap: 6px; }
   .b-add input { flex: 1; }
-  .b-add button, .b-copy {
+  .b-add button, .b-copy, #tickerAdd {
     background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
     border: none; border-radius: 6px; padding: 8px 14px; font-family: inherit;
     font-size: 13px; font-weight: 700; cursor: pointer;
   }
+  #tickerAdd { height: 44px; white-space: nowrap; }
   .b-check { display: flex; align-items: center; gap: 6px; color: var(--md-sys-color-on-surface); cursor: pointer; }
   .b-check input { accent-color: var(--md-sys-color-primary); width: 14px; height: 14px; }
   .b-preview { width: 100%; border: 1px solid var(--md-sys-color-outline); border-radius: 10px; background: var(--md-sys-color-surface); min-height: 120px; }
@@ -94,18 +144,22 @@
     <h2>1. Избери тип на виџет</h2>
     <div class="b-types" id="types">
       <button type="button" class="b-type active" data-type="quote">
+        <span class="t-check">✓</span>
         <div class="t-name">Картичка</div>
         <div class="t-desc">Цена, промена и мини тренд за една компанија или индекс</div>
       </button>
       <button type="button" class="b-type" data-type="chart">
+        <span class="t-check">✓</span>
         <div class="t-name">Преглед на симбол</div>
         <div class="t-desc">Котации + график за една или повеќе компании, со избор на период — како TradingView Symbol Overview</div>
       </button>
       <button type="button" class="b-type" data-type="ticker">
+        <span class="t-check">✓</span>
         <div class="t-name">Ticker лента</div>
         <div class="t-desc">Движечка лента со повеќе тикери — идеална за header</div>
       </button>
       <button type="button" class="b-type" data-type="dividends">
+        <span class="t-check">✓</span>
         <div class="t-name">Дивиденди</div>
         <div class="t-desc">Топ исплатери по принос — табела</div>
       </button>
@@ -118,8 +172,11 @@
       <div class="b-row" id="rowSymbol">
         <div class="b-field">
           <label for="symbolInput">Компанија / индекс</label>
-          <input id="symbolInput" list="symList" value="KMB" placeholder="пр. KMB" />
-          <datalist id="symList"></datalist>
+          <div class="m3-cmb">
+            <input id="symbolInput" class="m3-cmb-input" autocomplete="off" role="combobox" aria-expanded="false" value="KMB" placeholder="пр. KMB" />
+            <button type="button" class="m3-cmb-btn" id="symbolMenuBtn" aria-label="Отвори листа">⌄</button>
+            <div class="m3-menu" id="symbolMenu" hidden></div>
+          </div>
         </div>
       </div>
       <div class="b-row" id="rowRange" style="display:none">
@@ -167,9 +224,13 @@
       <div class="b-row" id="rowSymbols" style="display:none">
         <div class="b-field" style="flex:3 1 260px">
           <label for="tickerInput">Додај тикер</label>
-          <div class="b-add">
-            <input id="tickerInput" list="symList" placeholder="пр. KMB" />
-            <button type="button" id="tickerAdd">Додај</button>
+          <div style="display:flex;gap:8px;align-items:flex-start">
+            <div class="m3-cmb" style="flex:1">
+              <input id="tickerInput" class="m3-cmb-input" autocomplete="off" role="combobox" aria-expanded="false" placeholder="пр. KMB" />
+              <button type="button" class="m3-cmb-btn" id="tickerMenuBtn" aria-label="Отвори листа">⌄</button>
+              <div class="m3-menu" id="tickerMenu" hidden></div>
+            </div>
+            <button type="button" id="tickerAdd" style="padding:10px 16px">Додај</button>
           </div>
           <div class="b-chips" id="tickerChips"></div>
         </div>
@@ -245,15 +306,64 @@ function setBuilderTheme(t) {
 document.querySelectorAll('#themeSeg button').forEach((b) => b.addEventListener('click', () => setBuilderTheme(b.dataset.t)));
 document.querySelectorAll('#builderTheme button').forEach((b) => b.addEventListener('click', () => setBuilderTheme(b.dataset.t)));
 
-// ---- symbol datalist from live data ----
+// ---- symbol list (live data) + M3 combobox ----
+let SYMBOL_LIST = [];
 (async () => {
   try {
     const d = await W.fetchJSON('/api/quotes');
-    const list = d.quotes.filter((q) => q.primary !== false).sort((a, b) => a.symbol.localeCompare(b.symbol));
-    document.getElementById('symList').innerHTML = list
-      .map((q) => `<option value="${q.symbol}">${(q.name || '').replace(/"/g, '')}</option>`).join('');
-  } catch (e) { /* datalist empty — manual entry still works */ }
+    SYMBOL_LIST = d.quotes.filter((q) => q.primary !== false)
+      .sort((a, b) => a.symbol.localeCompare(b.symbol))
+      .map((q) => ({ symbol: q.symbol, name: (q.name || '').replace(/"/g, '') }));
+  } catch (e) { SYMBOL_LIST = []; }
 })();
+
+// M3 dropdown combobox: input + ⌄ button + filterable menu.
+function initCombobox(input, menu, onPick) {
+  const btn = input.parentElement.querySelector('.m3-cmb-btn');
+  let filtered = [];
+  const render = () => {
+    const q = input.value.trim().toUpperCase();
+    // exact symbol prefixes first, then name matches (keeps TEL above FUBT for "tel")
+    const starts = SYMBOL_LIST.filter((s) => s.symbol.startsWith(q));
+    const names = SYMBOL_LIST.filter((s) => !s.symbol.startsWith(q) && (s.name || '').toUpperCase().includes(q));
+    filtered = starts.concat(names).slice(0, 40);
+    menu.innerHTML = filtered.length
+      ? filtered.map((s, i) => `<button type="button" data-i="${i}"><span class="m3-sym">${s.symbol}</span><span class="m3-name">${s.name}</span></button>`).join('')
+      : '<div class="m3-empty">Нема резултати</div>';
+    menu.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+  };
+  const open = () => { if (SYMBOL_LIST.length) render(); };
+  const close = () => { menu.hidden = true; input.setAttribute('aria-expanded', 'false'); };
+  input.addEventListener('focus', open);
+  input.addEventListener('input', open);
+  menu.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-i]');
+    if (!b) return;
+    const s = filtered[+b.dataset.i];
+    if (s) { input.value = s.symbol; onPick(s.symbol); }
+    close(); input.focus();
+  });
+  btn.addEventListener('click', () => (menu.hidden ? open() : close()));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (menu.hidden) open(); else { const cur = menu.querySelector('button.active'); const next = cur ? cur.nextElementSibling : menu.querySelector('button'); if (next && next.tagName === 'BUTTON') { menu.querySelectorAll('button').forEach(b => b.classList.remove('active')); next.classList.add('active'); next.scrollIntoView({ block: 'nearest' }); } } }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); const cur = menu.querySelector('button.active'); const prev = cur ? cur.previousElementSibling : null; if (prev && prev.tagName === 'BUTTON') { menu.querySelectorAll('button').forEach(b => b.classList.remove('active')); prev.classList.add('active'); prev.scrollIntoView({ block: 'nearest' }); } }
+    else if (e.key === 'Enter') { const act = menu.querySelector('button.active'); if (!menu.hidden && act) { act.click(); e.preventDefault(); } }
+    else if (e.key === 'Escape') { close(); }
+  });
+  document.addEventListener('click', (e) => { if (!input.closest('.m3-cmb').contains(e.target)) close(); });
+}
+
+initCombobox(
+  document.getElementById('symbolInput'),
+  document.getElementById('symbolMenu'),
+  (sym) => { state.symbol = sym; update(); }
+);
+initCombobox(
+  document.getElementById('tickerInput'),
+  document.getElementById('tickerMenu'),
+  () => addTicker()
+);
 
 // ---- type switching ----
 const CFG_ROWS = {
