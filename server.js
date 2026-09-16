@@ -52,6 +52,31 @@ function pctCls(v) { return v == null ? '' : v > 0 ? 'up' : v < 0 ? 'down' : '';
 function pctStr(v) { return v == null || isNaN(v) ? '—' : (v >= 0 ? '+' : '') + fmtN(v) + '%'; }
 
 // Minimal crawlable MK shell shared by the SSR pages.
+// Shared topbar markup — identical to index.html / widgets.html so the header
+// is consistent on every page. Chips are filled by widget.js (W.initTopbar).
+const TOPBAR_HTML = `<header class="topbar">
+  <a class="brand" href="/">
+    <div class="brand-icon">
+      <span class="material-symbols-outlined icon-fill">monitoring</span>
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">MSE Berza</span>
+      <span class="brand-sub">Македонска берза во живо</span>
+    </div>
+  </a>
+  <div class="topbar-right">
+    <span class="market-status" id="marketStatus">—</span>
+    <span id="mbiChip">MBI10</span>
+    <span id="fxChip" title="">€ — · <span class="fx-usd">$ —</span></span>
+    <button class="icon-btn" id="themeToggle" title="Toggle theme / Промени тема">
+      <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+    </button>
+    <button class="icon-btn" id="langToggle" title="Switch language / Промени јазик">
+      <span class="material-symbols-outlined" id="langIcon">translate</span>
+    </button>
+  </div>
+</header>`;
+
 function pageShell({ title, description, canonical, h1, bodyHtml, jsonLd }) {
   return `<!DOCTYPE html>
 <html lang="mk" data-theme="dark">
@@ -62,7 +87,8 @@ function pageShell({ title, description, canonical, h1, bodyHtml, jsonLd }) {
 <meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
-<link rel="stylesheet" href="/widget.css" />
+<link rel="stylesheet" href="/styles.css?v=7.0" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${esc(canonical)}" />
@@ -71,31 +97,31 @@ function pageShell({ title, description, canonical, h1, bodyHtml, jsonLd }) {
 <meta property="og:image" content="${SITE_URL}/favicon-192.png" />
 ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>` : ''}
 <style>
-  body { display: flex; flex-direction: column; min-height: 100vh; overflow: auto; }
-  .seo-top { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; padding: 12px 20px; border-bottom: 1px solid var(--md-sys-color-outline); flex-shrink: 0; }
-  .seo-top a { color: inherit; text-decoration: none; display: flex; gap: 8px; align-items: center; }
-  .seo-wrap { max-width: 880px; width: 100%; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; flex: 1 1 auto; }
-  h1 { font-size: 26px; line-height: 1.25; }
-  h2 { font-size: 15px; margin-top: 6px; color: var(--md-sys-color-on-surface); }
-  p, li { font-size: 14px; line-height: 1.7; color: var(--md-sys-color-on-surface); }
+  body { overflow: auto; }
+  .seo-wrap { max-width: 880px; width: 100%; margin: 0 auto; padding: 24px 20px 40px; display: flex; flex-direction: column; gap: 14px; flex: 1 1 auto; }
+  /* Unprefixed (specificity 0,0,1) on purpose: page-specific class rules
+     (e.g. .faq-sec-title, .faq-a p) must be able to override these. */
+  h1 { font-size: 28px; line-height: 1.25; }
+  h2 { font-size: 16px; margin-top: 6px; color: var(--md-sys-color-on-surface); }
+  p, li { font-size: 15px; line-height: 1.75; color: var(--md-sys-color-on-surface); }
   a { color: var(--md-sys-color-primary); }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { padding: 8px 10px; border-bottom: 1px solid var(--md-sys-color-outline-variant); text-align: left; }
   td.num, th.num { text-align: right; font-feature-settings: 'tnum' 1; }
   .up { color: var(--md-sys-color-positive); }
   .down { color: var(--md-sys-color-negative); }
   .cta { display: inline-block; margin-top: 4px; padding: 10px 16px; border-radius: 8px; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); font-weight: 700; text-decoration: none; font-size: 13px; width: max-content; }
-  footer { text-align: center; font-size: 11px; color: var(--md-sys-color-on-surface-variant); padding: 14px; flex-shrink: 0; }
-  footer a { color: var(--md-sys-color-primary); text-decoration: none; }
 </style>
 </head>
 <body>
-<header class="seo-top"><a href="/"><img src="/favicon.svg?v=2" width="22" height="22" alt="" /><span>MSE Berza</span></a></header>
+${TOPBAR_HTML}
 <main class="seo-wrap">
 <h1>${esc(h1)}</h1>
 ${bodyHtml}
 </main>
-<footer><a href="${SITE_URL}/">MSE Berza Info</a> · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · Податоци: <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · Не е инвестициски совет. · v${esc(PKG.version)}</footer>
+<footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · Не е инвестициски совет. · v${esc(PKG.version)}</footer>
+<script src="/widget.js?v=3"></script>
+<script>if (window.W && W.initTopbar) W.initTopbar();</script>
 </body>
 </html>`;
 }
@@ -495,14 +521,18 @@ function renderFaqPage() {
       bodyHtml: '<p>Содржината наскоро ќе биде достапна.</p>',
     });
   }
-  const bodyHtml = FAQ_SECTIONS.map((sec) => {
-    const items = sec.items.map((it) => `
-<details class="faq-item">
+  const bodyHtml = FAQ_SECTIONS.map((sec, si) => {
+    const items = sec.items.map((it, qi) => `
+<details class="faq-item" id="q-${si + 1}-${qi + 1}">
   <summary>${esc(it.q)}</summary>
   <div class="faq-a">${it.a.split('\n').map((p) => `<p>${esc(p)}</p>`).join('')}</div>
 </details>`).join('');
-    return `<h2>${esc(sec.title)}</h2>${items}`;
+    return `<section class="faq-sec" id="sec-${si + 1}"><h2 class="faq-sec-title">${esc(sec.title)}</h2>${items}</section>`;
   }).join('\n');
+
+  const toc = `<nav class="faq-toc" aria-label="Содржина">${FAQ_SECTIONS
+    .map((sec, si) => `<a href="#sec-${si + 1}">${esc(sec.title)}</a>`).join('')}</nav>`;
+  const intro = '<p class="faq-intro">Кратки и конкретни одговори на најчестите прашања за купување акции на Македонската берза, провизии, дивиденди, данок и брокери. Содржината е за едукација и не е инвестициски совет.</p>';
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -518,8 +548,8 @@ function renderFaqPage() {
     title: 'Прашања и одговори за берза и акции | MSE Berza',
     description: 'Како да купиш акција, колку е провизијата, кои фирми даваат дивиденда и како се плаќа данок — одговори на најчестите прашања за Македонската берза.',
     canonical: `${SITE_URL}/prasanja`,
-    h1: 'Прашања и одговори за берза и акции',
-    bodyHtml,
+    h1: 'Прашања и одговори',
+    bodyHtml: intro + toc + bodyHtml,
     jsonLd,
   });
 }
