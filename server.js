@@ -87,7 +87,7 @@ function pageShell({ title, description, canonical, h1, bodyHtml, jsonLd }) {
 <meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
-<link rel="stylesheet" href="/styles.css?v=7.1" />
+<link rel="stylesheet" href="/styles.css?v=7.2" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
@@ -119,7 +119,7 @@ ${TOPBAR_HTML}
 ${bodyHtml}
 </main>
 <footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · Не е инвестициски совет. · v${esc(PKG.version)}</footer>
-<script src="/widget.js?v=3"></script>
+<script src="/widget.js?v=4"></script>
 <script>if (window.W && W.initTopbar) W.initTopbar();</script>
 </body>
 </html>`;
@@ -562,10 +562,13 @@ async function renderFxListPage() {
     const parts = String(date || '').split('-');
     return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : '—';
   })();
-  const rows = list.map((c) => `<tr><td class="fx-cur">${esc(c.name || c.code)} <span class="fx-code">${esc(c.code)}</span></td><td class="num">${fmtN(c.unit, 0)}</td><td class="num">${fmtRate(c.mid)}</td></tr>`).join('\n');
+  // Rates are per `unit` of the currency. NBRM currently publishes every
+  // currency with unit = 1, so there is no separate "Единица" column — a
+  // non-1 unit (if NBRM ever adds one) is shown next to the currency name.
+  const rows = list.map((c) => `<tr><td class="fx-cur">${esc(c.name || c.code)} <span class="fx-code">${esc(c.code)}</span>${c.unit && c.unit !== 1 ? ` <span class="fx-unit">за ${fmtN(c.unit, 0)}</span>` : ''}</td><td class="num">${fmtRate(c.mid)}</td></tr>`).join('\n');
   const bodyHtml = list.length
     ? `<p>Среден курс на Народната банка на Република Северна Македонија за <strong>${esc(dateLabel)}</strong>. Извор: <a href="https://www.nbrm.mk/kursna_lista.nspx" target="_blank" rel="noopener">НБРМ</a>.</p>
-<table class="fx-table"><thead><tr><th>Валута</th><th class="num">Единица</th><th class="num">Среден курс (денари)</th></tr></thead><tbody>${rows}</tbody></table>`
+<table class="fx-table"><thead><tr><th>Валута</th><th class="num">Среден курс (денари)</th></tr></thead><tbody>${rows}</tbody></table>`
     : '<p>Податоците за курсната листа сè уште не се вчитани.</p>';
   return pageShell({
     title: `Курсна листа на НБРМ за ${esc(dateLabel)} | MSE Berza`,

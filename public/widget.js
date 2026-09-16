@@ -282,11 +282,12 @@
       return;
     }
     const rows = data.list.map((c) => '<tr><td>' + esc(c.name || c.code)
-      + ' <span class="fx-code">' + esc(c.code) + '</span></td>'
-      + '<td class="num">' + W.fmt(c.unit, 0) + '</td>'
+      + ' <span class="fx-code">' + esc(c.code) + '</span>'
+      + (c.unit && c.unit !== 1 ? ' <span class="fx-unit">за ' + W.fmt(c.unit, 0) + '</span>' : '')
+      + '</td>'
       + '<td class="num">' + W.fmt(c.mid, 4) + '</td></tr>').join('');
     W.openModal('Курсна листа на НБРМ · ' + isoToDmy(data.date),
-      '<table class="fx-table"><thead><tr><th>Валута</th><th class="num">Единица</th><th class="num">Среден курс</th></tr></thead><tbody>'
+      '<table class="fx-table"><thead><tr><th>Валута</th><th class="num">Среден курс (денари)</th></tr></thead><tbody>'
       + rows + '</tbody></table>'
       + '<p class="pop-note">Среден курс на Народната банка на РСМ. НБРМ не објавува куповен и продажен курс во оваа листа.</p>',
       '<a href="/kursna-lista">Цела курсна листа →</a>');
