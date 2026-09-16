@@ -333,7 +333,7 @@ const I18N = {
 };
 
 let lang = localStorage.getItem('mse_lang') || 'en';
-const APP_VERSION = '2.2.1';
+const APP_VERSION = '2.3.0';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -711,6 +711,22 @@ async function loadMBI() {
     if (!idx) return;
     const chg = idx.changePct ?? 0;
     $('#mbiChip').innerHTML = `MBI10 <span class="mbi-val">${fmt(idx.value)}</span> <span class="mbi-chg ${pctClass(chg)}">${pctStr(chg)}</span>`;
+  } catch (e) {}
+}
+
+// NBRM daily FX middle rates — refreshed once per day server-side; the chip
+// just displays the cached value (ISO date → DD.MM.YYYY in the tooltip).
+async function loadFX() {
+  try {
+    const d = await fetch('/api/fx').then((r) => r.json());
+    const el = $('#fxChip');
+    if (!el) return;
+    if (d.eur == null || d.usd == null) return; // keep "€ — · $ —" placeholder
+    el.innerHTML = `€${fmt(d.eur)} <span class="fx-usd">· $${fmt(d.usd)}</span>`;
+    if (d.date) {
+      const [y, m, day] = String(d.date).split('-');
+      el.title = `НБРМ среден курс, ${day}.${m}.${y}`;
+    }
   } catch (e) {}
 }
 
@@ -1879,6 +1895,7 @@ $('#themeToggle').addEventListener('click', () => {
   applyStaticI18n();
   renderWatchStrip();
   await loadMBI();
+  await loadFX();
   await Promise.all([loadQuotes()]);
   // Market-aware scheduler: polls fast when open, slow when closed, no
   // table re-render or sparkline rebuild when there's nothing new to show.
@@ -1894,7 +1911,7 @@ $('#themeToggle').addEventListener('click', () => {
 // the chip is just a price+change indicator on the navbar.
 function scheduleNextMBIPoll() {
   setTimeout(async () => {
-    if (!document.hidden) await loadMBI();
+    if (!document.hidden) { await loadMBI(); await loadFX(); }
     scheduleNextMBIPoll();
   }, 60000);
 }

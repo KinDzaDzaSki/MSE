@@ -377,6 +377,23 @@ a:hover { color: var(--md-sys-color-primary-container); }
   font-weight: 600;
 }
 
+/* NBRM FX chip — same pill style as #mbiChip. tabular-nums keeps the chip
+   from jumping as values update. */
+#fxChip {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  padding: 4px 12px;
+  border-radius: var(--md-shape-small);
+  border: 1px solid var(--md-sys-color-outline);
+  background: var(--md-sys-color-surface-variant);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 480px) {
+  #fxChip .fx-usd { display: none; } /* € only on very small screens */
+}
+
 /* Icon Button */
 .icon-btn {
   display: inline-flex;

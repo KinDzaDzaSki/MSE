@@ -4,6 +4,7 @@ const path = require('path');
 const zlib = require('zlib');
 const store = require('./lib/store');
 const log = require('./lib/logger');
+const { getFX } = require('./lib/fx');
 
 // Shared secret for expensive/admin endpoints (backfill, refresh, logs).
 // Unset = open (local dev). Set ADMIN_TOKEN in production and pass it as
@@ -263,6 +264,12 @@ async function handleApi(req, res, url) {
   if (url.pathname === '/api/dividends') {
     const dividends = await store.computeDividends();
     return sendJson(res, { dividends, count: dividends.length }, 200, req, 300);
+  }
+
+  if (url.pathname === '/api/fx') {
+    // NBRM daily middle rates (EUR/USD), refreshed once per day server-side.
+    const fx = await getFX();
+    return sendJson(res, fx, 200, req, 3600);
   }
 
   const bfFin = url.pathname.match(/^\/api\/backfill-financials$/);
