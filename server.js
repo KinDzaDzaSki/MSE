@@ -70,10 +70,10 @@ function pageShell({ title, description, canonical, h1, bodyHtml, jsonLd }) {
 <meta property="og:image" content="${SITE_URL}/favicon-192.png" />
 ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>` : ''}
 <style>
-  body { overflow: auto; }
-  .seo-top { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; padding: 12px 20px; border-bottom: 1px solid var(--md-sys-color-outline); }
+  body { display: flex; flex-direction: column; min-height: 100vh; overflow: auto; }
+  .seo-top { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; padding: 12px 20px; border-bottom: 1px solid var(--md-sys-color-outline); flex-shrink: 0; }
   .seo-top a { color: inherit; text-decoration: none; display: flex; gap: 8px; align-items: center; }
-  .seo-wrap { max-width: 880px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .seo-wrap { max-width: 880px; width: 100%; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; flex: 1 1 auto; }
   h1 { font-size: 26px; line-height: 1.25; }
   h2 { font-size: 15px; margin-top: 6px; color: var(--md-sys-color-on-surface); }
   p, li { font-size: 14px; line-height: 1.7; color: var(--md-sys-color-on-surface); }
@@ -84,12 +84,12 @@ ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script
   .up { color: var(--md-sys-color-positive); }
   .down { color: var(--md-sys-color-negative); }
   .cta { display: inline-block; margin-top: 4px; padding: 10px 16px; border-radius: 8px; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); font-weight: 700; text-decoration: none; font-size: 13px; width: max-content; }
-  footer { text-align: center; font-size: 11px; color: var(--md-sys-color-on-surface-variant); padding: 14px; }
+  footer { text-align: center; font-size: 11px; color: var(--md-sys-color-on-surface-variant); padding: 14px; flex-shrink: 0; }
   footer a { color: var(--md-sys-color-primary); text-decoration: none; }
 </style>
 </head>
 <body>
-<header class="seo-top"><a href="/"><img src="/logo.png" height="26" alt="MSE Berza — Македонска берза во живо" /></a></header>
+<header class="seo-top"><a href="/"><img src="/favicon.svg?v=2" width="22" height="22" alt="" /><span>MSE Berza</span></a></header>
 <main class="seo-wrap">
 <h1>${esc(h1)}</h1>
 ${bodyHtml}
