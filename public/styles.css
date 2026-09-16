@@ -1994,3 +1994,124 @@ table.quotes thead th.spark-th {
   text-align: center;
   border-top: 1px solid var(--md-sys-color-outline-variant);
 }
+
+/* ==========================================================================
+   POPOVERS (market hours) + FX LIST + FAQ ACCORDION
+   ========================================================================== */
+#marketStatus, #fxChip { cursor: pointer; }
+#marketStatus:hover, #fxChip:hover { border-color: var(--md-sys-color-primary); }
+
+.pop-card { max-width: 520px; }
+.pop-title {
+  margin: 0 0 14px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface);
+  padding-right: 36px;
+}
+.pop-body { display: flex; flex-direction: column; gap: 2px; }
+.pop-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  font-size: 14px;
+}
+.pop-k { color: var(--md-sys-color-on-surface-variant); }
+.pop-v { color: var(--md-sys-color-on-surface); font-weight: 600; text-align: right; }
+.pop-open { color: var(--md-sys-color-on-positive-container); }
+.pop-closed { color: var(--md-sys-color-on-surface-variant); }
+.pop-note {
+  margin: 14px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.pop-note a { color: var(--md-sys-color-primary); }
+.pop-foot {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pop-foot a { color: var(--md-sys-color-primary); text-decoration: none; }
+.pop-foot a:hover { text-decoration: underline; }
+
+.fx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin: 14px 0 0;
+}
+.fx-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--md-sys-color-outline);
+  position: sticky;
+  top: 0;
+  background: var(--md-sys-color-surface);
+}
+.fx-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  color: var(--md-sys-color-on-surface);
+}
+.fx-table td.num, .fx-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.fx-code {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--md-shape-full);
+  background: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+/* Keep the modal table scrollable on small screens. */
+.pop-body { max-height: 60vh; overflow: auto; }
+
+.faq-item {
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-medium);
+  margin: 0 0 8px;
+  background: var(--md-sys-color-surface-container-low, var(--md-sys-color-surface));
+}
+.faq-item > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.faq-item > summary::-webkit-details-marker { display: none; }
+.faq-item > summary::after {
+  content: 'expand_more';
+  font-family: 'Material Symbols Outlined';
+  font-size: 20px;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: transform var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+}
+.faq-item[open] > summary::after { transform: rotate(180deg); }
+.faq-item[open] > summary { color: var(--md-sys-color-primary); }
+.faq-a {
+  padding: 0 16px 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.faq-a p { margin: 0 0 10px; }
+.faq-a p:last-child { margin-bottom: 0; }

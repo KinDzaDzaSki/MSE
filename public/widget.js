@@ -151,6 +151,17 @@
         try { localStorage.setItem('mse_lang', cur === 'en' ? 'mk' : 'en'); } catch (_) {}
       });
     }
+    // Chips double as buttons: market status → hours popover, FX → full list.
+    const statusEl = document.getElementById('marketStatus');
+    if (statusEl && !statusEl.dataset.wired) {
+      statusEl.dataset.wired = '1';
+      statusEl.addEventListener('click', () => W.showMarketInfo());
+    }
+    const fxBtn = document.getElementById('fxChip');
+    if (fxBtn && !fxBtn.dataset.wired) {
+      fxBtn.dataset.wired = '1';
+      fxBtn.addEventListener('click', () => W.showFxList());
+    }
     const load = async () => {
       try {
         const [q, idx, fx] = await Promise.all([
@@ -199,8 +210,86 @@
     } catch (_) {}
     el.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>'
       + 'Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · '
-      + '<a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · '
-      + '<a href="/widgets.html">Виџети за твој сајт</a>' + version;
+      + '<a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · '
+      + '<a href="/widgets.html">Виџети</a>' + version;
+  };
+
+  // ---- Chip modals (market hours + full NBRM list) ----
+  // Reuses the styles.css .modal/.modal-card/.close classes so these look
+  // identical to the company dialog. Both pages that show chips (index.html,
+  // widgets.html) already load styles.css; embed pages never open these.
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const isoToDmy = (iso) => {
+    const p = String(iso || '').split('-');
+    return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : String(iso || '—');
+  };
+
+  W.closeModal = () => {
+    const el = document.getElementById('msePop');
+    if (!el) return;
+    if (el._onKey) document.removeEventListener('keydown', el._onKey);
+    el.remove();
+  };
+
+  W.openModal = (title, bodyHtml, footerHtml) => {
+    W.closeModal();
+    const overlay = document.createElement('div');
+    overlay.id = 'msePop';
+    overlay.className = 'modal';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', title);
+    overlay.innerHTML = '<div class="modal-card pop-card">'
+      + '<button class="close" type="button" aria-label="Затвори"><span class="material-symbols-outlined">close</span></button>'
+      + '<h2 class="pop-title">' + esc(title) + '</h2>'
+      + '<div class="pop-body">' + bodyHtml + '</div>'
+      + (footerHtml ? '<div class="pop-foot">' + footerHtml + '</div>' : '')
+      + '</div>';
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) W.closeModal(); });
+    overlay.querySelector('.close').addEventListener('click', () => W.closeModal());
+    const onKey = (e) => { if (e.key === 'Escape') W.closeModal(); };
+    document.addEventListener('keydown', onKey);
+    overlay._onKey = onKey;
+    document.body.appendChild(overlay);
+    overlay.querySelector('.close').focus();
+    return overlay;
+  };
+
+  // Market hours / status popover content — data from /api/market (single
+  // source of truth for hours + the official non-trading days).
+  W.showMarketInfo = async () => {
+    const m = await W.fetchJSON('/api/market').catch(() => null);
+    if (!m) return;
+    const row = (k, v) => '<div class="pop-row"><span class="pop-k">' + k + '</span><span class="pop-v">' + v + '</span></div>';
+    const nxt = m.nextNonTrading;
+    const nxtLabel = nxt
+      ? isoToDmy(nxt.date) + (nxt.type === 'holiday' ? ' (празник)' : ' (викенд)') + (nxt.isToday ? ' — денес' : '')
+      : '—';
+    W.openModal('Работно време на берзата',
+      row('Трговска сесија', m.hours + ' ч.')
+      + row('Работни денови', m.days)
+      + row('Моментален статус', m.open ? '<span class="pop-open">Отворен</span>' : '<span class="pop-closed">Затворен</span>')
+      + row('Следен неработен ден', nxtLabel)
+      + '<p class="pop-note">Берзата објавува податоци еднаш дневно, по затворање на сесијата, а MSE Berza се освежува со истото темпо — ова не е берзански feed во реално време. Неработните денови се според официјалниот календар на <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a>.</p>');
+  };
+
+  // Full NBRM middle-rate list (31 currencies) — same daily cache as the chip,
+  // no extra request to NBRM. SSR equivalent lives at /kursna-lista.
+  W.showFxList = async () => {
+    const data = await W.fetchJSON('/api/fx/list').catch(() => null);
+    if (!data || !data.list || !data.list.length) {
+      W.openModal('Курсна листа на НБРМ', '<p class="pop-note">Податоците сè уште не се вчитани.</p>');
+      return;
+    }
+    const rows = data.list.map((c) => '<tr><td>' + esc(c.name || c.code)
+      + ' <span class="fx-code">' + esc(c.code) + '</span></td>'
+      + '<td class="num">' + W.fmt(c.unit, 0) + '</td>'
+      + '<td class="num">' + W.fmt(c.mid, 4) + '</td></tr>').join('');
+    W.openModal('Курсна листа на НБРМ · ' + isoToDmy(data.date),
+      '<table class="fx-table"><thead><tr><th>Валута</th><th class="num">Единица</th><th class="num">Среден курс</th></tr></thead><tbody>'
+      + rows + '</tbody></table>'
+      + '<p class="pop-note">Среден курс на Народната банка на РСМ. НБРМ не објавува куповен и продажен курс во оваа листа.</p>',
+      '<a href="/kursna-lista">Цела курсна листа →</a>');
   };
 
   window.W = W;

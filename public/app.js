@@ -125,7 +125,8 @@ const I18N = {
       eod_note: 'end-of-day data (latest trading session)',
       failed: 'Failed to load data.',
       source: 'Data scraped from mse.mk — free public end-of-day data — for educational use.',
-      widgets_link: 'Widgets for your site',
+      widgets_link: 'Widgets',
+      footer_faq: 'FAQ',
       footer_about: 'About',
       footer_source: 'Data source',
       footer_method: 'Methodology',
@@ -250,7 +251,8 @@ const I18N = {
       eod_note: 'податоци на крај на ден (последната трговска сесија)',
       failed: 'Не успеа вчитувањето на податоците.',
       source: 'Податоци преземени од mse.mk — бесплатни јавни податоци — за едукативна намена.',
-      widgets_link: 'Виџети за твој сајт',
+      widgets_link: 'Виџети',
+      footer_faq: 'Прашања',
       footer_about: 'За нас',
       footer_source: 'Извор на податоци',
       footer_method: 'Методологија',
@@ -333,7 +335,7 @@ const I18N = {
 };
 
 let lang = localStorage.getItem('mse_lang') || 'en';
-const APP_VERSION = '2.3.3';
+const APP_VERSION = '2.4.0';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -374,7 +376,7 @@ function applyStaticI18n() {
   $('#search').placeholder = t('search');
   updateToggleLabels();
   renderWatchStrip();
-  $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')} · <a href="/za-nas">${t('footer_about')}</a> · <a href="/izvor-na-podatoci">${t('footer_source')}</a> · <a href="/metodologija">${t('footer_method')}</a> · <a href="/widgets.html">${t('widgets_link')}</a> · v${APP_VERSION}`;
+  $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')} · <a href="/prasanja">${t('footer_faq')}</a> · <a href="/za-nas">${t('footer_about')}</a> · <a href="/izvor-na-podatoci">${t('footer_source')}</a> · <a href="/metodologija">${t('footer_method')}</a> · <a href="/widgets.html">${t('widgets_link')}</a> · v${APP_VERSION}`;
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
   $$('.side-title')[2].textContent = t('active');
@@ -1905,6 +1907,14 @@ $('#themeToggle').addEventListener('click', () => {
   $('#mbiChip').addEventListener('click', () => {
     openCompany('MBI10');
   });
+  // Market-status chip → hours popover; FX chip → full NBRM list. Both are
+  // rendered by widget.js (shared with widgets.html) so the markup matches.
+  if (window.W) {
+    const stEl = $('#marketStatus');
+    if (stEl) stEl.addEventListener('click', () => W.showMarketInfo());
+    const fxEl = $('#fxChip');
+    if (fxEl) fxEl.addEventListener('click', () => W.showFxList());
+  }
 })();
 
 // Dedicated scheduler for the MBI10 chip — slower cadence is fine since

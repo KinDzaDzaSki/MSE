@@ -4,7 +4,8 @@ const path = require('path');
 const zlib = require('zlib');
 const store = require('./lib/store');
 const log = require('./lib/logger');
-const { getFX } = require('./lib/fx');
+const { getFX, getFXList } = require('./lib/fx');
+const { marketInfo } = require('./lib/market');
 const PKG = require('./package.json');
 
 // Shared secret for expensive/admin endpoints (backfill, refresh, logs).
@@ -94,7 +95,7 @@ ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script
 <h1>${esc(h1)}</h1>
 ${bodyHtml}
 </main>
-<footer><a href="${SITE_URL}/">MSE Berza Info</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети за твој сајт</a> · Податоци: <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · Не е инвестициски совет. · v${esc(PKG.version)}</footer>
+<footer><a href="${SITE_URL}/">MSE Berza Info</a> · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · Податоци: <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · Не е инвестициски совет. · v${esc(PKG.version)}</footer>
 </body>
 </html>`;
 }
@@ -273,6 +274,17 @@ async function handleApi(req, res, url) {
     return sendJson(res, fx, 200, req, 3600);
   }
 
+  if (url.pathname === '/api/fx/list') {
+    // Full cached NBRM list (middle rates) — same daily fetch, no extra scrape.
+    const data = await getFXList();
+    return sendJson(res, data, 200, req, 3600);
+  }
+
+  if (url.pathname === '/api/market') {
+    // Trading session state + hours + next non-trading day (for the popover).
+    return sendJson(res, marketInfo(), 200, req, 300);
+  }
+
   if (url.pathname === '/api/version') {
     return sendJson(res, { version: PKG.version }, 200, req, 3600);
   }
@@ -340,6 +352,48 @@ try {
   HOME_HTML = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
 } catch (e) {
   log.error(`index.html read failed: ${e.message}`);
+}
+
+// ---- FAQ (parsed from the human-written markdown at boot) ----
+// Format: "## Section" headings, "**Question?**" lines, following paragraphs
+// are the answer. Single source of truth — no duplicated content here.
+let FAQ_SECTIONS = [];
+try {
+  const md = fs.readFileSync(path.join(__dirname, 'berza-akcii-prasanja-odgovori.md'), 'utf8');
+  let section = null;
+  let question = null;
+  let answer = [];
+  const flushAnswer = () => {
+    if (question && section) {
+      const text = answer.join('\n').trim();
+      if (text) section.items.push({ q: question, a: text });
+    }
+    question = null;
+    answer = [];
+  };
+  const flushSection = () => {
+    flushAnswer();
+    if (section && section.items.length) FAQ_SECTIONS.push(section);
+    section = null;
+  };
+  for (const raw of md.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith('## ')) {
+      flushSection();
+      section = { title: line.slice(3).trim(), items: [] };
+    } else if (line.startsWith('**') && line.endsWith('**')) {
+      flushAnswer();
+      question = line.slice(2, -2).trim();
+    } else if (question) {
+      answer.push(line);
+    }
+  }
+  flushSection();
+  const total = FAQ_SECTIONS.reduce((n, s) => n + s.items.length, 0);
+  log.info(`FAQ loaded: ${FAQ_SECTIONS.length} sections, ${total} questions`);
+} catch (e) {
+  log.error(`FAQ markdown read failed: ${e.message}`);
 }
 
 async function sendHome(req, res) {
@@ -429,6 +483,70 @@ ${stat('Број на сесии', fmtN(year.length, 0))}
   });
 }
 
+// FAQ page — accordion (<details> is crawlable even when closed) + FAQPage
+// JSON-LD so Google can show the questions directly in search results.
+function renderFaqPage() {
+  if (!FAQ_SECTIONS.length) {
+    return pageShell({
+      title: 'Прашања и одговори | MSE Berza',
+      description: 'Најчести прашања за купување акции на Македската берза, дивиденди, данок и брокери.',
+      canonical: `${SITE_URL}/prasanja`,
+      h1: 'Прашања и одговори',
+      bodyHtml: '<p>Содржината наскоро ќе биде достапна.</p>',
+    });
+  }
+  const bodyHtml = FAQ_SECTIONS.map((sec) => {
+    const items = sec.items.map((it) => `
+<details class="faq-item">
+  <summary>${esc(it.q)}</summary>
+  <div class="faq-a">${it.a.split('\n').map((p) => `<p>${esc(p)}</p>`).join('')}</div>
+</details>`).join('');
+    return `<h2>${esc(sec.title)}</h2>${items}`;
+  }).join('\n');
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ_SECTIONS.flatMap((sec) => sec.items.map((it) => ({
+      '@type': 'Question',
+      name: it.q,
+      acceptedAnswer: { '@type': 'Answer', text: it.a.split('\n').join(' ') },
+    }))),
+  };
+
+  return pageShell({
+    title: 'Прашања и одговори за берза и акции | MSE Berza',
+    description: 'Како да купиш акција, колку е провизијата, кои фирми даваат дивиденда и како се плаќа данок — одговори на најчестите прашања за Македонската берза.',
+    canonical: `${SITE_URL}/prasanja`,
+    h1: 'Прашања и одговори за берза и акции',
+    bodyHtml,
+    jsonLd,
+  });
+}
+
+// /kursna-lista — full NBRM middle-rate list for the cached date (SEO: this is
+// a high-volume MK search term). Data comes from the daily FX cache.
+async function renderFxListPage() {
+  const { list, date } = await getFXList();
+  const fmtRate = (v) => (v == null ? '—' : Number(v).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }));
+  const dateLabel = (() => {
+    const parts = String(date || '').split('-');
+    return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : '—';
+  })();
+  const rows = list.map((c) => `<tr><td class="fx-cur">${esc(c.name || c.code)} <span class="fx-code">${esc(c.code)}</span></td><td class="num">${fmtN(c.unit, 0)}</td><td class="num">${fmtRate(c.mid)}</td></tr>`).join('\n');
+  const bodyHtml = list.length
+    ? `<p>Среден курс на Народната банка на Република Северна Македонија за <strong>${esc(dateLabel)}</strong>. Извор: <a href="https://www.nbrm.mk/kursna_lista.nspx" target="_blank" rel="noopener">НБРМ</a>.</p>
+<table class="fx-table"><thead><tr><th>Валута</th><th class="num">Единица</th><th class="num">Среден курс (денари)</th></tr></thead><tbody>${rows}</tbody></table>`
+    : '<p>Податоците за курсната листа сè уште не се вчитани.</p>';
+  return pageShell({
+    title: `Курсна листа на НБРМ за ${esc(dateLabel)} | MSE Berza`,
+    description: `Среден курс на еврото, доларот и уште 30 валути според НБРМ за ${dateLabel}.`,
+    canonical: `${SITE_URL}/kursna-lista`,
+    h1: 'Курсна листа на НБРМ',
+    bodyHtml,
+  });
+}
+
 const TRUST_PAGES = {
   '/za-nas': {
     title: 'За нас | MSE Berza',
@@ -446,7 +564,7 @@ const TRUST_PAGES = {
     description: 'Како MSE Berza ги собира податоците: јавните страници на mse.mk, еднаш дневно по затворање на сесијата.',
     body: [
       'Сите податоци се преземаат од јавно достапните страници на Македонската берза (mse.mk): листа на симболи, страници на издавачи, историски податоци и индексни вредности.',
-      'Македонската берза објавува податоци еднаш дневно, по затворање на трговската сесија (работни денови 09:00–14:30). Затоа и MSE Berza се ажурира со истото темпо — ова не е берзански feed во реално време.',
+      'Македонската берза објавува податоци еднаш дневно, по затворање на трговската сесија (работни денови, трговска сесија 09:00–14:00). Затоа и MSE Berza се ажурира со истото темпо — ова не е берзански feed во реално време.',
       'Податоците се прикажуваат какви што се објавени, без корекции. За официјални и правно обврзувачки податоци, секогаш користете mse.mk.',
     ],
   },
@@ -496,7 +614,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const quotes = Object.values(await store.getQuotes());
       const prim = quotes.filter((q) => q.primary !== false).map((q) => q.symbol).sort();
-      const urls = ['/', '/widgets.html', '/za-nas', '/izvor-na-podatoci', '/metodologija', ...prim.map((s) => `/s/${s}`)];
+      const urls = ['/', '/widgets.html', '/prasanja', '/kursna-lista', '/za-nas', '/izvor-na-podatoci', '/metodologija', ...prim.map((s) => `/s/${s}`)];
       const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         + urls.map((u) => `  <url><loc>${SITE_URL}${u}</loc></url>`).join('\n')
         + '\n</urlset>';
@@ -522,6 +640,30 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
     return res.end('404 — непознат симбол');
+  }
+
+  if (url.pathname === '/prasanja') {
+    try {
+      const html = renderFaqPage();
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, s-maxage=3600' });
+      return res.end(html);
+    } catch (e) {
+      log.error(`/prasanja: ${e.message}`);
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+      return res.end('error');
+    }
+  }
+
+  if (url.pathname === '/kursna-lista') {
+    try {
+      const html = await renderFxListPage();
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, s-maxage=3600' });
+      return res.end(html);
+    } catch (e) {
+      log.error(`/kursna-lista: ${e.message}`);
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+      return res.end('error');
+    }
   }
 
   if (TRUST_PAGES[url.pathname]) {
