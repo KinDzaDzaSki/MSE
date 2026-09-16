@@ -335,7 +335,7 @@ const I18N = {
 };
 
 let lang = localStorage.getItem('mse_lang') || 'en';
-const APP_VERSION = '2.5.0';
+const APP_VERSION = '2.5.1';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -660,7 +660,9 @@ function redrawSparklines() {
   });
   $$('canvas[data-spark-side]').forEach(cv => {
     const sym = cv.dataset.sparkSide;
-    if (sym && !sparkCache['s_' + sym] && historyCache[sym]) {
+    // Per-canvas marker, not a per-symbol one: the same symbol can appear in
+    // two panels (e.g. a top gainer that is also the most traded).
+    if (sym && !cv.dataset.drawn && historyCache[sym]) {
       const quote = quotesCache.find(r => r.symbol === sym);
       if (quote) all.push({ cv, sym, side: true, quote });
     }
@@ -1000,8 +1002,6 @@ function renderSidebar() {
 function renderSidePanel(containerId, items) {
   const el = $(`#${containerId}`);
   el.innerHTML = '';
-  // Sidebar canvases are also destroyed and recreated — wipe those cache entries.
-  for (const r of items) delete sparkCache['s_' + r.symbol];
   for (const r of items) {
     const div = document.createElement('div');
     div.className = 'side-item';
@@ -1018,9 +1018,16 @@ function renderSidePanel(containerId, items) {
       </div>`;
     el.appendChild(div);
   }
+  // Draw from THIS panel's canvases only. A document-wide lookup would always
+  // find the first panel's canvas, leaving the same symbol blank in the other
+  // panel (e.g. ТНБ in both "Најголеми добитници" and "Најтргувани").
+  // Uncached symbols are drawn later by redrawSparklines() once the batch
+  // history request lands.
   for (const r of items) {
-    const cv = $(`canvas[data-spark-side="${r.symbol}"]`);
-    if (cv && !sparkCache['s_' + r.symbol]) drawSparkSide(cv, r.symbol, r.changePct);
+    const cv = el.querySelector(`canvas[data-spark-side="${esc(r.symbol)}"]`);
+    if (cv && !cv.dataset.drawn && historyCache[r.symbol]) {
+      drawSparkSide(cv, r.symbol, r.changePct);
+    }
   }
 }
 
@@ -1032,7 +1039,7 @@ async function drawSparkSide(canvas, symbol, chgPct) {
       : await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
     const color = (chgPct != null && chgPct >= 0) ? '#16c784' : '#ea3943';
     drawSparkPath(canvas, sparkValues(d), color);
-    sparkCache['s_' + symbol] = true;
+    canvas.dataset.drawn = '1';
   } catch (e) {}
 }
 

@@ -87,7 +87,7 @@ function pageShell({ title, description, canonical, h1, bodyHtml, jsonLd }) {
 <meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
-<link rel="stylesheet" href="/styles.css?v=7.0" />
+<link rel="stylesheet" href="/styles.css?v=7.1" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
@@ -104,7 +104,6 @@ ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script
   h1 { font-size: 28px; line-height: 1.25; }
   h2 { font-size: 16px; margin-top: 6px; color: var(--md-sys-color-on-surface); }
   p, li { font-size: 15px; line-height: 1.75; color: var(--md-sys-color-on-surface); }
-  a { color: var(--md-sys-color-primary); }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { padding: 8px 10px; border-bottom: 1px solid var(--md-sys-color-outline-variant); text-align: left; }
   td.num, th.num { text-align: right; font-feature-settings: 'tnum' 1; }

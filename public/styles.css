@@ -11,6 +11,10 @@
   --md-sys-color-on-primary: #001B3E;
   --md-sys-color-primary-container: #003A70;
   --md-sys-color-on-primary-container: #D6E3FF;
+  /* Link text — lighter blue so it clears WCAG AA (>=4.5:1) on dark surfaces
+     (9.2:1 on surface, 9.4:1 on background). --primary is only 5.7:1 and
+     --primary-container is ~1.7:1, so it must never be used as text. */
+  --md-sys-color-link: #8AB4F8;
 
   /* Secondary — Gold/Amber (Macedonian heritage, gains) */
   --md-sys-color-secondary: #FFD845;
@@ -75,11 +79,16 @@
 
 /* ---- M3 Color Tokens (Light Theme — financial-grade light mode) ---- */
 [data-theme="light"] {
-  /* Primary — brighter blue for white backgrounds */
-  --md-sys-color-primary: #1A6DF5;
+  /* Primary — brighter blue for white backgrounds. Darkened from #1A6DF5
+     (4.38:1 on surface = AA fail for small text) to #1560D8 (5.4:1 surface,
+     4.9:1 background) so every primary-coloured label clears AA. */
+  --md-sys-color-primary: #1560D8;
   --md-sys-color-on-primary: #FFFFFF;
   --md-sys-color-primary-container: #D6E3FF;
   --md-sys-color-on-primary-container: #001B3E;
+  /* Link text — darker blue; #1A6DF5 is only 4.4:1 on the light background,
+     this clears AA (5.5:1 on background, 6.9:1 on surface). */
+  --md-sys-color-link: #0B57D0;
 
   /* Secondary — dark gold keeps Macedonian heritage on light bg */
   --md-sys-color-secondary: #B8860B;
@@ -232,11 +241,18 @@ body {
 }
 
 a {
-  color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-link);
   text-decoration: none;
   transition: color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
-a:hover { color: var(--md-sys-color-primary-container); }
+/* Hover keeps the same (AA-passing) colour and adds a non-colour cue, so the
+   hovered link can never drop below contrast. */
+a:hover {
+  color: var(--md-sys-color-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
 
 .hidden { display: none !important; }
 
@@ -2041,7 +2057,7 @@ table.quotes thead th.spark-th {
   line-height: 1.6;
   color: var(--md-sys-color-on-surface-variant);
 }
-.pop-note a { color: var(--md-sys-color-primary); }
+.pop-note a { color: var(--md-sys-color-link); }
 .pop-foot {
   margin-top: 14px;
   padding-top: 12px;
@@ -2049,7 +2065,7 @@ table.quotes thead th.spark-th {
   font-size: 13px;
   font-weight: 600;
 }
-.pop-foot a { color: var(--md-sys-color-primary); text-decoration: none; }
+.pop-foot a { color: var(--md-sys-color-link); text-decoration: none; }
 .pop-foot a:hover { text-decoration: underline; }
 
 .fx-table {
@@ -2116,8 +2132,9 @@ table.quotes thead th.spark-th {
   transition: all var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
 .faq-toc a:hover {
-  border-color: var(--md-sys-color-primary);
-  color: var(--md-sys-color-primary);
+  border-color: var(--md-sys-color-link);
+  color: var(--md-sys-color-link);
+  text-decoration: none;
 }
 .faq-sec { margin-top: 34px; scroll-margin-top: 76px; }
 .faq-sec-title {
