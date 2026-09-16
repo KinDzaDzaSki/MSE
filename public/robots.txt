@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /health
+Disallow: /healthz
+
+Sitemap: https://mseberza.info/sitemap.xml

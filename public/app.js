@@ -1,5 +1,22 @@
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+
+// Lightweight-charts is loaded on first modal open (only ~10% of visitors
+// ever open a company chart) — keeps the initial page ~200KB lighter.
+let lwcPromise = null;
+function loadLWC() {
+  if (window.LightweightCharts) return Promise.resolve(window.LightweightCharts);
+  if (lwcPromise) return lwcPromise;
+  lwcPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+    s.async = true;
+    s.onload = () => resolve(window.LightweightCharts);
+    s.onerror = () => { lwcPromise = null; reject(new Error('lightweight-charts failed to load')); };
+    document.head.appendChild(s);
+  });
+  return lwcPromise;
+}
 // Escape scraped strings (company names, labels) before innerHTML injection.
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -109,6 +126,9 @@ const I18N = {
       failed: 'Failed to load data.',
       source: 'Data scraped from mse.mk — free public end-of-day data — for educational use.',
       widgets_link: 'Widgets for your site',
+      footer_about: 'About',
+      footer_source: 'Data source',
+      footer_method: 'Methodology',
       lang_btn: 'МК',
       tab_chart: 'Chart',
       tab_fin_data: 'Financial Data',
@@ -231,6 +251,9 @@ const I18N = {
       failed: 'Не успеа вчитувањето на податоците.',
       source: 'Податоци преземени од mse.mk — бесплатни јавни податоци — за едукативна намена.',
       widgets_link: 'Виџети за твој сајт',
+      footer_about: 'За нас',
+      footer_source: 'Извор на податоци',
+      footer_method: 'Методологија',
       lang_btn: 'EN',
       tab_chart: 'Графикон',
       tab_fin_data: 'Податоци',
@@ -310,7 +333,7 @@ const I18N = {
 };
 
 let lang = localStorage.getItem('mse_lang') || 'en';
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.2.0';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -351,7 +374,7 @@ function applyStaticI18n() {
   $('#search').placeholder = t('search');
   updateToggleLabels();
   renderWatchStrip();
-  $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')} · <a href="/widgets.html">${t('widgets_link')}</a> · v${APP_VERSION}`;
+  $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')} · <a href="/za-nas">${t('footer_about')}</a> · <a href="/izvor-na-podatoci">${t('footer_source')}</a> · <a href="/metodologija">${t('footer_method')}</a> · <a href="/widgets.html">${t('widgets_link')}</a> · v${APP_VERSION}`;
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
   $$('.side-title')[2].textContent = t('active');
@@ -883,41 +906,60 @@ function buildRangeBar(r) {
   if (r.week52Min == null || r.week52Max == null || r.lastPrice == null) return '—';
   const lo = r.week52Min, hi = r.week52Max, cur = r.lastPrice;
   const pct = hi === lo ? 50 : Math.max(0, Math.min(100, ((cur - lo) / (hi - lo)) * 100));
-  return `<div class="wk-range-bar">
+  const ariaLabel = `52-week range: ${fmt(lo, 0)} – ${fmt(hi, 0)}`;
+  return `<div class="wk-range-bar" role="img" aria-label="${esc(ariaLabel)}" title="${esc(ariaLabel)}">
       <div class="wk-range-fill" style="left:0;width:${pct}%;background:${cur >= lo ? 'var(--green)' : 'var(--red)'};opacity:0.25"></div>
       <div class="wk-range-pointer" style="left:calc(${pct}% - 1.5px)"></div>
     </div>
-    <div class="wk-range-labels"><span>${fmt(lo, 0)}</span><span>${fmt(hi, 0)}</span></div>`;
+    <div class="wk-range-labels" aria-hidden="true"><span>${fmt(lo, 0)}</span><span>${fmt(hi, 0)}</span></div>`;
+}
+
+// Dependency-free sparkline (Canvas 2D) — replaces Chart.js entirely.
+// Same look: 1.5px round-joined line + soft fill, colored by daily direction.
+function drawSparkPath(canvas, values, color) {
+  if (!canvas || !values || values.length < 2) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 64, h = canvas.clientHeight || 24;
+  canvas.width = Math.max(1, Math.round(w * dpr));
+  canvas.height = Math.max(1, Math.round(h * dpr));
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const min = Math.min(...values), max = Math.max(...values), span = (max - min) || 1;
+  const px = (i) => (i / (values.length - 1)) * (w - 2) + 1;
+  const py = (v) => (h - 2) - ((v - min) / span) * (h - 4) + 1;
+  ctx.beginPath();
+  values.forEach((v, i) => (i ? ctx.lineTo(px(i), py(v)) : ctx.moveTo(px(i), py(v))));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.lineTo(px(values.length - 1), h);
+  ctx.lineTo(px(0), h);
+  ctx.closePath();
+  ctx.fillStyle = color + '22';
+  ctx.fill();
+}
+
+function sparkValues(d) {
+  return (d.rows || [])
+    .filter((x) => x.last != null)
+    .slice()
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .map((x) => x.last);
 }
 
 async function drawSpark(canvas, symbol, chgPct) {
   try {
     const cached = historyCache[symbol];
-    let d;
-    if (cached && cached.range === '1Y') {
-      d = { rows: cached.rows };
-    } else {
-      d = await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
-    }
-    // API returns rows newest-first; sort ascending so the chart reads
-    // left=old, right=new like every other time series on screen.
-    const rows = (d.rows || []).filter((x) => x.last != null)
-      .slice().sort((a, b) => new Date(a.date) - new Date(b.date));
-    const data = rows.map((x) => x.last);
-    // Color follows daily change (the "is today up or down" question),
-    // not the year-long drift. The line shape shows the drift, the
-    // color shows today's direction — those are two different signals.
+    const d = (cached && cached.range === '1Y')
+      ? { rows: cached.rows }
+      : await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
+    // Color follows daily change ("is today up or down"), the shape shows drift.
     const color = (chgPct != null && chgPct >= 0) ? '#16c784' : '#ea3943';
-    sparkCache[symbol] = new Chart(canvas, {
-      type: 'line',
-      data: { labels: data.map((_, i) => i), datasets: [{ data, borderColor: color, borderWidth: 1.5, pointRadius: 0 }] },
-      options: {
-        responsive: false, animation: false,
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
-        scales: { x: { display: false }, y: { display: false } },
-        elements: { line: { tension: 0.3 } },
-      },
-    });
+    drawSparkPath(canvas, sparkValues(d), color);
+    sparkCache[symbol] = true;
   } catch (e) {}
 }
 
@@ -967,25 +1009,12 @@ function renderSidePanel(containerId, items) {
 async function drawSparkSide(canvas, symbol, chgPct) {
   try {
     const cached = historyCache[symbol];
-    let d;
-    if (cached && cached.range === '1Y') {
-      d = { rows: cached.rows };
-    } else {
-      d = await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
-    }
-    const rows = (d.rows || []).filter((x) => x.last != null);
-    const data = rows.map((x) => x.last);
+    const d = (cached && cached.range === '1Y')
+      ? { rows: cached.rows }
+      : await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
     const color = (chgPct != null && chgPct >= 0) ? '#16c784' : '#ea3943';
-    sparkCache['s_' + symbol] = new Chart(canvas, {
-      type: 'line',
-      data: { labels: data.map((_, i) => i), datasets: [{ data, borderColor: color, borderWidth: 1.5, pointRadius: 0 }] },
-      options: {
-        responsive: false, animation: false,
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
-        scales: { x: { display: false }, y: { display: false } },
-        elements: { line: { tension: 0.3 } },
-      },
-    });
+    drawSparkPath(canvas, sparkValues(d), color);
+    sparkCache['s_' + symbol] = true;
   } catch (e) {}
 }
 
@@ -1138,6 +1167,30 @@ async function openCompany(symbol) {
     // yesterday, red = below. Same rule as the volume bars, so one legend
     // explains everything. Data is daily EOD bars (one point per session).
     let chart, volSeries, runSeries = [], priceLineHost = null, lastLine;
+
+    // Header + period stats — rendered even when the chart lib is unavailable.
+    const renderChartHeader = (range, lineData) => {
+      const lastClose = lineData.length ? lineData[lineData.length - 1].value : null;
+      const firstClose = lineData.length ? lineData[0].value : null;
+      const chgPct = firstClose ? ((lastClose - firstClose) / firstClose) * 100 : 0;
+      $('#chartPrice').textContent = lastClose != null ? fmt(lastClose) + ' MKD' : '—';
+      const chgEl = $('#chartChg');
+      chgEl.textContent = `${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%`;
+      chgEl.className = 'chart-chg ' + (chgPct >= 0 ? 'up' : 'down');
+      // Avg Price box = mean of the charted closes for the selected period.
+      const avgEl = $('#avgPriceVal'), avgLb = $('#avgPriceLabel');
+      if (avgEl) {
+        const avgPeriod = lineData.length ? lineData.reduce((s, p) => s + p.value, 0) / lineData.length : null;
+        avgEl.textContent = avgPeriod != null ? fmt(avgPeriod) : '—';
+      }
+      if (avgLb) avgLb.textContent = `${t('avg_price')} · ${t('range_' + range.toLowerCase()) || range}`;
+      const rangeLabel = { '1M': t('period_1m'), '3M': t('period_3m'), '6M': t('period_6m'), '1Y': t('period_1y'), 'ALL': t('period_all') }[range] || range;
+      $('#chartPeriod').textContent = `${rangeLabel} · ${lineData.length ? fmtDate(lineData[0].time * 1000) + ' – ' + fmtDate(lineData[lineData.length - 1].time * 1000) : ''}`;
+      if (lineData.length) {
+        $('#asOf').textContent = `${t('as_of')} ${fmtDate(lineData[lineData.length - 1].time * 1000)} · ${t('eod_note')}`;
+      }
+    };
+
     const draw = (range) => {
       let rows = fullHistory;
       if (range === '1M') rows = rows.slice(-22);
@@ -1176,6 +1229,12 @@ async function openCompany(symbol) {
         } else {
           curRun.pts.push(lineData[i]);
         }
+      }
+
+      // Chart library unavailable (CDN blocked / offline) — still show stats.
+      if (!window.LightweightCharts) {
+        renderChartHeader(range, lineData);
+        return;
       }
 
       if (!chart) {
@@ -1225,25 +1284,10 @@ async function openCompany(symbol) {
       }
 
       // Header = performance over the selected period (first close → last).
-      const firstClose = lineData.length ? lineData[0].value : null;
-      const chgPct = firstClose ? ((lastClose - firstClose) / firstClose) * 100 : 0;
-      $('#chartPrice').textContent = lastClose != null ? fmt(lastClose) + ' MKD' : '—';
-      const chgEl = $('#chartChg');
-      chgEl.textContent = `${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%`;
-      chgEl.className = 'chart-chg ' + (chgPct >= 0 ? 'up' : 'down');
-      // Avg Price box = mean of the charted closes for the selected period.
-      const avgEl = $('#avgPriceVal'), avgLb = $('#avgPriceLabel');
-      if (avgEl) {
-        const avgPeriod = lineData.length ? lineData.reduce((s, p) => s + p.value, 0) / lineData.length : null;
-        avgEl.textContent = avgPeriod != null ? fmt(avgPeriod) : '—';
-      }
-      if (avgLb) avgLb.textContent = `${t('avg_price')} · ${t('range_' + range.toLowerCase()) || range}`;
-      const rangeLabel = { '1M': t('period_1m'), '3M': t('period_3m'), '6M': t('period_6m'), '1Y': t('period_1y'), 'ALL': t('period_all') }[range] || range;
-      $('#chartPeriod').textContent = `${rangeLabel} · ${lineData.length ? fmtDate(lineData[0].time * 1000) + ' – ' + fmtDate(lineData[lineData.length - 1].time * 1000) : ''}`;
-      if (lineData.length) {
-        $('#asOf').textContent = `${t('as_of')} ${fmtDate(lineData[lineData.length - 1].time * 1000)} · ${t('eod_note')}`;
-      }
+      renderChartHeader(range, lineData);
     };
+    // Chart lib is lazy-loaded on first modal open.
+    await loadLWC().catch(() => null);
     draw('1Y');
     $$('#rangeBtns button').forEach((b) =>
       b.addEventListener('click', () => {
