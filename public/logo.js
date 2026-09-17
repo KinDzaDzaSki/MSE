@@ -48,23 +48,57 @@
       + (hidden ? ';display:none' : '');
   }
 
-  // icon(symbol, name, site, size) -> span.co-logo markup
-  function icon(symbol, name, site, size) {
+  // icon(symbol, name, site, size, fav) -> span.co-logo markup
+  // `fav` (boolean) means a self-hosted favicon exists at /api/favicon/{SYM}.
+  // The <img> falls back to Google's favicon cache in the browser (host is
+  // passed for that), then to the monogram — with a watchdog so a hanging
+  // third-party request can never leave a blank tile (see __coLogoStep).
+  function icon(symbol, name, site, size, fav) {
     const sym = String(symbol || '');
     const px = size || 22;
-    const host = hostOf(site);
-    if (!host) {
+    if (!fav) {
       return '<span class="co-logo co-logo-plain" aria-hidden="true">'
         + '<span class="co-logo-mono" style="' + monoStyle(sym, name, px) + '">' + esc(monogram(sym, name)) + '</span>'
         + '</span>';
     }
-    const src = 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(host) + '&sz=64';
+    const host = hostOf(site) || '';
     return '<span class="co-logo" aria-hidden="true">'
-      + '<img src="' + src + '" width="' + px + '" height="' + px + '" alt="" loading="lazy" referrerpolicy="no-referrer"'
-      + " onerror=\"this.style.display='none';this.nextElementSibling.style.display='inline-flex'\">"
+      + '<img src="/api/favicon/' + encodeURIComponent(sym) + '" width="' + px + '" height="' + px + '" alt="" loading="lazy"'
+      + ' onerror="__coLogoStep(this,\'' + host + '\')">'
       + '<span class="co-logo-mono" style="' + monoStyle(sym, name, px, true) + '">' + esc(monogram(sym, name)) + '</span>'
       + '</span>';
   }
 
-  return { icon, monogram, monogramColor, hostOf, COLORS };
+  // Browser-side favicon fallback chain with a watchdog.
+// step 0: self-hosted /api/favicon/{SYM} errored -> try Google's cache (host).
+// step 1: Google errored OR didn't load within 3.5s -> reveal the monogram.
+// The watchdog guarantees no third-party request can leave a blank tile.
+if (typeof window !== 'undefined') {
+  window.__coLogoStep = function (img, host) {
+    const step = img.dataset.step || '0';
+    const reveal = () => {
+      img.style.display = 'none';
+      const mono = img.nextElementSibling;
+      if (mono) mono.style.display = 'inline-flex';
+    };
+    if (step === '0') {
+      img.dataset.step = '1';
+      if (host) {
+        img.src = 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(host) + '&sz=64';
+        // Only give up once the fallback has actually FAILED (complete with no
+        // pixels) or after a hard 8s cap — a slow-but-loading icon must win.
+        const check = (n) => setTimeout(() => {
+          if (img.naturalWidth > 0) return;
+          if (img.complete || n <= 1) reveal();
+          else check(n - 1);
+        }, 4000);
+        check(2); // 4s + 4s
+        return;
+      }
+    }
+    reveal();
+  };
+}
+
+return { icon, monogram, monogramColor, hostOf, COLORS };
 });

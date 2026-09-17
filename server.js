@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const store = require('./lib/store');
+const db = require('./lib/db');
 const log = require('./lib/logger');
 const { getFX, getFXList } = require('./lib/fx');
 const { marketInfo } = require('./lib/market');
@@ -145,7 +146,7 @@ function ssrQuoteRows(quotes, n) {
       const pct = hi === lo ? 50 : Math.max(0, Math.min(100, ((cur - lo) / (hi - lo)) * 100));
       range = `<div class="wk-range-bar"><div class="wk-range-fill" style="left:0;width:${pct}%;background:${cur >= lo ? 'var(--green)' : 'var(--red)'};opacity:0.25"></div><div class="wk-range-pointer" style="left:calc(${pct}% - 1.5px)"></div></div><div class="wk-range-labels"><span>${fmtN(lo, 0)}</span><span>${fmtN(hi, 0)}</span></div>`;
     }
-    return `<tr data-sym="${esc(r.symbol)}"><td class="sym"><div class="sym-inner"><button type="button" class="star-btn" data-star="${esc(r.symbol)}" title="Додај во листата"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20">star</span></button>${CoLogo.icon(r.symbol, r.name, r.site)}<span class="sym-text">${esc(r.symbol)}</span></div></td><td class="comp">${esc(r.name || '')}</td><td class="spark"><canvas data-spark="${esc(r.symbol)}"></canvas></td><td class="num">${fmtN(r.lastPrice)}</td><td class="num ${pctCls(r.changePct)}"><span class="chg-pill">${pctStr(r.changePct)}</span></td><td class="num">${fmtN(r.volume, 0)}</td><td class="num ${pctCls(r.week52Chg)}"><span class="chg-pill">${pctStr(r.week52Chg)}</span></td><td class="wk-range">${range}</td></tr>`;
+    return `<tr data-sym="${esc(r.symbol)}"><td class="sym"><div class="sym-inner"><button type="button" class="star-btn" data-star="${esc(r.symbol)}" title="Додај во листата"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20">star</span></button>${CoLogo.icon(r.symbol, r.name, r.site, 22, r.fav)}<span class="sym-text">${esc(r.symbol)}</span></div></td><td class="comp">${esc(r.name || '')}</td><td class="spark"><canvas data-spark="${esc(r.symbol)}"></canvas></td><td class="num">${fmtN(r.lastPrice)}</td><td class="num ${pctCls(r.changePct)}"><span class="chg-pill">${pctStr(r.changePct)}</span></td><td class="num">${fmtN(r.volume, 0)}</td><td class="num ${pctCls(r.week52Chg)}"><span class="chg-pill">${pctStr(r.week52Chg)}</span></td><td class="wk-range">${range}</td></tr>`;
   }).join('\n');
 }
 
@@ -377,6 +378,30 @@ async function handleApi(req, res, url) {
     return sendJson(res, { ok: true, job: job.id, total: job.total, force });
   }
 
+  if (url.pathname === '/api/backfill-favicons') {
+    if (!needAdmin(url, req, res)) return;
+    // Crawls each official site for its real favicon and stores the bytes
+    // (self-hosted; ?force=1 re-crawls everything). Poll /api/job/{id}.
+    const force = url.searchParams.get('force') === '1';
+    const job = await store.startFaviconBackfillJob({ force });
+    return sendJson(res, { ok: true, job: job.id, total: job.total, force });
+  }
+
+  const favRoute = url.pathname.match(/^\/api\/favicon\/([A-Za-z0-9]+)$/);
+  if (favRoute) {
+    // Self-hosted favicon bytes (PNG/ICO/SVG etc.) stored by the backfill job.
+    // Favicons rarely change — long cache; a 404 (no favicon) is not cached so
+    // the client's monogram fallback kicks in on the next visit too.
+    const fav = await db.getFavicon(decodeURIComponent(favRoute[1]).toUpperCase());
+    if (fav && fav.data && fav.data.length) {
+      const headers = { 'Content-Type': fav.type, 'Cache-Control': 'public, max-age=86400, s-maxage=86400' };
+      sendRaw(res, Buffer.isBuffer(fav.data) ? fav.data : Buffer.from(fav.data), fav.type, req, 200, headers);
+      return;
+    }
+    res.writeHead(404, { 'Content-Type': 'image/png', 'Cache-Control': 'no-store' });
+    return res.end();
+  }
+
   if (url.pathname === '/api/companies') {
     // symbol -> { website } map used by the client to render favicon logos.
     const map = await store.getCompanies();
@@ -563,7 +588,7 @@ ${stat('Број на сесии', fmtN(year.length, 0))}
     description: `${name} (${sym}) на Македонската берза: последна цена ${fmtN(q.lastPrice)} MKD, промена ${pctStr(q.changePct)}, 52-неделен опсег, волумен и промет.`,
     canonical: `${SITE_URL}/s/${encodeURIComponent(sym)}`,
     h1: `${name} (${sym}) — цена и податоци од Македонската берза`,
-    h1Html: `<span class="h1-logo">${CoLogo.icon(sym, name, q.site, 30)}</span>${esc(name)} (${esc(sym)}) — цена и податоци од Македонската берза`,
+    h1Html: `<span class="h1-logo">${CoLogo.icon(sym, name, q.site, 30, q.fav)}</span>${esc(name)} (${esc(sym)}) — цена и податоци од Македонската берза`,
     bodyHtml,
     jsonLd: {
       '@context': 'https://schema.org',

@@ -81,9 +81,10 @@ function starBtnHTML(sym) {
 }
 
 // Company logo (favicon + monogram fallback). `site` rides on each quote from
-// the companies scrape; rows without it render the monogram tile.
-function logoHTML(sym, name, site, size = 22) {
-  if (window.W && W.companyIcon) return W.companyIcon(sym, name, site, size);
+// the companies scrape; `fav` marks symbols with a self-hosted favicon. Rows
+// without a favicon render the monogram tile immediately.
+function logoHTML(sym, name, site, size = 22, fav = false) {
+  if (window.W && W.companyIcon) return W.companyIcon(sym, name, site, size, fav);
   return '';
 }
 
@@ -347,7 +348,7 @@ const I18N = {
 // Default to Macedonian: the brand, the SSR pages and <html lang> are all MK.
 // English stays one tap away via the language toggle.
 let lang = localStorage.getItem('mse_lang') || 'mk';
-const APP_VERSION = '2.6.4';
+const APP_VERSION = '2.6.5';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -581,7 +582,7 @@ function renderDivTable() {
     const trend = r.dps.map((v) => (v == null ? '—' : fmt(v, 0))).join(' → ') + trendArrow(r.dps);
     const y0 = r.yield[0];
     return `<tr data-sym="${esc(r.symbol)}">
-      <td class="sym"><div class="sym-inner">${starBtnHTML(r.symbol)}${logoHTML(r.symbol, r.name, r.site)}<span class="sym-text">${esc(r.symbol)}</span></div></td>
+      <td class="sym"><div class="sym-inner">${starBtnHTML(r.symbol)}${logoHTML(r.symbol, r.name, r.site, 22, r.fav)}<span class="sym-text">${esc(r.symbol)}</span></div></td>
       <td class="comp">${esc(r.name || '')}</td>
       <td class="num">${fmt(r.lastPrice)}</td>
       <td class="num">${r.dps[0] != null ? fmt(r.dps[0], 0) : '—'}</td>
@@ -919,7 +920,7 @@ function renderTable() {
     tr.dataset.sym = r.symbol;
     const range = buildRangeBar(r);
     tr.innerHTML = `
-      <td class="sym"><div class="sym-inner">${starBtnHTML(r.symbol)}${logoHTML(r.symbol, r.name, r.site)}<span class="sym-text">${esc(r.symbol)}</span></div></td>
+      <td class="sym"><div class="sym-inner">${starBtnHTML(r.symbol)}${logoHTML(r.symbol, r.name, r.site, 22, r.fav)}<span class="sym-text">${esc(r.symbol)}</span></div></td>
       <td class="comp">${esc(r.name || '')}</td>
       <td class="spark"><canvas data-spark="${esc(r.symbol)}"></canvas></td>
       <td class="num">${fmt(r.lastPrice)}</td>
@@ -1054,7 +1055,7 @@ function renderSidePanel(containerId, items) {
     div.dataset.sym = r.symbol;
     div.innerHTML = `
       <div class="si-left">
-        <div class="si-sym">${logoHTML(r.symbol, r.name, r.site)}<span>${esc(r.symbol)}</span></div>
+        <div class="si-sym">${logoHTML(r.symbol, r.name, r.site, 22, r.fav)}<span>${esc(r.symbol)}</span></div>
         <div class="si-name">${esc(r.name || '')}</div>
       </div>
       <div class="si-spark"><canvas data-spark-side="${esc(r.symbol)}"></canvas></div>
@@ -1135,7 +1136,7 @@ async function openCompany(symbol) {
     // Render header + stats into companyContent (no chart section)
     content.innerHTML = `
       <div class="company-head">
-        <h2>${logoHTML(symbol, q.name, q.site, 30)}${esc(symbol)}</h2>
+        <h2>${logoHTML(symbol, q.name, q.site, 30, q.fav)}${esc(symbol)}</h2>
         ${starBtnHTML(symbol)}
         <span class="${pctClass(chg)}">
           <span class="material-symbols-outlined icon-fill" style="font-size:20px;vertical-align:middle">${chg >= 0 ? 'trending_up' : 'trending_down'}</span>

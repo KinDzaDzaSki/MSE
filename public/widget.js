@@ -24,8 +24,8 @@
   W.hostOf = (site) => (window.CoLogo ? CoLogo.hostOf(site) : null);
   W.monogram = (symbol, name) => (window.CoLogo ? CoLogo.monogram(symbol, name) : String(symbol || '').slice(0, 2).toUpperCase());
   W.monogramColor = (symbol) => (window.CoLogo ? CoLogo.monogramColor(symbol) : '#4D8AF0');
-  W.companyIcon = (symbol, name, site, size) => {
-    if (window.CoLogo) return CoLogo.icon(symbol, name, site, size || 22);
+  W.companyIcon = (symbol, name, site, size, fav) => {
+    if (window.CoLogo) return CoLogo.icon(symbol, name, site, size || 22, !!fav);
     return '<span class="co-logo co-logo-plain"><span class="co-logo-mono" style="background:#4D8AF0;width:22px;height:22px;font-size:10px">'
       + W.monogram(symbol, name) + '</span></span>';
   };
