@@ -152,12 +152,28 @@ function sendRaw(res, buf, contentType, req, status = 200, extraHeaders = {}) {
   return res.end(buf);
 }
 
+// An empty payload means "not ready / no data yet", never "cache this".
+// Without this, a request that races the DB init (cold start on serverless)
+// returns an empty list that a CDN then pins at the edge for the whole TTL.
+function isEmptyPayload(obj) {
+  if (obj == null) return true;
+  if (Array.isArray(obj)) return obj.length === 0;
+  if (typeof obj !== 'object') return false;
+  if ('eur' in obj || 'usd' in obj) return obj.eur == null && obj.usd == null;
+  for (const key of ['quotes', 'symbols', 'dividends', 'list', 'rows']) {
+    if (Array.isArray(obj[key])) return obj[key].length === 0;
+  }
+  return false;
+}
+
 function sendJson(res, obj, status = 200, req = null, sMaxAge = 0) {
-  // sMaxAge > 0 → cacheable at the CDN edge (Cloudflare) for that many
-  // seconds, while the browser keeps revalidating. Public read APIs only.
-  const headers = sMaxAge
+  // sMaxAge > 0 → cacheable at the CDN edge for that many seconds, while the
+  // browser keeps revalidating. Public read APIs only — and only when the
+  // payload actually has data (see isEmptyPayload).
+  const empty = isEmptyPayload(obj);
+  const headers = (sMaxAge > 0 && !empty && status < 400)
     ? { 'Cache-Control': `public, s-maxage=${sMaxAge}, stale-while-revalidate=300` }
-    : {};
+    : (sMaxAge > 0 || status >= 400 || empty ? { 'Cache-Control': 'no-store' } : {});
   sendRaw(res, Buffer.from(JSON.stringify(obj)), 'application/json; charset=utf-8', req, status, headers);
 }
 
@@ -625,6 +641,67 @@ function renderTrustPage(pathname) {
   });
 }
 
+// ---- Boot readiness --------------------------------------------------------
+// store.init() (schema migration + symbol list) must finish before any DB-backed
+// response is served. On a serverless cold start the first request can arrive
+// within milliseconds of boot; without this gate it hits a missing schema,
+// throws, and the catch-all hands back an empty-but-200 payload.
+// Memoised: after the first successful init every await is a no-op.
+let readyPromise = null;
+function ensureReady() {
+  if (!readyPromise) {
+    readyPromise = store.init()
+      .then((syms) => {
+        log.info(`store ready: ${Array.isArray(syms) ? syms.length : 0} symbols`);
+        // startScheduler is synchronous (it kicks off its own async IIFE), so a
+        // throw here must not be mistaken for an init failure.
+        try {
+          store.startScheduler({ pollIntervalMs: 60000 });
+        } catch (e) {
+          log.error(`scheduler start error: ${e.message}`);
+        }
+        return true;
+      })
+      .catch((e) => {
+        log.error(`store init error: ${e.message}`);
+        readyPromise = null; // let the next request retry
+        throw e;
+      });
+  }
+  return readyPromise;
+}
+
+// Await readiness without blocking forever; replies 503 (uncacheable) on
+// failure so the client retries instead of caching an empty page.
+async function waitReady(res) {
+  try {
+    await withTimeoutMs(ensureReady(), 20000, 'store init');
+    return true;
+  } catch (e) {
+    log.error(`not ready: ${e.message}`);
+    res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Retry-After': '5' });
+    res.end(JSON.stringify({ error: 'initializing', detail: e.message }));
+    return false;
+  }
+}
+
+function withTimeoutMs(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)),
+  ]);
+}
+
+// Static assets and DB-free endpoints answer instantly on a cold start; every
+// other route reads Postgres and therefore waits for the init gate.
+const STATIC_ASSET_RE = /\.(css|js|mjs|map|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|eot|json|webmanifest|txt)$/i;
+const DB_FREE_PATHS = new Set(['/api/version', '/api/market', '/api/logs', '/robots.txt', '/health', '/healthz']);
+function needsDb(pathname) {
+  if (DB_FREE_PATHS.has(pathname)) return false;
+  if (pathname === '/sitemap.xml') return true; // XML, but built from the DB
+  return !STATIC_ASSET_RE.test(pathname);
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   // Health check — respond immediately for platform probes
@@ -632,6 +709,7 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ ok: true, ready: !!store.lastPoll }));
   }
+  if (needsDb(url.pathname) && !(await waitReady(res))) return;
   if (url.pathname.startsWith('/api/')) {
     try {
       return await handleApi(req, res, url);
@@ -738,14 +816,14 @@ async function main() {
   // Mark healthy immediately so platform health probes pass (critical for
   // Cloud Run / suga.app — they kill containers that don't show ready in time).
   store.markReady();
-  // Start listening immediately — init runs async in the background.
+  // Start listening immediately — the init gate inside the request handler
+  // holds DB-backed routes until store.init() has finished (see ensureReady).
   server.listen(PORT, '0.0.0.0', () => {
     log.info(`MSE Clone dashboard listening on 0.0.0.0:${PORT}`);
   });
-  // Warm up in background — don't block server requests.
-  store.init()
-    .then(() => store.startScheduler({ pollIntervalMs: 60000 }))
-    .catch((e) => log.error(`store init error (dashboard still serving health): ${e.message}`));
+  // Kick off init immediately so the gate is already resolved for the first
+  // real request; failures are surfaced per-request as 503, not here.
+  ensureReady().catch(() => {});
 }
 
 // Global crash handlers — don't let unhandled errors kill the process silently.
