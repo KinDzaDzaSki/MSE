@@ -219,6 +219,14 @@ async function handleApi(req, res, url) {
       arr = arr.filter((q) => active.has(q.symbol));
     }
     arr.sort((a, b) => (b.value || 0) - (a.value || 0));
+    // Sparkline series ride along (downsampled 1Y closes, built at poll time) so
+    // the dashboard draws charts on the first paint instead of firing a second
+    // batch of /api/history requests. Additive field: old clients ignore it.
+    const sparks = store.getSparks();
+    for (const q of arr) {
+      const s = sparks[q.symbol];
+      if (s && s.length > 1) q.spark = s;
+    }
     return sendJson(res, { quotes: arr, marketOpen: store.isMarketOpen(), lastPoll: store.lastPoll }, 200, req, 60);
   }
 

@@ -346,7 +346,7 @@ const I18N = {
 // Default to Macedonian: the brand, the SSR pages and <html lang> are all MK.
 // English stays one tap away via the language toggle.
 let lang = localStorage.getItem('mse_lang') || 'mk';
-const APP_VERSION = '2.6.1';
+const APP_VERSION = '2.6.2';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -786,6 +786,14 @@ async function loadQuotes() {
 
   // Market open (or first load with no data yet): do the full refresh.
   quotesCache = d.quotes || [];
+  // The API ships a downsampled 1Y series per quote (`spark`). Feed it into the
+  // sparkline cache so the canvases draw on this first render — no second round
+  // trip to /api/history. Symbols without a spark fall back to that endpoint.
+  for (const r of quotesCache) {
+    if (Array.isArray(r.spark) && r.spark.length > 1) {
+      historyCache[r.symbol] = { rows: r.spark.map((v) => ({ last: v })), range: 'SPARK' };
+    }
+  }
   updateToggleLabels();
   renderWatchStrip();
   if (marketIsOpen) {
@@ -829,7 +837,10 @@ async function loadQuotes() {
 // wait until the next regular interval to re-check. This avoids 30s of
 // pointless work between market close and the next open.
 function scheduleNextPoll() {
-  const interval = marketIsOpen ? 30000 : 60000; // slower checks while closed
+  // MSE publishes once per session, so while the market is closed there is
+  // nothing new to fetch — check rarely (just enough to pick up the EOD
+  // publication or the next session's open), not every minute.
+  const interval = marketIsOpen ? 30000 : 5 * 60 * 1000;
   setTimeout(async () => {
     // Hidden tab = nobody watching: skip the fetch, just reschedule.
     if (!document.hidden) await loadQuotes();
@@ -984,7 +995,7 @@ function sparkValues(d) {
 async function drawSpark(canvas, symbol, chgPct) {
   try {
     const cached = historyCache[symbol];
-    const d = (cached && cached.range === '1Y')
+    const d = (cached && cached.rows && cached.rows.length)
       ? { rows: cached.rows }
       : await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
     // Color follows daily change ("is today up or down"), the shape shows drift.
@@ -1045,7 +1056,7 @@ function renderSidePanel(containerId, items) {
 async function drawSparkSide(canvas, symbol, chgPct) {
   try {
     const cached = historyCache[symbol];
-    const d = (cached && cached.range === '1Y')
+    const d = (cached && cached.rows && cached.rows.length)
       ? { rows: cached.rows }
       : await fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json());
     const color = (chgPct != null && chgPct >= 0) ? '#16c784' : '#ea3943';
@@ -1062,12 +1073,16 @@ async function openCompany(symbol) {
   modal.classList.remove('hidden');
   content.innerHTML = `<div class="muted">${t('loading')}</div>`;
 
-  // Reset tab panels
+  // Reset tab panels. The bar is hidden up-front: otherwise the previous
+  // company's tabs stay on screen while this one's data loads (and an index
+  // never shows tabs at all).
   const tabBar = $('#finTabBar');
   const chartSection = $('#chartSection');
   const finDataContent = $('#finDataContent');
   const finRatiosContent = $('#finRatiosContent');
   const analysisContent = $('#analysisContent');
+  tabBar.classList.add('hidden');
+  $$('.fin-tab-panel').forEach((p) => p.classList.add('hidden'));
   chartSection.innerHTML = '';
   finDataContent.innerHTML = '';
   finRatiosContent.innerHTML = '';
@@ -1084,10 +1099,14 @@ async function openCompany(symbol) {
     const fullHistory = (hAll.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
     const chg = q.changePct ?? 0;
     const chgAbs = q.dailyChange ?? 0;
+    // Index detection must NOT guess from missing fields: an illiquid stock can
+    // legitimately have null trades/volume/value. Indices are the two known
+    // codes plus the segment/name the server stamps on index quotes.
     const isIndex =
       symbol === 'MBI10' ||
-      q.name === 'MBI10 Index' ||
-      (q.trades == null && q.volume == null && q.value == null && q.week52Max == null);
+      symbol === 'OMB' ||
+      /индекс|index/i.test(q.segment || '') ||
+      /index/i.test(q.name || '');
 
     // Render header + stats into companyContent (no chart section)
     content.innerHTML = `
@@ -1144,8 +1163,9 @@ async function openCompany(symbol) {
       </div>`;
       })()}`;
 
-    // Show tab bar (always visible now)
-    tabBar.classList.remove('hidden');
+    // Tab bar: stocks only. An index has nothing to put in Податоци/Показатели/
+    // Анализа, so it gets the chart alone with no tab strip.
+    tabBar.classList.toggle('hidden', isIndex);
 
     // Render chart into chartSection
     chartSection.innerHTML = `
@@ -1942,7 +1962,7 @@ function scheduleNextMBIPoll() {
   setTimeout(async () => {
     if (!document.hidden) { await loadMBI(); await loadFX(); }
     scheduleNextMBIPoll();
-  }, 60000);
+  }, marketIsOpen ? 60000 : 5 * 60 * 1000);
 }
 
 // Expose internals on window for test harnesses / debugging.
