@@ -151,8 +151,9 @@
         applyTheme(cur === 'dark' ? 'light' : 'dark');
       });
     }
-    let stored = 'dark';
-    try { stored = localStorage.getItem('mse_theme') || 'dark'; } catch (_) {}
+    // Light is the site default; only an explicit user choice overrides it.
+    let stored = 'light';
+    try { stored = localStorage.getItem('mse_theme') || 'light'; } catch (_) {}
     applyTheme(stored);
     const langBtn = document.getElementById('langToggle');
     if (langBtn && !langBtn.dataset.wired) {

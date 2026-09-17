@@ -1,0 +1,10 @@
+{
+  "_comment": "Manual website overrides for issuers whose MSE profile page has no Site row (~40% of them have none). Key = ticker, value = website. These win over the scrape; favicon comes from Google S2, and a broken/missing favicon falls back to the monogram tile. Add domains here to raise logo coverage.",
+  "INB": "https://www.sparkasse.mk",
+  "MB": "https://www.mse.mk",
+  "SKP": "https://www.pivaraskopje.com.mk",
+  "GIMS": "https://gim.mk",
+  "OPTK": "https://getaldus.mk",
+  "SIGA": "https://sigal.mk",
+  "FZOM": "https://fzo.org.mk"
+}

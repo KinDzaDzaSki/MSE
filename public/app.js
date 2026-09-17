@@ -346,7 +346,7 @@ const I18N = {
 // Default to Macedonian: the brand, the SSR pages and <html lang> are all MK.
 // English stays one tap away via the language toggle.
 let lang = localStorage.getItem('mse_lang') || 'mk';
-const APP_VERSION = '2.6.0';
+const APP_VERSION = '2.6.1';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -580,7 +580,7 @@ function renderDivTable() {
     const trend = r.dps.map((v) => (v == null ? '—' : fmt(v, 0))).join(' → ') + trendArrow(r.dps);
     const y0 = r.yield[0];
     return `<tr data-sym="${esc(r.symbol)}">
-      <td class="sym">${starBtnHTML(r.symbol)}${logoHTML(r.symbol, r.name, r.site)}<span class="sym-text">${esc(r.symbol)}</span></td>
+      <td class="sym"><div class="sym-inner">${starBtnHTML(r.symbol)}${logoHTML(r.symbol, r.name, r.site)}<span class="sym-text">${esc(r.symbol)}</span></div></td>
       <td class="comp">${esc(r.name || '')}</td>
       <td class="num">${fmt(r.lastPrice)}</td>
       <td class="num">${r.dps[0] != null ? fmt(r.dps[0], 0) : '—'}</td>
@@ -884,7 +884,7 @@ function renderTable() {
     tr.dataset.sym = r.symbol;
     const range = buildRangeBar(r);
     tr.innerHTML = `
-      <td class="sym">${starBtnHTML(r.symbol)}${logoHTML(r.symbol, r.name, r.site)}<span class="sym-text">${esc(r.symbol)}</span></td>
+      <td class="sym"><div class="sym-inner">${starBtnHTML(r.symbol)}${logoHTML(r.symbol, r.name, r.site)}<span class="sym-text">${esc(r.symbol)}</span></div></td>
       <td class="comp">${esc(r.name || '')}</td>
       <td class="spark"><canvas data-spark="${esc(r.symbol)}"></canvas></td>
       <td class="num">${fmt(r.lastPrice)}</td>
@@ -1905,7 +1905,8 @@ function applyTheme(theme) {
   const icon = $('#themeIcon');
   icon.textContent = theme === 'light' ? 'light_mode' : 'dark_mode';
 }
-applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
+  // Light theme is the default (dark is one tap away via the toggle).
+  applyTheme(localStorage.getItem(THEME_KEY) || 'light');
 $('#themeToggle').addEventListener('click', () => {
   const cur = document.documentElement.getAttribute('data-theme') || 'dark';
   applyTheme(cur === 'dark' ? 'light' : 'dark');

@@ -1027,9 +1027,11 @@ table.quotes thead th.spark-th {
   letter-spacing: 0.3px;
   font-feature-settings: 'tnum' 1, 'calt' 1;
 }
-/* Logo + star + ticker share one flex row so the icon never wraps on narrow
-   screens and the ticker column stays aligned across rows. */
-table.quotes td.sym {
+/* Logo + star + ticker: flex INSIDE the cell. Styling the <td> itself as a
+   flex container takes it out of the table cell layout, which made that cell's
+   bottom border sit off the row baseline (visible misalignment). */
+table.quotes td.sym { vertical-align: middle; }
+.sym-inner {
   display: flex;
   align-items: center;
   gap: 6px;
