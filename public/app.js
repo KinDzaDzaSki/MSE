@@ -334,8 +334,10 @@ const I18N = {
     },
 };
 
-let lang = localStorage.getItem('mse_lang') || 'en';
-const APP_VERSION = '2.5.3';
+// Default to Macedonian: the brand, the SSR pages and <html lang> are all MK.
+// English stays one tap away via the language toggle.
+let lang = localStorage.getItem('mse_lang') || 'mk';
+const APP_VERSION = '2.5.4';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
