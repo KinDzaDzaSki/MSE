@@ -173,13 +173,19 @@ function isEmptyPayload(obj) {
   return false;
 }
 
-function sendJson(res, obj, status = 200, req = null, sMaxAge = 0) {
+function sendJson(res, obj, status = 200, req = null, sMaxAge = 0, maxAge = 0) {
   // sMaxAge > 0 → cacheable at the CDN edge for that many seconds, while the
   // browser keeps revalidating. Public read APIs only — and only when the
-  // payload actually has data (see isEmptyPayload).
+  // payload actually has data (see isEmptyPayload). maxAge adds browser cache.
   const empty = isEmptyPayload(obj);
-  const headers = (sMaxAge > 0 && !empty && status < 400)
-    ? { 'Cache-Control': `public, s-maxage=${sMaxAge}, stale-while-revalidate=300` }
+  const cacheable = sMaxAge > 0 && !empty && status < 400;
+  const parts = [];
+  if (cacheable) {
+    if (maxAge > 0) parts.push(`max-age=${maxAge}`);
+    parts.push(`s-maxage=${sMaxAge}`, 'stale-while-revalidate=300');
+  }
+  const headers = cacheable
+    ? { 'Cache-Control': 'public, ' + parts.join(', ') }
     : (sMaxAge > 0 || status >= 400 || empty ? { 'Cache-Control': 'no-store' } : {});
   sendRaw(res, Buffer.from(JSON.stringify(obj)), 'application/json; charset=utf-8', req, status, headers);
 }
@@ -219,15 +225,23 @@ async function handleApi(req, res, url) {
       arr = arr.filter((q) => active.has(q.symbol));
     }
     arr.sort((a, b) => (b.value || 0) - (a.value || 0));
-    // Sparkline series ride along (downsampled 1Y closes, built at poll time) so
-    // the dashboard draws charts on the first paint instead of firing a second
-    // batch of /api/history requests. Additive field: old clients ignore it.
-    const sparks = store.getSparks();
-    for (const q of arr) {
-      const s = sparks[q.symbol];
-      if (s && s.length > 1) q.spark = s;
-    }
     return sendJson(res, { quotes: arr, marketOpen: store.isMarketOpen(), lastPoll: store.lastPoll }, 200, req, 60);
+  }
+
+  if (url.pathname === '/api/sparks') {
+    // Full-resolution sparkline series for every active symbol, in one cached
+    // response. MSE history is end-of-day only, so this is stable within a
+    // session — the client (and the CDN edge) can hold on to it, and the page
+    // preloads it in <head> so it is usually already in flight before app.js
+    // runs. Shape: { asOf, series: { SYM: [closes...] } } — no dates, because a
+    // sparkline only needs the shape.
+    const sparks = store.getSparks();
+    const series = {};
+    for (const sym of store.getSymbols()) {
+      const s = sparks.series[sym];
+      if (s && s.length > 1) series[sym] = s;
+    }
+    return sendJson(res, { asOf: sparks.asOf, series }, 200, req, 1800, 300);
   }
 
   if (url.pathname === '/api/indices') {

@@ -31,8 +31,9 @@ let headerSortDir = 'desc';
 // ---- View: Liquid (default) vs All ----
 // Server flags each quote: liq (data-driven liquidity), primary (issuer
 // series dedup). Secondary series are hidden in BOTH views; Liquid shows
-// only q.liq names.
-let view = localStorage.getItem('mse_view') === 'all' ? 'all' : 'liquid';
+// only q.liq names. The dashboard always OPENS on Liquid — a previous session's
+// toggle is intentionally not restored, so every visit starts on the same view.
+let view = 'liquid';
 function isPrimary(q) { return q && q.primary !== false; }
 function inView(q) { return view === 'all' ? true : q.liq === true; }
 function setView(v) {
@@ -346,7 +347,7 @@ const I18N = {
 // Default to Macedonian: the brand, the SSR pages and <html lang> are all MK.
 // English stays one tap away via the language toggle.
 let lang = localStorage.getItem('mse_lang') || 'mk';
-const APP_VERSION = '2.6.2';
+const APP_VERSION = '2.6.3';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -694,22 +695,52 @@ function redrawSparklines() {
   requestAnimationFrame(nextBatch);
 }
 
+// ---- sparkline series -------------------------------------------------------
+// Every active symbol's FULL 1Y closes arrive in one cached response from
+// /api/sparks, whose request starts in <head> (window.__sparksP) — so by the
+// time this runs it is usually already resolved. Nothing is downsampled.
+let sparksLoaded = false;
+async function loadSparks() {
+  if (sparksLoaded) return 0;
+  try {
+    const p = window.__sparksP || fetch('/api/sparks').then((r) => (r.ok ? r.json() : null));
+    const d = await p;
+    const series = d && d.series ? d.series : null;
+    if (!series) return 0;
+    let n = 0;
+    for (const [sym, closes] of Object.entries(series)) {
+      if (Array.isArray(closes) && closes.length > 1 && !historyCache[sym]) {
+        historyCache[sym] = { rows: closes.map((v) => ({ last: v })), range: 'SPARK' };
+        n++;
+      }
+    }
+    sparksLoaded = true;
+    redrawSparklines();
+    return n;
+  } catch (e) {
+    return 0;
+  }
+}
+
 async function loadSparkHistory() {
-  // Cover every visible row (all quotes, not just first 55) so sparklines
-  // can be drawn for the full list, not just the top of the page.
+  // Fallback for symbols with no series from /api/sparks (bonds, series with a
+  // very short history). Normally this finds nothing left to fetch.
   const needed = new Set();
   for (const r of quotesCache) {
     if (!historyCache[r.symbol]) needed.add(r.symbol);
   }
   if (!needed.size) { redrawSparklines(); return; }
   try {
-    // Split into chunks of 30 to avoid URL-length / server limits on the
-    // batch endpoint.
+    // Chunks run in PARALLEL — they used to be sequential, which is what made
+    // the fallback path slow.
     const syms = [...needed];
     const CHUNK = 30;
-    for (let i = 0; i < syms.length; i += CHUNK) {
-      const slice = syms.slice(i, i + CHUNK);
-      const d = await fetch(`/api/history?symbols=${slice.join(',')}&range=1Y`).then((r) => r.json());
+    const chunks = [];
+    for (let i = 0; i < syms.length; i += CHUNK) chunks.push(syms.slice(i, i + CHUNK));
+    const results = await Promise.all(chunks.map((slice) =>
+      fetch(`/api/history?symbols=${slice.join(',')}&range=1Y`).then((r) => r.json()).catch(() => ({}))
+    ));
+    for (const d of results) {
       for (const [sym, rows] of Object.entries(d.queries || {})) {
         historyCache[sym] = { rows, range: '1Y' };
       }
@@ -786,14 +817,6 @@ async function loadQuotes() {
 
   // Market open (or first load with no data yet): do the full refresh.
   quotesCache = d.quotes || [];
-  // The API ships a downsampled 1Y series per quote (`spark`). Feed it into the
-  // sparkline cache so the canvases draw on this first render — no second round
-  // trip to /api/history. Symbols without a spark fall back to that endpoint.
-  for (const r of quotesCache) {
-    if (Array.isArray(r.spark) && r.spark.length > 1) {
-      historyCache[r.symbol] = { rows: r.spark.map((v) => ({ last: v })), range: 'SPARK' };
-    }
-  }
   updateToggleLabels();
   renderWatchStrip();
   if (marketIsOpen) {
@@ -824,7 +847,8 @@ async function loadQuotes() {
   const now = Date.now();
   if ((now - lastHistoryFetch) >= HISTORY_REFRESH_MS) {
     lastHistoryFetch = now;
-    loadSparkHistory();
+    // Series first (one cached request), then the fallback for stragglers.
+    loadSparks().then(() => loadSparkHistory());
   }
   } catch (e) {
     console.error('loadQuotes failed:', e);
@@ -1307,8 +1331,7 @@ async function openCompany(symbol) {
         volSeries = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' });
         volSeries.priceScale().applyOptions({
           scaleMargins: { top: 0.8, bottom: 0 },
-        });
-      }
+        });      }
       // Runs change with the selected range — rebuild the run series each draw.
       for (const s of runSeries) chart.removeSeries(s);
       runSeries.length = 0;
@@ -1324,13 +1347,19 @@ async function openCompany(symbol) {
       };
       for (const run of upRuns) mkRun(run);
       for (const run of downRuns) mkRun(run);
-      volSeries.setData(volData);
+      // Volume only when the instrument actually trades: an index has no volume,
+      // and an all-zero histogram still paints a "0.00" label on its overlay
+      // price scale (the stray red 0.00 on the MBI10 chart).
+      const hasVolume = rows.some((r) => r.volume != null && r.volume > 0);
+      volSeries.setData(hasVolume ? volData : []);
+      volSeries.applyOptions({ visible: hasVolume });
       chart.timeScale().fitContent();
 
       // Red dashed reference at the last close (Yahoo-style "where we ended").
+      // Attach it to the LAST run so the label sits at the newest data point.
       if (lastLine && priceLineHost) priceLineHost.removePriceLine(lastLine);
       lastLine = null;
-      priceLineHost = runSeries.length ? runSeries[0] : null;
+      priceLineHost = runSeries.length ? runSeries[runSeries.length - 1] : null;
       const lastClose = lineData.length ? lineData[lineData.length - 1].value : null;
       if (lastClose != null && priceLineHost) {
         lastLine = priceLineHost.createPriceLine({
@@ -1935,6 +1964,10 @@ $('#themeToggle').addEventListener('click', () => {
 (async function init() {
   applyStaticI18n();
   renderWatchStrip();
+  // Sparklines first, in parallel with everything else: the request was already
+  // started in <head> (window.__sparksP), so this typically resolves from cache
+  // and the charts are painted before the quotes even arrive.
+  loadSparks();
   await loadMBI();
   await loadFX();
   await Promise.all([loadQuotes()]);

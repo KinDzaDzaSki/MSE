@@ -36,6 +36,14 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
 <link rel="stylesheet" href="/styles.css?v=7.5" />
+
+<!-- Start the sparkline request immediately, in parallel with the CSS/fonts and
+     before app.js is even fetched. app.js consumes window.__sparksP (falling
+     back to its own fetch). MSE history is end-of-day, so /api/sparks is
+     cacheable and usually answers from the browser/edge cache instantly. -->
+<script>
+window.__sparksP = fetch('/api/sparks').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+</script>
 </head>
 <body>
 
@@ -217,7 +225,7 @@
 
 <script src="/logo.js?v=1"></script>
 <script src="/widget.js?v=7"></script>
-<script src="/app.js?v=8.0"></script>
+<script src="/app.js?v=8.1"></script>
 <!-- Vercel Web Analytics (serves /_vercel/insights/script.js on Vercel builds;
      harmless 404 on other hosts). -->
 <script defer src="/_vercel/insights/script.js"></script>
