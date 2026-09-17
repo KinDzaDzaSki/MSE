@@ -91,7 +91,7 @@ function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd
 <meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
-<link rel="stylesheet" href="/styles.css?v=7.5" />
+<link rel="stylesheet" href="/styles.css?v=7.6" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
@@ -146,7 +146,7 @@ function ssrQuoteRows(quotes, n) {
       const pct = hi === lo ? 50 : Math.max(0, Math.min(100, ((cur - lo) / (hi - lo)) * 100));
       range = `<div class="wk-range-bar"><div class="wk-range-fill" style="left:0;width:${pct}%;background:${cur >= lo ? 'var(--green)' : 'var(--red)'};opacity:0.25"></div><div class="wk-range-pointer" style="left:calc(${pct}% - 1.5px)"></div></div><div class="wk-range-labels"><span>${fmtN(lo, 0)}</span><span>${fmtN(hi, 0)}</span></div>`;
     }
-    return `<tr data-sym="${esc(r.symbol)}"><td class="sym"><div class="sym-inner"><button type="button" class="star-btn" data-star="${esc(r.symbol)}" title="Додај во листата"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20">star</span></button>${CoLogo.icon(r.symbol, r.name, r.site, 22, r.fav)}<span class="sym-text">${esc(r.symbol)}</span></div></td><td class="comp">${esc(r.name || '')}</td><td class="spark"><canvas data-spark="${esc(r.symbol)}"></canvas></td><td class="num">${fmtN(r.lastPrice)}</td><td class="num ${pctCls(r.changePct)}"><span class="chg-pill">${pctStr(r.changePct)}</span></td><td class="num">${fmtN(r.volume, 0)}</td><td class="num ${pctCls(r.week52Chg)}"><span class="chg-pill">${pctStr(r.week52Chg)}</span></td><td class="wk-range">${range}</td></tr>`;
+    return `<tr data-sym="${esc(r.symbol)}"><td class="sym"><div class="sym-inner"><button type="button" class="star-btn" data-star="${esc(r.symbol)}" title="Додај во листата"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20">star</span></button>${CoLogo.icon(r.symbol, r.name, r.site, 22, r.fav, r.favv)}<span class="sym-text">${esc(r.symbol)}</span></div></td><td class="comp">${esc(r.name || '')}</td><td class="spark"><canvas data-spark="${esc(r.symbol)}"></canvas></td><td class="num">${fmtN(r.lastPrice)}</td><td class="num ${pctCls(r.changePct)}"><span class="chg-pill">${pctStr(r.changePct)}</span></td><td class="num">${fmtN(r.volume, 0)}</td><td class="num ${pctCls(r.week52Chg)}"><span class="chg-pill">${pctStr(r.week52Chg)}</span></td><td class="wk-range">${range}</td></tr>`;
   }).join('\n');
 }
 
@@ -588,7 +588,7 @@ ${stat('Број на сесии', fmtN(year.length, 0))}
     description: `${name} (${sym}) на Македонската берза: последна цена ${fmtN(q.lastPrice)} MKD, промена ${pctStr(q.changePct)}, 52-неделен опсег, волумен и промет.`,
     canonical: `${SITE_URL}/s/${encodeURIComponent(sym)}`,
     h1: `${name} (${sym}) — цена и податоци од Македонската берза`,
-    h1Html: `<span class="h1-logo">${CoLogo.icon(sym, name, q.site, 30, q.fav)}</span>${esc(name)} (${esc(sym)}) — цена и податоци од Македонската берза`,
+    h1Html: `<span class="h1-logo">${CoLogo.icon(sym, name, q.site, 30, q.fav, q.favv)}</span>${esc(name)} (${esc(sym)}) — цена и податоци од Македонската берза`,
     bodyHtml,
     jsonLd: {
       '@context': 'https://schema.org',

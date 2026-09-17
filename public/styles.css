@@ -401,7 +401,8 @@ a:hover {
 }
 
 /* NBRM FX chip — same pill style as #mbiChip. tabular-nums keeps the chip
-   from jumping as values update. */
+   from jumping as values update. min-width reserves the loaded state so the
+   topbar never reflows when "€ —" becomes "€ 61.50". */
 #fxChip {
   font-size: 12px;
   font-weight: 500;
@@ -412,6 +413,12 @@ a:hover {
   background: var(--md-sys-color-surface-variant);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  min-width: 92px;
+  justify-content: center;
+}
+#mbiChip {
+  min-width: 118px;
+  justify-content: center;
 }
 @media (max-width: 480px) {
   #fxChip .fx-usd { display: none; } /* € only on very small screens */
@@ -1153,6 +1160,10 @@ table.quotes td.sym .sym-text { display: inline-block; }
   flex-direction: column;
   flex: 0 1 auto;
   min-height: 0;
+  /* Reserved height: the cards fill with data ~1s after load — without a
+     reserve everything below the strip jumps when they populate. 356px is the
+     measured content height of a populated 5-item card. */
+  min-height: 356px;
   transition: box-shadow var(--md-motion-duration-medium-1) var(--md-motion-easing-standard);
 }
 
@@ -1418,9 +1429,15 @@ table.quotes td.sym .sym-text { display: inline-block; }
 
 /* Range-bar inside a stat cell (day range, 52w position).
    4px tall track with a 6px circle marker showing where the current
-   price sits. End-labels sit just outside the track, micro-sized. */
+   price sits. End-labels sit just outside the track, micro-sized.
+   The labels are absolutely positioned ~18px below the bar top, so the cell
+   needs extra bottom padding — without it the low/high values get cut off
+   by the card edge (most visible in the mobile modal). */
 .stat-with-bar .v {
   margin-bottom: 10px;
+}
+.stat-with-bar {
+  padding-bottom: 28px;
 }
 .stat-bar {
   position: relative;
@@ -1686,7 +1703,7 @@ table.quotes td.sym .sym-text { display: inline-block; }
     display: none;
   }
   .topbar-right {
-    gap: 2px;
+    gap: 8px;
   }
   .market-status {
     display: none;

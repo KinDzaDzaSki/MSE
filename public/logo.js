@@ -48,12 +48,15 @@
       + (hidden ? ';display:none' : '');
   }
 
-  // icon(symbol, name, site, size, fav) -> span.co-logo markup
+  // icon(symbol, name, site, size, fav, favv) -> span.co-logo markup
   // `fav` (boolean) means a self-hosted favicon exists at /api/favicon/{SYM}.
-  // The <img> falls back to Google's favicon cache in the browser (host is
-  // passed for that), then to the monogram — with a watchdog so a hanging
-  // third-party request can never leave a blank tile (see __coLogoStep).
-  function icon(symbol, name, site, size, fav) {
+  // `favv` is the favicon's fetched_at timestamp used as a cache-busting
+  // version, so a re-crawl propagates immediately instead of waiting out the
+  // browser's 24h favicon cache. The <img> falls back to Google's favicon
+  // cache in the browser (host is passed for that), then to the monogram —
+  // with a watchdog so a hanging third-party request can never leave a blank
+  // tile (see __coLogoStep).
+  function icon(symbol, name, site, size, fav, favv) {
     const sym = String(symbol || '');
     const px = size || 22;
     if (!fav) {
@@ -62,8 +65,10 @@
         + '</span>';
     }
     const host = hostOf(site) || '';
+    const v = Number(favv || 0);
+    const src = '/api/favicon/' + encodeURIComponent(sym) + (v ? '?v=' + v : '');
     return '<span class="co-logo" aria-hidden="true">'
-      + '<img src="/api/favicon/' + encodeURIComponent(sym) + '" width="' + px + '" height="' + px + '" alt="" loading="lazy"'
+      + '<img src="' + src + '" width="' + px + '" height="' + px + '" alt="" loading="lazy"'
       + ' onerror="__coLogoStep(this,\'' + host + '\')">'
       + '<span class="co-logo-mono" style="' + monoStyle(sym, name, px, true) + '">' + esc(monogram(sym, name)) + '</span>'
       + '</span>';
