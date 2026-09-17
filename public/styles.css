@@ -2190,7 +2190,8 @@ table.quotes thead th.spark-th {
 .faq-item[open] > summary { color: var(--md-sys-color-primary); }
 .faq-a {
   padding: 0 20px 18px;
-  max-width: 68ch;
+  /* Full width of the card: leaving a narrow max-width made answers end
+     well short of the answer box and wrap at awkward spots. */
   color: var(--md-sys-color-on-surface-variant);
   animation: faqIn var(--md-motion-duration-medium-1) var(--md-motion-easing-decelerate);
 }

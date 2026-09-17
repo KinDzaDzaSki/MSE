@@ -124,12 +124,13 @@ const I18N = {
       as_of: 'As of',
       eod_note: 'end-of-day data (latest trading session)',
       failed: 'Failed to load data.',
-      source: 'Data scraped from mse.mk — free public end-of-day data — for educational use.',
+      source: 'Data scraped from <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — free public end-of-day data — for educational use.',
       widgets_link: 'Widgets',
       footer_faq: 'FAQ',
       footer_about: 'About',
       footer_source: 'Data source',
       footer_method: 'Methodology',
+      footer_disclaimer: 'Not investment advice.',
       lang_btn: 'МК',
       tab_chart: 'Chart',
       tab_fin_data: 'Financial Data',
@@ -250,12 +251,13 @@ const I18N = {
       as_of: 'За',
       eod_note: 'податоци на крај на ден (последната трговска сесија)',
       failed: 'Не успеа вчитувањето на податоците.',
-      source: 'Податоци преземени од mse.mk — бесплатни јавни податоци — за едукативна намена.',
+      source: 'Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена.',
       widgets_link: 'Виџети',
       footer_faq: 'Прашања',
       footer_about: 'За нас',
       footer_source: 'Извор на податоци',
       footer_method: 'Методологија',
+      footer_disclaimer: 'Не е инвестициски совет.',
       lang_btn: 'EN',
       tab_chart: 'Графикон',
       tab_fin_data: 'Податоци',
@@ -337,7 +339,7 @@ const I18N = {
 // Default to Macedonian: the brand, the SSR pages and <html lang> are all MK.
 // English stays one tap away via the language toggle.
 let lang = localStorage.getItem('mse_lang') || 'mk';
-const APP_VERSION = '2.5.5';
+const APP_VERSION = '2.5.6';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -378,7 +380,7 @@ function applyStaticI18n() {
   $('#search').placeholder = t('search');
   updateToggleLabels();
   renderWatchStrip();
-  $('.foot').innerHTML = `<a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · ${t('source')} · <a href="/prasanja">${t('footer_faq')}</a> · <a href="/za-nas">${t('footer_about')}</a> · <a href="/izvor-na-podatoci">${t('footer_source')}</a> · <a href="/metodologija">${t('footer_method')}</a> · <a href="/widgets.html">${t('widgets_link')}</a> · v${APP_VERSION}`;
+  $('.foot').innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>${t('source')} · <a href="/prasanja">${t('footer_faq')}</a> · <a href="/za-nas">${t('footer_about')}</a> · <a href="/izvor-na-podatoci">${t('footer_source')}</a> · <a href="/metodologija">${t('footer_method')}</a> · <a href="/widgets.html">${t('widgets_link')}</a> · ${t('footer_disclaimer')} · v${APP_VERSION}`;
   $$('.side-title')[0].textContent = t('gainers');
   $$('.side-title')[1].textContent = t('losers');
   $$('.side-title')[2].textContent = t('active');

@@ -199,7 +199,9 @@
     setInterval(() => { if (!document.hidden) load(); }, 60000);
   };
 
-  // Dashboard footer markup (same links + version as index.html).
+  // Shared footer markup — identical to the server-rendered footer in
+  // pageShell (server.js) and to the dashboard footer in app.js so every page
+  // matches. Keep all three in sync.
   W.renderFoot = async () => {
     const el = document.querySelector('.foot');
     if (!el) return;
@@ -211,7 +213,7 @@
     el.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>'
       + 'Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · '
       + '<a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · '
-      + '<a href="/widgets.html">Виџети</a>' + version;
+      + '<a href="/widgets.html">Виџети</a> · Не е инвестициски совет.' + version;
   };
 
   // ---- Chip modals (market hours + full NBRM list) ----

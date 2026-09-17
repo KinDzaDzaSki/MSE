@@ -87,7 +87,7 @@ function pageShell({ title, description, canonical, h1, bodyHtml, jsonLd }) {
 <meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
-<link rel="stylesheet" href="/styles.css?v=7.2" />
+<link rel="stylesheet" href="/styles.css?v=7.3" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
@@ -118,8 +118,8 @@ ${TOPBAR_HTML}
 <h1>${esc(h1)}</h1>
 ${bodyHtml}
 </main>
-<footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · Не е инвестициски совет. · v${esc(PKG.version)}</footer>
-<script src="/widget.js?v=4"></script>
+<footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · Не е инвестициски совет. · v${esc(PKG.version)}</footer>
+<script src="/widget.js?v=5"></script>
 <script>if (window.W && W.initTopbar) W.initTopbar();</script>
 </body>
 </html>`;
@@ -397,20 +397,27 @@ try {
 
 // ---- FAQ (parsed from the human-written markdown at boot) ----
 // Format: "## Section" headings, "**Question?**" lines, following paragraphs
-// are the answer. Single source of truth — no duplicated content here.
+// are the answer. A paragraph is one or more consecutive non-empty lines —
+// markdown soft-wraps long text across lines, so joined lines flow as a single
+// paragraph instead of one <p> per line (which broke sentences mid-word).
 let FAQ_SECTIONS = [];
 try {
   const md = fs.readFileSync(path.join(__dirname, 'berza-akcii-prasanja-odgovori.md'), 'utf8');
   let section = null;
   let question = null;
-  let answer = [];
+  let paragraphs = [];
+  let para = [];
+  const flushPara = () => {
+    if (question && para.length) paragraphs.push(para.join(' ').trim());
+    para = [];
+  };
   const flushAnswer = () => {
-    if (question && section) {
-      const text = answer.join('\n').trim();
-      if (text) section.items.push({ q: question, a: text });
+    flushPara();
+    if (question && section && paragraphs.length) {
+      section.items.push({ q: question, a: paragraphs.join('\n\n') });
     }
     question = null;
-    answer = [];
+    paragraphs = [];
   };
   const flushSection = () => {
     flushAnswer();
@@ -419,7 +426,7 @@ try {
   };
   for (const raw of md.split(/\r?\n/)) {
     const line = raw.trim();
-    if (!line) continue;
+    if (!line) { flushPara(); continue; } // blank line ends the paragraph
     if (line.startsWith('## ')) {
       flushSection();
       section = { title: line.slice(3).trim(), items: [] };
@@ -427,7 +434,7 @@ try {
       flushAnswer();
       question = line.slice(2, -2).trim();
     } else if (question) {
-      answer.push(line);
+      para.push(line);
     }
   }
   flushSection();
@@ -540,7 +547,7 @@ function renderFaqPage() {
     const items = sec.items.map((it, qi) => `
 <details class="faq-item" id="q-${si + 1}-${qi + 1}">
   <summary>${esc(it.q)}</summary>
-  <div class="faq-a">${it.a.split('\n').map((p) => `<p>${esc(p)}</p>`).join('')}</div>
+  <div class="faq-a">${it.a.split('\n\n').map((p) => `<p>${esc(p)}</p>`).join('')}</div>
 </details>`).join('');
     return `<section class="faq-sec" id="sec-${si + 1}"><h2 class="faq-sec-title">${esc(sec.title)}</h2>${items}</section>`;
   }).join('\n');
@@ -555,7 +562,7 @@ function renderFaqPage() {
     mainEntity: FAQ_SECTIONS.flatMap((sec) => sec.items.map((it) => ({
       '@type': 'Question',
       name: it.q,
-      acceptedAnswer: { '@type': 'Answer', text: it.a.split('\n').join(' ') },
+      acceptedAnswer: { '@type': 'Answer', text: it.a.split('\n\n').join(' ') },
     }))),
   };
 
