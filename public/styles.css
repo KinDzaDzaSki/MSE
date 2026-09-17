@@ -422,6 +422,12 @@ a:hover {
 }
 @media (max-width: 480px) {
   #fxChip .fx-usd { display: none; } /* € only on very small screens */
+  /* Crowding fix at ~390px: the desktop min-widths (added so the loaded chips
+     never reflow) don't fit next to the brand + two icon buttons here, so they
+   caused overflow/cut-off icon buttons. On mobile the brand shrinks to just
+   the logo mark and the chips size to their content (gap stays 8px). */
+  .brand-text { display: none; }
+  #fxChip, #mbiChip { min-width: 0; }
 }
 
 /* Icon Button */
@@ -1711,9 +1717,9 @@ table.quotes td.sym .sym-text { display: inline-block; }
   #mbiChip {
     font-size: 10px;
     padding: 2px 6px;
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* brand text is hidden at this width, so the chip has room — the old
+       100px max-width was clipping the M of "MBI10" */
+    max-width: none;
   }
   #fxChip {
     font-size: 10px;
