@@ -476,7 +476,7 @@ a:hover {
    ========================================================================== */
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--md-space-md);
   padding: var(--md-space-md) var(--md-space-md);
   max-width: 1600px;
@@ -485,6 +485,17 @@ a:hover {
   /* Fills whatever height is left after the topbar + footer (body flex). */
   flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
+}
+/* Future ad rail: add `has-ad` to <body> and the table narrows to make room.
+   Nothing renders it today (no ad pipeline yet). */
+.ad-rail { display: none; }
+body.has-ad .layout { grid-template-columns: minmax(0, 1fr) 300px; }
+body.has-ad .ad-rail {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -593,18 +604,16 @@ a:hover {
   color: var(--md-sys-color-on-surface);
 }
 
-.sidebar {
-  display: flex;
-  flex-direction: column;
+/* Movers strip — full-width row above the table. The old right rail lived in
+   the .layout grid; the strip is horizontal so the table keeps the full width. */.side-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--md-space-sm);
-  overflow-y: auto;
-  min-width: 0;
-  /* Grid children default to min-height:auto — without 0 the column grows to
-     its content height, gets clipped by .layout's overflow:hidden, and the
-     scrollbar never engages. */
-  min-height: 0;
-  scrollbar-width: thin;
-  scrollbar-color: var(--md-sys-color-outline) transparent;
+  padding: var(--md-space-md) var(--md-space-md) 0;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  flex-shrink: 0;
 }
 
 /* ==========================================================================
@@ -890,6 +899,28 @@ table.quotes td {
   font-feature-settings: 'tnum' 1;
 }
 
+/* Coinbase-style change pills. Backgrounds come from the WCAG-tuned
+   *-container tokens, so both themes clear AA without extra work. */
+.chg-pill {
+  display: inline-block;
+  min-width: 62px;
+  padding: 4px 10px;
+  border-radius: var(--md-shape-full);
+  font-weight: 600;
+  text-align: center;
+  background: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
+}
+td.up .chg-pill {
+  background: var(--md-sys-color-positive-container);
+  color: var(--md-sys-color-on-positive-container);
+}
+td.down .chg-pill {
+  background: var(--md-sys-color-negative-container);
+  color: var(--md-sys-color-on-negative-container);
+}
+table.quotes td.num:has(.chg-pill) { padding-top: 6px; padding-bottom: 6px; }
+
 table.quotes tbody tr {
   transition: background var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
@@ -996,6 +1027,15 @@ table.quotes thead th.spark-th {
   letter-spacing: 0.3px;
   font-feature-settings: 'tnum' 1, 'calt' 1;
 }
+/* Logo + star + ticker share one flex row so the icon never wraps on narrow
+   screens and the ticker column stays aligned across rows. */
+table.quotes td.sym {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+table.quotes td.sym .sym-text { display: inline-block; }
 
 .comp {
   color: var(--md-sys-color-on-surface-variant);
@@ -1063,7 +1103,41 @@ table.quotes thead th.spark-th {
 }
 
 /* ==========================================================================
-   SIDEBAR CARDS — M3 Elevated Cards
+   COMPANY LOGO (favicon + monogram fallback)
+   ========================================================================== */
+.co-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--md-sys-color-surface-variant);
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.co-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  display: block;
+}
+.co-logo-mono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: #FFFFFF;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   MOVERS STRIP CARDS — M3 Elevated Cards
    ========================================================================== */
 .side-card {
   background: var(--md-sys-color-surface);
@@ -1130,6 +1204,11 @@ table.quotes thead th.spark-th {
   color: var(--md-sys-color-primary);
   font-size: 13px;
   letter-spacing: 0.2px;
+}
+.side-item .si-sym {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .side-item .si-name {
   color: var(--md-sys-color-on-surface-variant);
@@ -1240,6 +1319,9 @@ table.quotes thead th.spark-th {
   font-weight: 600;
   letter-spacing: 0;
   color: var(--md-sys-color-on-surface);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .company-sub {
@@ -1481,20 +1563,23 @@ table.quotes thead th.spark-th {
 
 /* Large: 1200-1599px — slightly narrower sidebar */
 @media (max-width: 1599px) {
-  .layout {
+  body.has-ad .layout {
     grid-template-columns: minmax(0, 1fr) 280px;
   }
 }
 
-/* Expanded: 840-1199px — narrower sidebar, still 2-pane */
+/* Expanded: 840-1199px — still full width (no rail unless an ad is configured) */
 @media (max-width: 1199px) {
   .layout {
-    grid-template-columns: minmax(0, 1fr) 250px;
+    grid-template-columns: minmax(0, 1fr);
     max-width: none;
+  }
+  body.has-ad .layout {
+    grid-template-columns: minmax(0, 1fr) 250px;
   }
 }
 
-/* Medium: 600-839px — single column, sidebar as 2-col card grid */
+/* Medium: 600-839px — single column, strip becomes a swipeable row */
 @media (max-width: 839px) {
   .layout {
     grid-template-columns: 1fr;
@@ -1504,12 +1589,23 @@ table.quotes thead th.spark-th {
     max-width: none;
   }
 
-  .sidebar {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+  /* Horizontal scroll row with snap: three cards stay side by side and the
+     row pans sideways instead of stacking (keeps the table above the fold). */
+  .side-strip {
+    display: flex;
+    grid-template-columns: none;
     gap: var(--md-space-xs);
-    overflow: visible;
-    flex-shrink: 0;
+    padding: var(--md-space-sm) var(--md-space-sm) 0;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .side-strip::-webkit-scrollbar { display: none; }
+  .side-strip .side-card {
+    flex: 0 0 78%;
+    min-width: 0;
+    scroll-snap-align: start;
   }
   .side-card {
     min-width: 0;
@@ -1575,7 +1671,7 @@ table.quotes thead th.spark-th {
   #fxChip { font-size: 11px; padding: 2px 8px; }
 }
 
-/* Compact: <600px — single column, stacked sidebar, simplified topbar */
+/* Compact: <600px — single column, swipeable strip, simplified topbar */
 @media (max-width: 599px) {
   .topbar {
     height: 48px;
@@ -1630,8 +1726,8 @@ table.quotes thead th.spark-th {
     font-size: 20px;
   }
 
-  .sidebar {
-    grid-template-columns: 1fr;
+  .side-strip .side-card {
+    flex: 0 0 86%;
   }
 
   /* Very small screens: stack the controls full-width so labels never

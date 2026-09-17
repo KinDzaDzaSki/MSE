@@ -6,6 +6,7 @@ const store = require('./lib/store');
 const log = require('./lib/logger');
 const { getFX, getFXList } = require('./lib/fx');
 const { marketInfo } = require('./lib/market');
+const CoLogo = require('./public/logo.js');
 const PKG = require('./package.json');
 
 // Shared secret for expensive/admin endpoints (backfill, refresh, logs).
@@ -77,7 +78,9 @@ const TOPBAR_HTML = `<header class="topbar">
   </div>
 </header>`;
 
-function pageShell({ title, description, canonical, h1, bodyHtml, jsonLd }) {
+// `h1Html` lets a caller pass pre-built markup (e.g. the company logo before
+// the title); when absent `h1` is escaped as plain text.
+function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd }) {
   return `<!DOCTYPE html>
 <html lang="mk" data-theme="dark">
 <head>
@@ -87,7 +90,7 @@ function pageShell({ title, description, canonical, h1, bodyHtml, jsonLd }) {
 <meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
-<link rel="stylesheet" href="/styles.css?v=7.3" />
+<link rel="stylesheet" href="/styles.css?v=7.4" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
@@ -109,17 +112,19 @@ ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script
   td.num, th.num { text-align: right; font-feature-settings: 'tnum' 1; }
   .up { color: var(--md-sys-color-positive); }
   .down { color: var(--md-sys-color-negative); }
+  /* Company logo inside the /s/{SYM} SSR heading. */
+  .h1-logo { display: inline-flex; vertical-align: -4px; margin-right: 10px; }
   .cta { display: inline-block; margin-top: 4px; padding: 10px 16px; border-radius: 8px; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); font-weight: 700; text-decoration: none; font-size: 13px; width: max-content; }
 </style>
 </head>
 <body>
 ${TOPBAR_HTML}
 <main class="seo-wrap">
-<h1>${esc(h1)}</h1>
+<h1>${h1Html || esc(h1)}</h1>
 ${bodyHtml}
 </main>
 <footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · Не е инвестициски совет. · v${esc(PKG.version)}</footer>
-<script src="/widget.js?v=5"></script>
+<script src="/widget.js?v=6"></script>
 <script>if (window.W && W.initTopbar) W.initTopbar();</script>
 <!-- Vercel Web Analytics -->
 <script defer src="/_vercel/insights/script.js"></script>
@@ -140,7 +145,7 @@ function ssrQuoteRows(quotes, n) {
       const pct = hi === lo ? 50 : Math.max(0, Math.min(100, ((cur - lo) / (hi - lo)) * 100));
       range = `<div class="wk-range-bar"><div class="wk-range-fill" style="left:0;width:${pct}%;background:${cur >= lo ? 'var(--green)' : 'var(--red)'};opacity:0.25"></div><div class="wk-range-pointer" style="left:calc(${pct}% - 1.5px)"></div></div><div class="wk-range-labels"><span>${fmtN(lo, 0)}</span><span>${fmtN(hi, 0)}</span></div>`;
     }
-    return `<tr data-sym="${esc(r.symbol)}"><td class="sym"><button type="button" class="star-btn" data-star="${esc(r.symbol)}" title="Додај во листата"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20">star</span></button><span class="sym-text">${esc(r.symbol)}</span></td><td class="comp">${esc(r.name || '')}</td><td class="spark"><canvas data-spark="${esc(r.symbol)}"></canvas></td><td class="num">${fmtN(r.lastPrice)}</td><td class="num ${pctCls(r.changePct)}">${pctStr(r.changePct)}</td><td class="num">${fmtN(r.volume, 0)}</td><td class="num ${pctCls(r.week52Chg)}">${pctStr(r.week52Chg)}</td><td class="wk-range">${range}</td></tr>`;
+    return `<tr data-sym="${esc(r.symbol)}"><td class="sym"><button type="button" class="star-btn" data-star="${esc(r.symbol)}" title="Додај во листата"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20">star</span></button>${CoLogo.icon(r.symbol, r.name, r.site)}<span class="sym-text">${esc(r.symbol)}</span></td><td class="comp">${esc(r.name || '')}</td><td class="spark"><canvas data-spark="${esc(r.symbol)}"></canvas></td><td class="num">${fmtN(r.lastPrice)}</td><td class="num ${pctCls(r.changePct)}"><span class="chg-pill">${pctStr(r.changePct)}</span></td><td class="num">${fmtN(r.volume, 0)}</td><td class="num ${pctCls(r.week52Chg)}"><span class="chg-pill">${pctStr(r.week52Chg)}</span></td><td class="wk-range">${range}</td></tr>`;
   }).join('\n');
 }
 
@@ -341,6 +346,21 @@ async function handleApi(req, res, url) {
     return sendJson(res, { ok: true, job: job.id, total: job.total });
   }
 
+  if (url.pathname === '/api/backfill-companies') {
+    if (!needAdmin(url, req, res)) return;
+    // Scrapes each issuer's official website from the MSE symbol page
+    // (monthly TTL; ?force=1 re-checks everything). Poll /api/job/{id}.
+    const force = url.searchParams.get('force') === '1';
+    const job = store.startCompaniesBackfillJob({ force });
+    return sendJson(res, { ok: true, job: job.id, total: job.total, force });
+  }
+
+  if (url.pathname === '/api/companies') {
+    // symbol -> { website } map used by the client to render favicon logos.
+    const map = await store.getCompanies();
+    return sendJson(res, { companies: map, count: Object.keys(map).length }, 200, req, 3600);
+  }
+
   if (url.pathname === '/api/history') {
     // Batch history: /api/history?symbols=ALK,ADIN,GRNT&range=1Y
     const syms = (url.searchParams.get('symbols') || '').split(',').filter(Boolean);
@@ -521,6 +541,7 @@ ${stat('Број на сесии', fmtN(year.length, 0))}
     description: `${name} (${sym}) на Македонската берза: последна цена ${fmtN(q.lastPrice)} MKD, промена ${pctStr(q.changePct)}, 52-неделен опсег, волумен и промет.`,
     canonical: `${SITE_URL}/s/${encodeURIComponent(sym)}`,
     h1: `${name} (${sym}) — цена и податоци од Македонската берза`,
+    h1Html: `<span class="h1-logo">${CoLogo.icon(sym, name, q.site, 30)}</span>${esc(name)} (${esc(sym)}) — цена и податоци од Македонската берза`,
     bodyHtml,
     jsonLd: {
       '@context': 'https://schema.org',

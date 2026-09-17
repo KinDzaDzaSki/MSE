@@ -35,7 +35,7 @@
 <!-- Material Symbols variable font -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
-<link rel="stylesheet" href="/styles.css?v=7.3" />
+<link rel="stylesheet" href="/styles.css?v=7.4" />
 </head>
 <body>
 
@@ -64,6 +64,33 @@
     </button>
   </div>
 </header>
+
+<!-- MOVERS STRIP: full-width row above the table. The old right rail is gone
+     so the table can use the whole width (a future ad rail can re-narrow it
+     by adding `has-ad` on <body> - see .ad-rail in styles.css). -->
+<div class="side-strip" role="region" aria-label="Топ движења">
+  <div class="side-card" id="gainersCard">
+    <h3 class="side-title">
+      <span class="material-symbols-outlined icon-fill" style="color:var(--md-sys-color-positive)">trending_up</span>
+      <span data-i18n="gainers">Најголеми добитници</span>
+    </h3>
+    <div class="side-items" id="gainersItems"></div>
+  </div>
+  <div class="side-card" id="losersCard">
+    <h3 class="side-title">
+      <span class="material-symbols-outlined icon-fill" style="color:var(--md-sys-color-negative)">trending_down</span>
+      <span data-i18n="losers">Најголеми губитници</span>
+    </h3>
+    <div class="side-items" id="losersItems"></div>
+  </div>
+  <div class="side-card" id="activeCard">
+    <h3 class="side-title">
+      <span class="material-symbols-outlined">bar_chart</span>
+      <span data-i18n="active">Најтргувани</span>
+    </h3>
+    <div class="side-items" id="activeItems"></div>
+  </div>
+</div>
 
 <!-- MAIN LAYOUT -->
 <main class="layout">
@@ -151,31 +178,6 @@
       <div class="fin-note" id="divNote"></div>
     </div>
   </section>
-
-  <!-- RIGHT: SIDEBAR CARDS -->
-  <aside class="sidebar">
-    <div class="side-card" id="gainersCard">
-      <h3 class="side-title">
-        <span class="material-symbols-outlined icon-fill" style="color:var(--md-sys-color-positive)">trending_up</span>
-        Top gainers
-      </h3>
-      <div class="side-items" id="gainersItems"></div>
-    </div>
-    <div class="side-card" id="losersCard">
-      <h3 class="side-title">
-        <span class="material-symbols-outlined icon-fill" style="color:var(--md-sys-color-negative)">trending_down</span>
-        Top losers
-      </h3>
-      <div class="side-items" id="losersItems"></div>
-    </div>
-    <div class="side-card" id="activeCard">
-      <h3 class="side-title">
-        <span class="material-symbols-outlined">pulse</span>
-        Most active
-      </h3>
-      <div class="side-items" id="activeItems"></div>
-    </div>
-  </aside>
 </main>
 
 <!-- COMPANY MODAL — M3 Dialog -->
@@ -213,8 +215,9 @@
   Data scraped from <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — free public end-of-day data — for educational use.
 </footer>
 
-<script src="/widget.js?v=5"></script>
-<script src="/app.js?v=7.7"></script>
+<script src="/logo.js?v=1"></script>
+<script src="/widget.js?v=6"></script>
+<script src="/app.js?v=7.8"></script>
 <!-- Vercel Web Analytics (serves /_vercel/insights/script.js on Vercel builds;
      harmless 404 on other hosts). -->
 <script defer src="/_vercel/insights/script.js"></script>

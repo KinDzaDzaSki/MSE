@@ -18,6 +18,18 @@
 
   W.marketOpen = false;
 
+  // ---- Company logo (favicon + monogram fallback) ----
+  // All rendering lives in /logo.js (shared with the Node SSR path); this is
+  // just the window-scoped entry point used by widget/app code.
+  W.hostOf = (site) => (window.CoLogo ? CoLogo.hostOf(site) : null);
+  W.monogram = (symbol, name) => (window.CoLogo ? CoLogo.monogram(symbol, name) : String(symbol || '').slice(0, 2).toUpperCase());
+  W.monogramColor = (symbol) => (window.CoLogo ? CoLogo.monogramColor(symbol) : '#4D8AF0');
+  W.companyIcon = (symbol, name, site, size) => {
+    if (window.CoLogo) return CoLogo.icon(symbol, name, site, size || 22);
+    return '<span class="co-logo co-logo-plain"><span class="co-logo-mono" style="background:#4D8AF0;width:22px;height:22px;font-size:10px">'
+      + W.monogram(symbol, name) + '</span></span>';
+  };
+
   // Refresh scheduler: the initial load always runs; afterwards the data is
   // re-fetched every minute ONLY while the MSE market is open — MSE publishes
   // end-of-day data once per session, so outside market hours the last
