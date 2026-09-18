@@ -30,19 +30,28 @@
       + W.monogram(symbol, name) + '</span></span>';
   };
 
-  // Refresh scheduler: the initial load always runs; afterwards the data is
-  // re-fetched every minute ONLY while the MSE market is open — MSE publishes
-  // end-of-day data once per session, so outside market hours the last
-  // snapshot is already final and re-fetching would be waste.
-  W.autoRefresh = (fn, intervalMs = 60000) => {
+  // Refresh scheduler: aligns with the server's poll cadence (pollIntervalMs
+  // from /api/symbols — MSE is a thin market, so ticks are minutes apart,
+  // not seconds) and only re-fetches while pollActive — the trading session
+  // plus the EOD capture window (until ~16:00), when the server's data may
+  // still change. Outside that the snapshot is final for the day, so the
+  // widget holds it instead of re-fetching. Older servers without these
+  // fields fall back to marketOpen + a 5-minute tick.
+  W.autoRefresh = (fn, fallbackIntervalMs = 5 * 60 * 1000) => {
+    let intervalMs = fallbackIntervalMs;
     const tick = async () => {
       try {
         const st = await W.fetchJSON('/api/symbols');
         W.marketOpen = !!st.marketOpen;
-        if (W.marketOpen) await fn();
+        if (typeof st.pollIntervalMs === 'number' && st.pollIntervalMs >= 30000) {
+          intervalMs = st.pollIntervalMs;
+        }
+        const active = st.pollActive != null ? !!st.pollActive : !!st.marketOpen;
+        if (active) await fn();
       } catch (e) { /* keep last snapshot */ }
+      setTimeout(tick, intervalMs);
     };
-    setInterval(tick, intervalMs);
+    setTimeout(tick, intervalMs); // first check one interval in; the page already did load()
   };
 
   W.sparkline = (canvas, values, color) => {

@@ -125,7 +125,7 @@ ${TOPBAR_HTML}
 ${bodyHtml}
 </main>
 <footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · Не е инвестициски совет. · v${esc(PKG.version)}</footer>
-<script src="/widget.js?v=7"></script>
+<script src="/widget.js?v=8"></script>
 <script>if (window.W && W.initTopbar) W.initTopbar();</script>
 <!-- Vercel Web Analytics -->
 <script defer src="/_vercel/insights/script.js"></script>
@@ -214,7 +214,11 @@ async function handleApi(req, res, url) {
   const parts = url.pathname.split('/').filter(Boolean); // ['api', ...]
 
   if (url.pathname === '/api/symbols') {
-    return sendJson(res, { symbols: store.getSymbols(), marketOpen: store.isMarketOpen() }, 200, req, 300);
+    // schedulerInfo carries the client refresh contract: pollIntervalMs (tick
+    // cadence) and pollActive (data may still change today — session + EOD
+    // capture window). Widgets use it to align their refresh with the server.
+    const info = store.schedulerInfo();
+    return sendJson(res, { symbols: store.getSymbols(), marketOpen: store.isMarketOpen(), pollActive: info.pollActive, pollIntervalMs: info.pollIntervalMs }, 200, req, 300);
   }
 
   if (url.pathname === '/api/quotes') {
@@ -226,7 +230,7 @@ async function handleApi(req, res, url) {
       arr = arr.filter((q) => active.has(q.symbol));
     }
     arr.sort((a, b) => (b.value || 0) - (a.value || 0));
-    return sendJson(res, { quotes: arr, marketOpen: store.isMarketOpen(), lastPoll: store.lastPoll }, 200, req, 60);
+    return sendJson(res, { quotes: arr, marketOpen: store.isMarketOpen(), pollActive: store.schedulerInfo().pollActive, lastPoll: store.lastPoll }, 200, req, 60);
   }
 
   if (url.pathname === '/api/sparks') {
@@ -394,7 +398,9 @@ async function handleApi(req, res, url) {
     // the client's monogram fallback kicks in on the next visit too.
     const fav = await db.getFavicon(decodeURIComponent(favRoute[1]).toUpperCase());
     if (fav && fav.data && fav.data.length) {
-      const headers = { 'Content-Type': fav.type, 'Cache-Control': 'public, max-age=86400, s-maxage=86400' };
+      // 30 days: the client URL is version-busted with ?v={favv} (fetched_at),
+      // so a re-crawl naturally produces a fresh URL — long max-age is free.
+      const headers = { 'Content-Type': fav.type, 'Cache-Control': 'public, max-age=2592000, s-maxage=2592000, immutable' };
       sendRaw(res, Buffer.isBuffer(fav.data) ? fav.data : Buffer.from(fav.data), fav.type, req, 200, headers);
       return;
     }
@@ -733,7 +739,7 @@ function ensureReady() {
         // startScheduler is synchronous (it kicks off its own async IIFE), so a
         // throw here must not be mistaken for an init failure.
         try {
-          store.startScheduler({ pollIntervalMs: 60000 });
+          store.startScheduler();
         } catch (e) {
           log.error(`scheduler start error: ${e.message}`);
         }

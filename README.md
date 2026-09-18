@@ -17,7 +17,9 @@ Data is scraped from the **public, free end-of-day** pages on
 - `lib/db.js` — PostgreSQL persistence (tables: `meta`, `quotes`,
   `history`, `indices`) with upsert helpers and auto-migration.
 - `lib/store.js` — scheduler that polls **while the market is open**
-  (Mon–Fri, 09:00–14:30 Skopje time) every 60s, and a historical backfill
+  (Mon–Fri, 09:00–14:30 Skopje time) every 5 min (override with
+  `POLL_INTERVAL_MS`), plus one guaranteed EOD capture poll after close
+  (14:30–16:00); and a historical backfill
   that fetches ~1y windows per symbol; reads/writes go through `lib/db.js`.
 - `server.js` — Node HTTP server exposing JSON APIs + static dashboard.
 - `public/` — dashboard UI (Chart.js + lightweight-charts from CDN).
@@ -100,8 +102,8 @@ Admin endpoints require `ADMIN_TOKEN` when set (pass `?token=` or the
 ## Notes & limitations
 
 - Source data is **end-of-day / delayed**; this is not a real-time feed.
-  During market hours the scraper refreshes every 60s; outside hours it
-  holds the last snapshot.
+  During market hours the scraper refreshes every 5 min (one EOD capture
+  poll after close); outside hours it holds the last snapshot.
 - Historical depth is limited to ~1 year per request by the source; the
   backfill stitches multiple windows to build a longer series.
 - Respect the source: requests are throttled (~40ms between quotes). For

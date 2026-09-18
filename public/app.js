@@ -780,6 +780,11 @@ async function loadFX() {
 // Tracks the latest known market state so the UI knows whether it makes
 // sense to refetch on the next poll. Updated from each loadQuotes() response.
 let marketIsOpen = true;
+// Server-side "data may still change today" flag (pollActive): true during
+// the trading session AND the EOD capture window (~14:30-16:00) when the
+// exchange publishes the final numbers. Without it the dashboard would
+// freeze at the 14:00 close and never pick up the published close.
+let dataStillMoving = true;
 
 // 1Y sparkline history refreshes at most once per hour while the market is
 // open. Daily bars don't change meaningfully in 30s — and definitely don't
@@ -794,12 +799,15 @@ async function loadQuotes() {
   try {
   const d = await fetch('/api/quotes').then((r) => r.json());
   marketIsOpen = !!d.marketOpen;
+  dataStillMoving = d.pollActive != null ? !!d.pollActive : !!d.marketOpen;
   const hasData = quotesCache && quotesCache.length > 0;
 
-  // Market closed AND we already have data: don't blow away the table
+  // Data final for today AND we already have data: don't blow away the table
   // (which would destroy sparklines) or re-fetch spark history. Just
   // refresh the "as of" timestamp so the user knows how stale the data is.
-  if (!marketIsOpen && hasData) {
+  // (pollActive, not marketOpen: between the 14:00 close and the EOD capture
+  // the published numbers are still coming.)
+  if (!dataStillMoving && hasData) {
     if (d.lastPoll) {
       // Always display Skopje current time (not the stale lastPoll
       // timestamp — that is hours old once the market has closed and
@@ -858,14 +866,13 @@ async function loadQuotes() {
   }
 }
 
-// Schedule the next poll only if the market is currently open; otherwise
-// wait until the next regular interval to re-check. This avoids 30s of
-// pointless work between market close and the next open.
+// Schedule the next poll only while the server's data can still change;
+// once pollActive goes false the snapshot is final for the day, so check
+// rarely — just enough to catch the next session's open.
 function scheduleNextPoll() {
-  // MSE publishes once per session, so while the market is closed there is
-  // nothing new to fetch — check rarely (just enough to pick up the EOD
-  // publication or the next session's open), not every minute.
-  const interval = marketIsOpen ? 30000 : 5 * 60 * 1000;
+  // Open: 30s ticks. Closed but EOD still pending (14:00–~16:00): 60s — the
+  // close lands within a minute of publication. Otherwise: 5 min.
+  const interval = marketIsOpen ? 30000 : (dataStillMoving ? 60000 : 5 * 60 * 1000);
   setTimeout(async () => {
     // Hidden tab = nobody watching: skip the fetch, just reschedule.
     if (!document.hidden) await loadQuotes();
