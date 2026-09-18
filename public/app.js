@@ -139,7 +139,6 @@ const I18N = {
       footer_about: 'About',
       footer_source: 'Data source',
       footer_method: 'Methodology',
-      footer_disclaimer: 'Not investment advice.',
       lang_btn: 'МК',
       tab_chart: 'Chart',
       tab_fin_data: 'Financial Data',
@@ -266,7 +265,6 @@ const I18N = {
       footer_about: 'За нас',
       footer_source: 'Извор на податоци',
       footer_method: 'Методологија',
-      footer_disclaimer: 'Не е инвестициски совет.',
       lang_btn: 'EN',
       tab_chart: 'Графикон',
       tab_fin_data: 'Податоци',
@@ -348,7 +346,7 @@ const I18N = {
 // Default to Macedonian: the brand, the SSR pages and <html lang> are all MK.
 // English stays one tap away via the language toggle.
 let lang = localStorage.getItem('mse_lang') || 'mk';
-const APP_VERSION = '2.6.8';
+const APP_VERSION = '2.7.0';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -389,7 +387,7 @@ function applyStaticI18n() {
   $('#search').placeholder = t('search');
   updateToggleLabels();
   renderWatchStrip();
-  $('.foot').innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>${t('source')} · <a href="/prasanja">${t('footer_faq')}</a> · <a href="/za-nas">${t('footer_about')}</a> · <a href="/izvor-na-podatoci">${t('footer_source')}</a> · <a href="/metodologija">${t('footer_method')}</a> · <a href="/widgets.html">${t('widgets_link')}</a> · ${t('footer_disclaimer')} · v${APP_VERSION}`;
+  $('.foot').innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>${t('source')} · <a href="/prasanja">${t('footer_faq')}</a> · <a href="/za-nas">${t('footer_about')}</a> · <a href="/izvor-na-podatoci">${t('footer_source')}</a> · <a href="/metodologija">${t('footer_method')}</a> · <a href="/widgets.html">${t('widgets_link')}</a> · v${APP_VERSION}<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button>`;
   // Strip titles: target the [data-i18n] span so the leading icon survives.
   const stripTitles = [t('gainers'), t('losers'), t('active')];
   $$('.side-title [data-i18n]').forEach((el, i) => { if (stripTitles[i]) el.textContent = stripTitles[i]; });
@@ -794,6 +792,16 @@ const HISTORY_REFRESH_MS = 60 * 60 * 1000; // 1 hour
 let lastHistoryFetch = 0;
 if (typeof window !== 'undefined') { window.__lastHistoryFetch = () => lastHistoryFetch; window.__setLastHistoryFetch = (t) => { lastHistoryFetch = t; }; }
 
+// The "Ажурирано HH:MM" stamp renders twice: in the panel header (desktop)
+// and in the bottom bar above the footer (mobile — see .updated-bar in
+// styles.css). One setter keeps both in sync.
+function setUpdated(txt) {
+  const header = document.getElementById('lastPoll');
+  const bottom = document.getElementById('lastPollBottom');
+  if (header) header.textContent = txt;
+  if (bottom) bottom.textContent = txt;
+}
+
 // ---- MAIN TABLE ----
 async function loadQuotes() {
   try {
@@ -819,7 +827,7 @@ async function loadQuotes() {
       const st = $('#marketStatus');
       st.innerHTML = t('market_closed_at').replace('{time}', timeStr);
       st.className = 'market-status closed';
-      $('#lastPoll').textContent = `${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true })}`;
+      setUpdated(`${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true })}`);
     }
     return;
   }
@@ -846,7 +854,7 @@ async function loadQuotes() {
     st.className = 'market-status closed';
   }
   if (d.lastPoll) {
-    $('#lastPoll').textContent = `${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true })}`;
+    setUpdated(`${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true })}`);
   }
   renderTable();
   renderSidebar();
@@ -1940,7 +1948,11 @@ $('#modalClose').addEventListener('click', closeModal);
 $('#companyModal').addEventListener('click', (e) => {
   if (e.target.id === 'companyModal') closeModal();
 });
-$('#langToggle').addEventListener('click', () => {
+// Language toggle — delegated so both buttons work: the topbar one and the
+// mobile-only footer clone (.foot-lang), which applyStaticI18n re-creates on
+// every language switch (a direct listener would die with the old node).
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#langToggle, .foot-lang')) return;
   lang = lang === 'en' ? 'mk' : 'en';
   localStorage.setItem('mse_lang', lang);
   applyStaticI18n();

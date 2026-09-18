@@ -164,10 +164,12 @@
     let stored = 'light';
     try { stored = localStorage.getItem('mse_theme') || 'light'; } catch (_) {}
     applyTheme(stored);
-    const langBtn = document.getElementById('langToggle');
-    if (langBtn && !langBtn.dataset.wired) {
-      langBtn.dataset.wired = '1';
-      langBtn.addEventListener('click', () => {
+    // Language toggle — click-delegated so the mobile footer clone (.foot-lang)
+    // works too, even though W.renderFoot() re-renders the footer after this.
+    if (!W._langWired) {
+      W._langWired = true;
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#langToggle, .foot-lang')) return;
         let cur = 'en';
         try { cur = localStorage.getItem('mse_lang') || 'en'; } catch (_) {}
         try { localStorage.setItem('mse_lang', cur === 'en' ? 'mk' : 'en'); } catch (_) {}
@@ -235,7 +237,8 @@
     el.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>'
       + 'Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · '
       + '<a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · '
-      + '<a href="/widgets.html">Виџети</a> · Не е инвестициски совет.' + version;
+      + '<a href="/widgets.html">Виџети</a>' + version
+      + '<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button>';
   };
 
   // ---- Chip modals (market hours + full NBRM list) ----

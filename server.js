@@ -91,7 +91,7 @@ function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd
 <meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
-<link rel="stylesheet" href="/styles.css?v=7.6" />
+<link rel="stylesheet" href="/styles.css?v=7.7" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
@@ -124,8 +124,8 @@ ${TOPBAR_HTML}
 <h1>${h1Html || esc(h1)}</h1>
 ${bodyHtml}
 </main>
-<footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · Не е инвестициски совет. · v${esc(PKG.version)}</footer>
-<script src="/widget.js?v=8"></script>
+<footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · v${esc(PKG.version)}<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button></footer>
+<script src="/widget.js?v=9"></script>
 <script>if (window.W && W.initTopbar) W.initTopbar();</script>
 <!-- Vercel Web Analytics -->
 <script defer src="/_vercel/insights/script.js"></script>
@@ -687,6 +687,7 @@ const TRUST_PAGES = {
       'MSE Berza е независна, некомерцијална алатка што ги прикажува јавно достапните податоци од Македонската берза (mse.mk) на едно место: котации на сите активни компании, историски движења, дивиденди и основни показатели.',
       'Целта е едноставна: податоците што берзата ги објавува на крајот на секоја трговска сесија да бидат читливи и лесни за споредба — без регистрација и без наплата.',
       'MSE Berza не е поврзана со Македонската берза, Комисијата за хартии од вредност или било кој брокер.',
+      'За прашања, предлози или пријавување на грешка во податоците, пишете ни на <a href="mailto:mail@mseberza.info">mail@mseberza.info</a>.',
     ],
   },
   '/izvor-na-podatoci': {

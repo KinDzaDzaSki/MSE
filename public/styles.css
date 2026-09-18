@@ -422,11 +422,11 @@ a:hover {
 }
 @media (max-width: 480px) {
   #fxChip .fx-usd { display: none; } /* € only on very small screens */
-  /* Crowding fix at ~390px: the desktop min-widths (added so the loaded chips
-     never reflow) don't fit next to the brand + two icon buttons here, so they
-   caused overflow/cut-off icon buttons. On mobile the brand shrinks to just
-   the logo mark and the chips size to their content (gap stays 8px). */
-  .brand-text { display: none; }
+  /* Crowding fix at ~390px: the reserved chip min-widths (added so the loaded
+     chips never reflow) overflowed the bar and cut the icon buttons, so the
+     chips size to their content instead. The brand text now STAYS visible —
+     the language toggle moves to the footer at ≤599px (see .foot-lang in the
+     FOOTER section), which frees the topbar space the heading needs. */
   #fxChip, #mbiChip { min-width: 0; }
 }
 
@@ -1562,6 +1562,37 @@ table.quotes td.sym .sym-text { display: inline-block; }
 }
 .foot a { white-space: nowrap; }
 
+/* Language toggle in the footer — mobile only (shown at ≤599px, where the
+   topbar #langToggle hides so the "MSE Berza" heading fits next to the logo).
+   The markup is duplicated in every footer (server.js pageShell, widget.js
+   W.renderFoot, app.js applyStaticI18n) and the click is handled by
+   delegation — a per-node listener would not survive footer re-renders. */
+.foot-lang {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin: 8px auto 0;
+  padding: 0;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-full);
+  background: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+}
+.foot-lang:hover {
+  border-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-primary);
+}
+.foot-lang .material-symbols-outlined { font-size: 18px; }
+
+/* "Ажурирано HH:MM" — desktop keeps the stamp in the panel header; on mobile
+   (≤599px) the header stamp hides and this bottom bar above the footer takes
+   over, keeping the compact header clean. #lastPollBottom lives in
+   index.html; app.js setUpdated() fills both copies. */
+.updated-bar { display: none; }
+
 /* ==========================================================================
    SCROLLBAR STYLING
    ========================================================================== */
@@ -1733,6 +1764,12 @@ table.quotes td.sym .sym-text { display: inline-block; }
     font-size: 20px;
   }
 
+  /* Mobile: the language toggle lives in the footer (.foot-lang), not the
+     topbar — that frees the space the "MSE Berza" heading needs next to the
+     logo (the ≤480px brand-text hiding was removed with it). */
+  #langToggle { display: none; }
+  .foot-lang { display: flex; }
+
   .layout {
     padding: var(--md-space-xs);
     gap: var(--md-space-xs);
@@ -1764,6 +1801,9 @@ table.quotes td.sym .sym-text { display: inline-block; }
   .panel-header #viewToggle button { padding: 8px 6px; }
   .panel-header .search-wrapper { flex: 1 1 auto; }
   #lastPoll { margin-left: auto; }
+  /* Mobile: the "Ажурирано" stamp moves from the panel header to the bottom
+     bar above the footer (.updated-bar). */
+  .panel-header #lastPoll { display: none; }
 
   /* Touch-friendly table rows on compact */
   table.quotes th {
@@ -1805,6 +1845,15 @@ table.quotes td.sym .sym-text { display: inline-block; }
     padding: 10px 12px;
     line-height: 1.9;
   }
+  /* Mobile bottom bar: the relocated "Ажурирано" stamp. :not(:empty) so no
+     blank strip renders before the first data load fills it. */
+  .updated-bar:not(:empty) {
+    display: block;
+    text-align: center;
+    font-size: 11px;
+    color: var(--md-sys-color-on-surface-variant);
+    padding: 10px 12px;
+  }
 }
 
 /* Extra compact: <400px — hide sparkline column to save horizontal space */
@@ -1816,6 +1865,13 @@ table.quotes td.sym .sym-text { display: inline-block; }
   table.quotes {
     min-width: 580px;
   }
+}
+
+/* Tiny phones (≤359px): with the brand text back in the topbar, the MBI10
+   change % drops out of the chip so logo + brand + FX chip + theme toggle
+   still fit at 320–359px. */
+@media (max-width: 359px) {
+  #mbiChip .mbi-chg { display: none; }
 }
 
 /* ==========================================================================
