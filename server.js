@@ -116,6 +116,10 @@ ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script
   /* Company logo inside the /s/{SYM} SSR heading. */
   .h1-logo { display: inline-flex; vertical-align: -4px; margin-right: 10px; }
   .cta { display: inline-block; margin-top: 4px; padding: 10px 16px; border-radius: 8px; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); font-weight: 700; text-decoration: none; font-size: 13px; width: max-content; }
+  /* :hover needs stating explicitly: the global a:hover (styles.css) beats
+     .cta on specificity and would recolor the button text link-blue — nearly
+     identical to the primary bg in both themes, i.e. unreadable. */
+  .cta:hover { color: var(--md-sys-color-on-primary); text-decoration: none; }
 </style>
 </head>
 <body>
@@ -586,8 +590,7 @@ ${stat('Просек', fmtN(yrAvg) + ' MKD')}
 ${stat('Број на сесии', fmtN(year.length, 0))}
 </tbody>
 </table>` : ''}
-<a class="cta" href="/">Целосен график и дивиденди на MSE Berza →</a>
-<p><a href="/">Сите котации</a> · <a href="/widgets.html">Виџети за твојот сајт</a> · <a href="/metodologija">Методологија</a></p>`;
+<a class="cta" href="/">Целосен график и дивиденди на MSE Berza →</a>`;
 
   return pageShell({
     title: `${name} (${sym}) — цена, промена, 52 недели | MSE Berza`,
