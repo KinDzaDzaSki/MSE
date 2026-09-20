@@ -61,10 +61,10 @@ body {
 }
 .w-main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 
-/* Attribution footer */
+/* Attribution footer — 11px to match the main .foot footer size. */
 .w-footer {
   flex-shrink: 0;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--md-sys-color-on-surface-variant);
   text-align: center;
   padding: 4px 8px;
