@@ -75,6 +75,10 @@ body {
   text-overflow: ellipsis;
 }
 .w-footer a { color: var(--md-sys-color-primary); text-decoration: none; font-weight: 600; }
+/* Match the main .foot footer scale: 11px desktop, 10px on mobile. */
+@media (max-width: 599px) {
+  .w-footer { font-size: 10px; }
+}
 .w-error { padding: 16px; text-align: center; color: var(--md-sys-color-on-surface-variant); font-size: 12px; }
 .up { color: var(--md-sys-color-positive); }
 .down { color: var(--md-sys-color-negative); }

@@ -93,7 +93,7 @@ function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd
 <meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
-<link rel="stylesheet" href="/styles.css?v=7.7" />
+<link rel="stylesheet" href="/styles.css?v=7.8" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />

@@ -1846,11 +1846,12 @@ table.quotes td.sym .sym-text { display: inline-block; }
     line-height: 1.9;
   }
   /* Mobile bottom bar: the relocated "Ажурирано" stamp. :not(:empty) so no
-     blank strip renders before the first data load fills it. */
+     blank strip renders before the first data load fills it. 10px to match
+     the mobile footer it sits above. */
   .updated-bar:not(:empty) {
     display: block;
     text-align: center;
-    font-size: 11px;
+    font-size: 10px;
     color: var(--md-sys-color-on-surface-variant);
     padding: 10px 12px;
   }
