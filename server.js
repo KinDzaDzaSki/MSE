@@ -124,8 +124,8 @@ ${TOPBAR_HTML}
 <h1>${h1Html || esc(h1)}</h1>
 ${bodyHtml}
 </main>
-<footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · v${esc(PKG.version)}<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button></footer>
-<script src="/widget.js?v=9"></script>
+<footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · <a href="/sitemap">Мапа на сајтот</a> · v${esc(PKG.version)}<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button></footer>
+<script src="/widget.js?v=10"></script>
 <script>if (window.W && W.initTopbar) W.initTopbar();</script>
 <!-- Vercel Web Analytics -->
 <script defer src="/_vercel/insights/script.js"></script>
@@ -725,6 +725,74 @@ function renderTrustPage(pathname) {
   });
 }
 
+// /sitemap — user-friendly HTML sitemap: every canonical, indexable URL,
+// grouped (market pages, site info, companies A–Z). Mirrors sitemap.xml;
+// embed/API pages and #anchors are intentionally excluded (not canonical).
+async function renderSitemapPage() {
+  const quotes = Object.values(await store.getQuotes());
+  const prim = quotes
+    .filter((q) => q.primary !== false)
+    .sort((a, b) => String(a.symbol).localeCompare(String(b.symbol)));
+  const li = (href, label) => `<li><a href="${href}">${label}</a></li>`;
+  const market = [
+    li('/', 'Почетна — котации во живо'),
+    li('/widgets.html', 'Виџети за твојот сајт'),
+    li('/kursna-lista', 'Курсна листа на НБРМ'),
+  ].join('\n');
+  const info = [
+    li('/za-nas', 'За нас'),
+    li('/izvor-na-podatoci', 'Извор на податоци'),
+    li('/metodologija', 'Методологија'),
+    li('/prasanja', 'Прашања и одговори'),
+    li('/sitemap', 'Мапа на сајтот'),
+  ].join('\n');
+  // Companies grouped by ticker first letter (a leading digit → '0–9').
+  const groups = new Map();
+  for (const q of prim) {
+    const ch = String(q.symbol || '').charAt(0).toUpperCase();
+    const key = /[0-9]/.test(ch) ? '0–9' : ch;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(q);
+  }
+  const letters = [...groups.keys()]
+    .sort((a, b) => (a === '0–9' ? -1 : b === '0–9' ? 1 : a.localeCompare(b)));
+  const gid = (L) => (L === '0–9' ? '09' : L);
+  const nav = `<nav class="faq-toc" aria-label="Азбучен индекс">${letters.map((L) => `<a href="#grp-${gid(L)}">${esc(L)}</a>`).join('')}</nav>`;
+  const sections = letters.map((L) => {
+    const items = groups.get(L)
+      .map((q) => li(`/s/${encodeURIComponent(q.symbol)}`, `${esc(q.symbol)} — ${esc(q.name || '')}`))
+      .join('\n');
+    return `<section id="grp-${gid(L)}"><h3 class="sitemap-letter">${esc(L)}</h3><ul class="sitemap-cols">${items}</ul></section>`;
+  }).join('\n');
+  const bodyHtml = `<p>Преглед на сите страници на MSE Berza: пазарни податоци, информации за сајтот и страници на компаниите по азбучен ред.</p>
+<h2>Пазар</h2>
+<ul class="sitemap-list">${market}</ul>
+<h2>За сајтот</h2>
+<ul class="sitemap-list">${info}</ul>
+<h2>Компании по азбучен ред</h2>
+${nav}
+${sections}
+<style>
+.sitemap-list, .sitemap-cols { list-style: none; margin: 0 0 6px; padding: 0; }
+.sitemap-list { display: grid; gap: 0 24px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.sitemap-list li, .sitemap-cols li { line-height: 2; }
+.sitemap-letter { font-size: 15px; margin: 14px 0 2px; color: var(--md-sys-color-primary); }
+.sitemap-cols { columns: 3; column-gap: 24px; }
+.sitemap-cols li { break-inside: avoid; }
+/* Keep jumped-to letter sections clear of the sticky topbar. */
+[id^="grp-"] { scroll-margin-top: 76px; }
+@media (max-width: 599px) { .sitemap-cols { columns: 2; } }
+@media (max-width: 399px) { .sitemap-cols { columns: 1; } }
+</style>`;
+  return pageShell({
+    title: 'Мапа на сајтот | MSE Berza',
+    description: 'Мапа на сајтот на MSE Berza: котации, курсна листа, виџети, информации и страници на сите компании на Македонската берза.',
+    canonical: `${SITE_URL}/sitemap`,
+    h1: 'Мапа на сајтот',
+    bodyHtml,
+  });
+}
+
 // ---- Boot readiness --------------------------------------------------------
 // store.init() (schema migration + symbol list) must finish before any DB-backed
 // response is served. On a serverless cold start the first request can arrive
@@ -808,7 +876,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const quotes = Object.values(await store.getQuotes());
       const prim = quotes.filter((q) => q.primary !== false).map((q) => q.symbol).sort();
-      const urls = ['/', '/widgets.html', '/prasanja', '/kursna-lista', '/za-nas', '/izvor-na-podatoci', '/metodologija', ...prim.map((s) => `/s/${s}`)];
+      const urls = ['/', '/widgets.html', '/prasanja', '/kursna-lista', '/za-nas', '/izvor-na-podatoci', '/metodologija', '/sitemap', ...prim.map((s) => `/s/${s}`)];
       const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         + urls.map((u) => `  <url><loc>${SITE_URL}${u}</loc></url>`).join('\n')
         + '\n</urlset>';
@@ -855,6 +923,18 @@ const server = http.createServer(async (req, res) => {
       return res.end(html);
     } catch (e) {
       log.error(`/kursna-lista: ${e.message}`);
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+      return res.end('error');
+    }
+  }
+
+  if (url.pathname === '/sitemap') {
+    try {
+      const html = await renderSitemapPage();
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, s-maxage=3600' });
+      return res.end(html);
+    } catch (e) {
+      log.error(`/sitemap: ${e.message}`);
       res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
       return res.end('error');
     }

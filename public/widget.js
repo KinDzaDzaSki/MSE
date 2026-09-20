@@ -237,7 +237,7 @@
     el.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>'
       + 'Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · '
       + '<a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · '
-      + '<a href="/widgets.html">Виџети</a>' + version
+      + '<a href="/widgets.html">Виџети</a> · <a href="/sitemap">Мапа на сајтот</a>' + version
       + '<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button>';
   };
 

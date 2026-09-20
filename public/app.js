@@ -139,6 +139,7 @@ const I18N = {
       footer_about: 'About',
       footer_source: 'Data source',
       footer_method: 'Methodology',
+      footer_sitemap: 'Sitemap',
       lang_btn: 'МК',
       tab_chart: 'Chart',
       tab_fin_data: 'Financial Data',
@@ -265,6 +266,7 @@ const I18N = {
       footer_about: 'За нас',
       footer_source: 'Извор на податоци',
       footer_method: 'Методологија',
+      footer_sitemap: 'Мапа на сајтот',
       lang_btn: 'EN',
       tab_chart: 'Графикон',
       tab_fin_data: 'Податоци',
@@ -387,7 +389,7 @@ function applyStaticI18n() {
   $('#search').placeholder = t('search');
   updateToggleLabels();
   renderWatchStrip();
-  $('.foot').innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>${t('source')} · <a href="/prasanja">${t('footer_faq')}</a> · <a href="/za-nas">${t('footer_about')}</a> · <a href="/izvor-na-podatoci">${t('footer_source')}</a> · <a href="/metodologija">${t('footer_method')}</a> · <a href="/widgets.html">${t('widgets_link')}</a> · v${APP_VERSION}<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button>`;
+  $('.foot').innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>${t('source')} · <a href="/prasanja">${t('footer_faq')}</a> · <a href="/za-nas">${t('footer_about')}</a> · <a href="/izvor-na-podatoci">${t('footer_source')}</a> · <a href="/metodologija">${t('footer_method')}</a> · <a href="/widgets.html">${t('widgets_link')}</a> · <a href="/sitemap">${t('footer_sitemap')}</a> · v${APP_VERSION}<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button>`;
   // Strip titles: target the [data-i18n] span so the leading icon survives.
   const stripTitles = [t('gainers'), t('losers'), t('active')];
   $$('.side-title [data-i18n]').forEach((el, i) => { if (stripTitles[i]) el.textContent = stripTitles[i]; });
