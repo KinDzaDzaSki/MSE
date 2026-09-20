@@ -8,6 +8,8 @@ const log = require('./lib/logger');
 const { getFX, getFXList } = require('./lib/fx');
 const { marketInfo } = require('./lib/market');
 const CoLogo = require('./public/logo.js');
+const FinView = require('./public/finview.js');
+FinView.setLang('mk'); // SSR pages are MK-only, like the rest of the site
 const PKG = require('./package.json');
 
 // Shared secret for expensive/admin endpoints (backfill, refresh, logs).
@@ -544,60 +546,188 @@ async function renderSymbolPage(sym) {
     if (idx) q = { symbol: sym, name: (sym === 'OMB' ? 'OMB Index' : 'MBI10 Index'), lastPrice: idx.value, changePct: idx.changePct, segment: 'Индекс' };
   }
   if (!q || !q.symbol || q.error) return null;
-  const rows = (await store.getHistory(sym)).filter((r) => r.last != null);
-  const year = rows.slice(-252);
-  const closes = year.map((r) => r.last);
-  const first = closes.length ? closes[0] : null;
-  const last = closes.length ? closes[closes.length - 1] : null;
-  const yrHi = closes.length ? Math.max(...closes) : null;
-  const yrLo = closes.length ? Math.min(...closes) : null;
-  const yrChg = first ? +(((last - first) / first) * 100).toFixed(2) : null;
-  const yrAvg = closes.length ? closes.reduce((a, b) => a + b, 0) / closes.length : null;
   const name = q.name || sym;
+  // Index pages get the chart alone (no stat grids / data / analysis tabs),
+  // mirroring the dashboard company modal.
+  const isIndex = sym === 'MBI10' || sym === 'OMB' ||
+    /индекс|index/i.test(q.segment || '') || /index/i.test(q.name || '');
+  const byDate = (a, b) => new Date(a.date) - new Date(b.date);
+  const fullHistory = ((await store.getHistory(sym)) || []).filter((r) => r.last != null).sort(byDate);
+  let fin = null;
+  try { fin = await store.getFinancials(sym); } catch (e) { log.error(`/s/${sym} financials: ${e.message}`); }
+  if (!fin) fin = { financialData: null, financialRatios: null };
+  let mbi10Rows = [];
+  if (!isIndex) {
+    try { mbi10Rows = ((await store.getHistory('MBI10')) || []).filter((r) => r.last != null).sort(byDate); }
+    catch (e) { /* risk metrics simply stay out of the analysis */ }
+  }
+  const allQuotes = Object.values(quotes);
+  const hasFinData = !!(fin.financialData && fin.financialData.rows && fin.financialData.rows.length);
+  const hasRatios = !!(fin.financialRatios && fin.financialRatios.rows && fin.financialRatios.rows.length);
 
-  const stat = (k, v, cls = '') => `<tr><th>${esc(k)}</th><td class="num ${cls}">${v}</td></tr>`;
+  // Chart header, pre-rendered for the default 1Y range (the inline script
+  // refreshes these when the range changes) — same math as the modal.
+  const tsOf = (d) => new Date(d).getTime();
+  const y1 = fullHistory.slice(-252);
+  const y1first = y1.length ? y1[0].last : null;
+  const y1last = y1.length ? y1[y1.length - 1].last : null;
+  const y1chg = (y1first && y1last) ? ((y1last - y1first) / y1first) * 100 : null;
+  const asOf = fullHistory.length
+    ? `${FinView.T('as_of')} ${FinView.fmtDate(tsOf(fullHistory[fullHistory.length - 1].date))} · ${FinView.T('eod_note')}` : '';
+  const logoHtml = `<span class="h1-logo">${CoLogo.icon(sym, name, q.site, 30, q.fav, q.favv)}</span>`;
+  const rangeBtn = (r) => `<button type="button" data-r="${r}"${r === '1Y' ? ' class="active"' : ''}>${FinView.T('range_' + r.toLowerCase())}</button>`;
+  const finTab = (tab, label, hidden) => `<button type="button" class="fin-tab${tab === 'chart' ? ' active' : ''}${hidden ? ' hidden' : ''}" data-tab="${tab}">${label}</button>`;
+  const emptyNote = (key) => `<div class="muted" style="padding:20px;text-align:center">${FinView.T(key)}</div>`;
+
+  const chartPanel = fullHistory.length > 1 ? `
+<div id="finTabChart" class="fin-tab-panel">
+  <div class="chart-head">
+    <div class="chart-price" id="chartPrice">${y1last != null ? fmtN(y1last) + ' MKD' : '—'}</div>
+    <div class="chart-chg ${y1chg == null ? '' : y1chg >= 0 ? 'up' : 'down'}" id="chartChg">${y1chg == null ? '—' : `${y1chg >= 0 ? '+' : ''}${y1chg.toFixed(2)}%`}</div>
+    <div class="chart-period" id="chartPeriod">${y1.length ? `${FinView.T('period_1y')} · ${FinView.fmtDate(tsOf(y1[0].date))} – ${FinView.fmtDate(tsOf(y1[y1.length - 1].date))}` : ''}</div>
+  </div>
+  <div class="range-btns" id="rangeBtns">${rangeBtn('1M')}${rangeBtn('3M')}${rangeBtn('6M')}${rangeBtn('1Y')}${rangeBtn('ALL')}</div>
+  <div class="chart-box" id="companyChart"></div>
+  <div class="chart-legend-note" id="chartLegend">${FinView.T('chart_legend')}</div>
+</div>` : `
+<div id="finTabChart" class="fin-tab-panel">
+  <div class="muted" style="padding:20px;text-align:center">Нема доволно податоци за график.</div>
+</div>`;
+
+  const analysisHtml = isIndex
+    ? ''
+    : FinView.buildAnalysisHTML(FinView.buildAnalysisData(q, fullHistory, fin, mbi10Rows, allQuotes));
+
   const bodyHtml = `
 <p>${esc(name)} (${esc(sym)}) — последна цена <strong>${fmtN(q.lastPrice)} MKD</strong>,
 промена <span class="${pctCls(q.changePct)}">${pctStr(q.changePct)}</span>.
 Податоците се од Македонската берза (mse.mk), ажурирани на крај на трговска сесија.</p>
-<h2>Клучни показатели</h2>
-<table>
-<tbody>
-${stat('Последна цена', fmtN(q.lastPrice) + ' MKD')}
-${stat('Дневна промена', pctStr(q.changePct), pctCls(q.changePct))}
-${q.dailyChange != null ? stat('Промена (апс.)', (q.dailyChange >= 0 ? '+' : '') + fmtN(q.dailyChange) + ' MKD', pctCls(q.changePct)) : ''}
-${q.week52Min != null ? stat('52-неделен опсег', fmtN(q.week52Min, 0) + ' – ' + fmtN(q.week52Max, 0)) : ''}
-${q.week52Chg != null ? stat('52-неделна промена', pctStr(q.week52Chg), pctCls(q.week52Chg)) : ''}
-${q.volume != null ? stat('Волумен', fmtN(q.volume, 0)) : ''}
-${q.value != null ? stat('Промет', fmtN(q.value, 0) + ' MKD') : ''}
-${q.trades != null ? stat('Трансакции', fmtN(q.trades, 0)) : ''}
-${q.peRatio != null ? stat('P/E', fmtN(q.peRatio)) : ''}
-${q.marketCap != null ? stat('Пазарна капитализација (000 MKD)', fmtN(q.marketCap, 0)) : ''}
-${q.segment ? stat('Сегмент', esc(q.segment)) : ''}
-${q.isin ? stat('ISIN', esc(q.isin)) : ''}
-</tbody>
-</table>
-${closes.length > 1 ? `
-<h2>Измината година (${esc(sym)})</h2>
-<table>
-<tbody>
-${stat('Прво затворање', fmtN(first) + ' MKD')}
-${stat('Последно затворање', fmtN(last) + ' MKD')}
-${stat('Промена за периодот', pctStr(yrChg), pctCls(yrChg))}
-${stat('Највисоко', fmtN(yrHi, 0) + ' MKD')}
-${stat('Најниско', fmtN(yrLo, 0) + ' MKD')}
-${stat('Просек', fmtN(yrAvg) + ' MKD')}
-${stat('Број на сесии', fmtN(year.length, 0))}
-</tbody>
-</table>` : ''}
-<a class="cta" href="/">Целосен график и дивиденди на MSE Berza →</a>`;
+${FinView.companyHead(sym, q, logoHtml, asOf)}
+${isIndex ? '' : FinView.statGrids(q)}
+${isIndex ? chartPanel : `
+<div id="finTabBar" class="fin-tab-bar">
+  ${finTab('chart', FinView.T('tab_chart'))}
+  ${finTab('data', FinView.T('tab_fin_data'), !hasFinData)}
+  ${finTab('ratios', FinView.T('tab_ratios'), !hasRatios)}
+  ${finTab('analysis', FinView.T('tab_analysis'))}
+</div>
+${chartPanel}
+<div id="finTabData" class="fin-tab-panel hidden">
+  <h2>Финансиски податоци</h2>
+  ${hasFinData ? FinView.buildFinTable(fin.financialData, false) : emptyNote('fin_no_data')}
+</div>
+<div id="finTabRatios" class="fin-tab-panel hidden">
+  <h2>Финансиски показатели</h2>
+  ${hasRatios ? FinView.buildDividendSummary(fin) + FinView.buildFinTable(fin.financialRatios, true) : emptyNote('fin_no_ratios')}
+</div>
+<div id="finTabAnalysis" class="fin-tab-panel hidden">
+  <h2>Анализа</h2>
+  ${analysisHtml}
+</div>`}
+<script>
+(function () {
+  var sym = ${JSON.stringify(sym)};
+  var bar = document.getElementById('finTabBar');
+  var order = ['chart', 'data', 'ratios', 'analysis'];
+  var panels = { chart: 'finTabChart', data: 'finTabData', ratios: 'finTabRatios', analysis: 'finTabAnalysis' };
+  function activate(name) {
+    if (bar) {
+      var btns = bar.querySelectorAll('.fin-tab');
+      for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-tab') === name);
+    }
+    for (var j = 0; j < order.length; j++) {
+      var p = document.getElementById(panels[order[j]]);
+      if (p) p.classList.toggle('hidden', order[j] !== name);
+    }
+    if (name === 'chart') draw(cur);
+  }
+  if (bar) bar.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('.fin-tab') : null;
+    if (b && !b.classList.contains('hidden')) activate(b.getAttribute('data-tab'));
+  });
+  var box = document.getElementById('companyChart');
+  var rangeBtns = document.getElementById('rangeBtns');
+  var chart = null, cur = '1Y', lwcP = null;
+  var MONTHS = ['јан', 'фев', 'мар', 'апр', 'мај', 'јун', 'јул', 'авг', 'сеп', 'окт', 'ное', 'дек'];
+  var RANGE_L = { '1M': 'изминат месец', '3M': 'изминати 3 месеци', '6M': 'изминати 6 месеци', '1Y': 'измината година', 'ALL': 'сето време' };
+  var RANGE_S = { '1M': '1М', '3M': '3М', '6M': '6М', '1Y': '1Г', 'ALL': 'Сите' };
+  function fmt2(v) { return v == null || isNaN(v) ? '—' : Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function fmtD(ts) {
+    try {
+      var parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Skopje', day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(new Date(ts));
+      var g = function (t) { for (var i = 0; i < parts.length; i++) if (parts[i].type === t) return parts[i].value; return ''; };
+      return g('day') + ' ' + MONTHS[Number(g('month')) - 1] + ' ' + g('year');
+    } catch (e) { return ''; }
+  }
+  function setHead(rows, range) {
+    var last = rows.length ? rows[rows.length - 1].last : null;
+    var first = rows.length ? rows[0].last : null;
+    var chg = (last != null && first) ? ((last - first) / first) * 100 : null;
+    var el = document.getElementById('chartPrice');
+    if (el) el.textContent = last != null ? fmt2(last) + ' MKD' : '—';
+    el = document.getElementById('chartChg');
+    if (el) {
+      el.textContent = chg == null ? '—' : (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
+      el.className = 'chart-chg ' + (chg == null ? '' : chg >= 0 ? 'up' : 'down');
+    }
+    var avg = rows.length ? rows.reduce(function (s, r) { return s + r.last; }, 0) / rows.length : null;
+    el = document.getElementById('avgPriceVal');
+    if (el) el.textContent = avg != null ? fmt2(avg) : '—';
+    el = document.getElementById('avgPriceLabel');
+    if (el) el.textContent = 'Просечна цена · ' + (RANGE_S[range] || range);
+    el = document.getElementById('chartPeriod');
+    if (el) el.textContent = rows.length ? (RANGE_L[range] || range) + ' · ' + fmtD(new Date(rows[0].date).getTime()) + ' – ' + fmtD(new Date(rows[rows.length - 1].date).getTime()) : '';
+    el = document.getElementById('asOf');
+    if (el && rows.length) el.textContent = 'За ' + fmtD(new Date(rows[rows.length - 1].date).getTime()) + ' · податоци на крај на ден (последната трговска сесија)';
+  }
+  function loadLWC() {
+    if (window.LightweightCharts) return Promise.resolve();
+    if (lwcP) return lwcP;
+    lwcP = new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+      s.async = true;
+      s.onload = function () { res(); };
+      s.onerror = function () { lwcP = null; rej(new Error('lwc')); };
+      document.head.appendChild(s);
+    });
+    return lwcP;
+  }
+  function draw(range) {
+    cur = range;
+    if (rangeBtns) {
+      var bs = rangeBtns.querySelectorAll('button');
+      for (var i = 0; i < bs.length; i++) bs[i].classList.toggle('active', bs[i].getAttribute('data-r') === range);
+    }
+    fetch('/api/history/' + encodeURIComponent(sym) + '?range=' + encodeURIComponent(range))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var rows = ((d && d.rows) || []).filter(function (x) { return x.last != null; });
+        setHead(rows, range);
+        if (!rows.length || !box) return;
+        loadLWC().then(function () {
+          if (!window.LightweightCharts || !window.W || !W.directionChart) return;
+          if (chart) { try { chart.remove(); } catch (e) {} chart = null; }
+          box.innerHTML = '';
+          chart = W.directionChart(box, rows, { chartType: 'line', showVolume: true, height: 360 });
+        }).catch(function () {});
+      })
+      .catch(function () {});
+  }
+  if (rangeBtns) rangeBtns.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('button[data-r]') : null;
+    if (b) draw(b.getAttribute('data-r'));
+  });
+  if (box) draw('1Y');
+})();
+</script>`;
 
   return pageShell({
     title: `${name} (${sym}) — цена, промена, 52 недели | MSE Berza`,
     description: `${name} (${sym}) на Македонската берза: последна цена ${fmtN(q.lastPrice)} MKD, промена ${pctStr(q.changePct)}, 52-неделен опсег, волумен и промет.`,
     canonical: `${SITE_URL}/s/${encodeURIComponent(sym)}`,
     h1: `${name} (${sym}) — цена и податоци од Македонската берза`,
-    h1Html: `<span class="h1-logo">${CoLogo.icon(sym, name, q.site, 30, q.fav, q.favv)}</span>${esc(name)} (${esc(sym)}) — цена и податоци од Македонската берза`,
+    h1Html: `${logoHtml}${esc(name)} (${esc(sym)}) — цена и податоци од Македонската берза`,
     bodyHtml,
     jsonLd: {
       '@context': 'https://schema.org',
