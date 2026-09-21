@@ -358,7 +358,7 @@ let lang = localStorage.getItem('mse_lang') || 'mk';
 // Fallback only — the footer version is refreshed from /api/version (which
 // reads package.json) at boot, so a release bump updates every footer without
 // editing this file. Keep in sync with package.json anyway.
-let APP_VERSION = '2.8.0';
+let APP_VERSION = '2.8.1';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -1063,26 +1063,22 @@ async function drawSpark(canvas, symbol, chgPct) {
 }
 
 // ---- SIDEBAR ----
-// Sidebars are ALWAYS liquid-only (independent of the view toggle): a +20%
-// move on two shares is not a "top gainer".
+// Sidebars mirror the official MSE homepage panels exactly (Добитници /
+// Губитници / Најтргувани). We deliberately do NOT derive them from our own
+// quotes: our % change is close-based while MSE's panel is average-based, so
+// derived rows visibly contradict mse.mk. Until /api/movers arrives we show
+// the loading state instead.
 function renderSidebar() {
-  if (moversCache) {
-    renderSidePanel('gainersItems', moversCache.winners || [], 'winners');
-    renderSidePanel('losersItems', moversCache.losers || [], 'losers');
-    renderSidePanel('activeItems', moversCache.mostTraded || [], 'mostTraded');
+  if (!moversCache) {
+    for (const id of ['gainersItems', 'losersItems', 'activeItems']) {
+      const el = $(`#${id}`);
+      if (el) el.innerHTML = `<div class="side-item"><div class="si-left"><span class="muted" style="font-size:12px">${esc(t('loading'))}</span></div></div>`;
+    }
     return;
   }
-  // Fallback until /api/movers has data (cold start): derive from quotes.
-  const pool = quotesCache.filter((r) => isPrimary(r) && r.liq === true);
-  renderSidePanel('gainersItems',
-    pool.filter((r) => r.changePct != null && r.changePct > 0)
-      .sort((a, b) => b.changePct - a.changePct).slice(0, 5));
-  renderSidePanel('losersItems',
-    pool.filter((r) => r.changePct != null && r.changePct < 0)
-      .sort((a, b) => a.changePct - b.changePct).slice(0, 5));
-  renderSidePanel('activeItems',
-    pool.filter((r) => (r.value || 0) > 0)
-      .sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 5));
+  renderSidePanel('gainersItems', moversCache.winners || [], 'winners');
+  renderSidePanel('losersItems', moversCache.losers || [], 'losers');
+  renderSidePanel('activeItems', moversCache.mostTraded || [], 'mostTraded');
 }
 
 // Symbol → quote lookup for name/logo enrichment of movers rows.
@@ -1100,7 +1096,7 @@ async function loadMovers() {
       moversCache = d;
       renderSidebar();
     }
-  } catch (e) { /* keep last movers / computed fallback */ }
+  } catch (e) { /* keep the last movers payload; strip stays in its loading state */ }
 }
 
 function renderSidePanel(containerId, items, kind) {
@@ -1120,7 +1116,6 @@ function renderSidePanel(containerId, items, kind) {
     const fav = r.fav != null ? r.fav : q.fav;
     const favv = r.favv != null ? r.favv : q.favv;
     const price = r.avgPrice != null ? r.avgPrice : r.lastPrice;
-    const daily = r.dailyChange != null ? r.dailyChange : q.dailyChange;
     const div = document.createElement('div');
     div.className = 'side-item';
     div.dataset.sym = r.symbol;
@@ -1132,7 +1127,7 @@ function renderSidePanel(containerId, items, kind) {
       <div class="si-spark"><canvas data-spark-side="${esc(r.symbol)}"></canvas></div>
       <div class="si-right">
         <div class="si-price">${fmt(price)}</div>
-        <div class="si-chg ${pctClass(r.changePct)}">${r.changePct != null ? (daily != null ? chgStr(daily) + ' (' + pctStr(r.changePct) + ')' : pctStr(r.changePct)) : ''}</div>
+        <div class="si-chg ${pctClass(r.changePct)}">${r.changePct != null ? pctStr(r.changePct) : ''}</div>
       </div>`;
     el.appendChild(div);
   }
@@ -2040,10 +2035,10 @@ $('#themeToggle').addEventListener('click', () => {
 (async function init() {
   applyStaticI18n();
   renderWatchStrip();
-  // Sparklines first, in parallel with everything else: the request was already
-  // started in <head> (window.__sparksP), so this typically resolves from cache
-  // and the charts are painted before the quotes even arrive.
+  // Sparklines + official movers first, in parallel with the rest: the strip
+  // shows "Вчитување…" until /api/movers responds (never derived numbers).
   loadSparks();
+  loadMovers();
   await loadMBI();
   await loadFX();
   await Promise.all([loadQuotes()]);
