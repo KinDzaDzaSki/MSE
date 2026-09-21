@@ -199,7 +199,9 @@
             st.innerHTML = '<span class="material-symbols-outlined icon-fill" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Пазарот е отворен';
             st.className = 'market-status open';
           } else {
-            const time = q.lastPoll ? new Date(q.lastPoll).toLocaleTimeString('mk-MK', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit' }) : '';
+            // Current Skopje time, matching the dashboard — never the lastPoll
+            // capture time (that would read "затворен · 13:57" hours later).
+            const time = new Date().toLocaleTimeString('mk-MK', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit' });
             st.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px">block</span> Пазарот е затворен · ' + time;
             st.className = 'market-status closed';
           }

@@ -12,7 +12,7 @@
 <!-- Inter font for UI — same links as the homepage so the topbar and footer
      render in Inter, not the system fallback. -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="/styles.css?v=7.8" />
+<link rel="stylesheet" href="/styles.css?v=7.9" />
 <link rel="stylesheet" href="/widget.css?v=4" />
 <!-- Material Symbols (shared topbar icons; display=block — no ligature flash) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
@@ -128,7 +128,7 @@
 <body>
 <!-- TOPBAR — shared with the dashboard (index.html) -->
 <header class="topbar">
-  <div class="brand">
+  <a class="brand" href="/">
     <div class="brand-icon">
       <span class="material-symbols-outlined icon-fill">monitoring</span>
     </div>
@@ -136,7 +136,7 @@
       <span class="brand-name">MSE Berza</span>
       <span class="brand-sub">Македонска берза во живо</span>
     </div>
-  </div>
+  </a>
   <div class="topbar-right">
     <span class="market-status" id="marketStatus">—</span>
     <span id="mbiChip">MBI10</span>
@@ -269,7 +269,7 @@
 <footer class="foot"></footer>
 
 <script src="/logo.js?v=4"></script>
-<script src="/widget.js?v=10"></script>
+<script src="/widget.js?v=11"></script>
 <script>
 const DEFAULT_H = { chart: 420, ticker: 40, dividends: 380 };
 const DEFAULT_W = { chart: '480', ticker: '100%', dividends: '100%' };

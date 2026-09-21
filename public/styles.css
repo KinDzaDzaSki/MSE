@@ -1587,11 +1587,19 @@ table.quotes td.sym .sym-text { display: inline-block; }
 }
 .foot-lang .material-symbols-outlined { font-size: 18px; }
 
-/* "Ажурирано HH:MM" — desktop keeps the stamp in the panel header; on mobile
-   (≤599px) the header stamp hides and this bottom bar above the footer takes
-   over, keeping the compact header clean. #lastPollBottom lives in
-   index.html; app.js setUpdated() fills both copies. */
+/* "Ажурирано HH:MM" — shown as a bottom bar above the footer on every screen
+   size (the header stamp is hidden everywhere; app.js setUpdated fills both
+   #lastPoll and #lastPollBottom). 11px on desktop, 10px on mobile to match
+   the footer. */
 .updated-bar { display: none; }
+.updated-bar:not(:empty) {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: var(--md-sys-color-on-surface-variant);
+  padding: 10px 12px;
+}
+.panel-header #lastPoll { display: none; }
 
 /* ==========================================================================
    SCROLLBAR STYLING
@@ -1801,9 +1809,6 @@ table.quotes td.sym .sym-text { display: inline-block; }
   .panel-header #viewToggle button { padding: 8px 6px; }
   .panel-header .search-wrapper { flex: 1 1 auto; }
   #lastPoll { margin-left: auto; }
-  /* Mobile: the "Ажурирано" stamp moves from the panel header to the bottom
-     bar above the footer (.updated-bar). */
-  .panel-header #lastPoll { display: none; }
 
   /* Touch-friendly table rows on compact */
   table.quotes th {
@@ -1845,16 +1850,8 @@ table.quotes td.sym .sym-text { display: inline-block; }
     padding: 10px 12px;
     line-height: 1.9;
   }
-  /* Mobile bottom bar: the relocated "Ажурирано" stamp. :not(:empty) so no
-     blank strip renders before the first data load fills it. 10px to match
-     the mobile footer it sits above. */
-  .updated-bar:not(:empty) {
-    display: block;
-    text-align: center;
-    font-size: 10px;
-    color: var(--md-sys-color-on-surface-variant);
-    padding: 10px 12px;
-  }
+  /* Mobile bottom bar: 10px to match the mobile footer. */
+  .updated-bar:not(:empty) { font-size: 10px; }
 }
 
 /* Extra compact: <400px — hide sparkline column to save horizontal space */

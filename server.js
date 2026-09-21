@@ -102,7 +102,7 @@ function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd
 <!-- Material Symbols variable font (display=block: icon ligature text is hidden
      until the font loads, so late font loading can never reflow the layout) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
-<link rel="stylesheet" href="/styles.css?v=7.8" />
+<link rel="stylesheet" href="/styles.css?v=7.9" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${esc(canonical)}" />
@@ -139,7 +139,7 @@ ${TOPBAR_HTML}
 ${bodyHtml}
 </main>
 <footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · <a href="/sitemap">Мапа на сајтот</a> · v${esc(PKG.version)}<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button></footer>
-<script src="/widget.js?v=10"></script>
+<script src="/widget.js?v=11"></script>
 <script>if (window.W && W.initTopbar) W.initTopbar();</script>
 <!-- Vercel Web Analytics -->
 <script defer src="/_vercel/insights/script.js"></script>
@@ -355,6 +355,13 @@ async function handleApi(req, res, url) {
   if (url.pathname === '/api/dividends') {
     const dividends = await store.computeDividends();
     return sendJson(res, { dividends, count: dividends.length }, 200, req, 300);
+  }
+
+  if (url.pathname === '/api/movers') {
+    // Official MSE homepage movers panels (Добитници/Губитници/Најтргувани),
+    // scraped by the scheduler during the trading session.
+    const movers = await store.getMovers();
+    return sendJson(res, movers || { winners: [], losers: [], mostTraded: [] }, 200, req, 60);
   }
 
   if (url.pathname === '/api/fx') {

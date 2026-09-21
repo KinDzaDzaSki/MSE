@@ -23,6 +23,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
 }[c]));
 
 let quotesCache = [];
+let moversCache = null;    // { winners, losers, mostTraded } — official MSE homepage panels
 let sparkCache = {};
 let historyCache = {};    // symbol -> {rows, range}
 let headerSortCol = 'value';
@@ -112,6 +113,9 @@ const I18N = {
       gainers: 'Top gainers',
       losers: 'Top losers',
       active: 'Most active',
+      movers_empty_winners: 'No winners today',
+      movers_empty_losers: 'No losers today',
+      movers_empty_active: 'No trades today',
       loading: 'Loading…',
       last_price: 'Last Price',
       avg_price: 'Avg Price',
@@ -239,6 +243,9 @@ const I18N = {
       gainers: 'Најголеми добитници',
       losers: 'Најголеми губитници',
       active: 'Најтргувани',
+      movers_empty_winners: 'Нема добитници',
+      movers_empty_losers: 'Нема губитници',
+      movers_empty_active: 'Нема тргување денес',
       loading: 'Вчитување…',
       last_price: 'Последна цена',
       avg_price: 'Просечна цена',
@@ -831,6 +838,9 @@ async function loadQuotes() {
       st.className = 'market-status closed';
       setUpdated(`${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true })}`);
     }
+    // Movers are final too, but a first-time visitor outside the session
+    // still wants the persisted official panels.
+    if (!moversCache) loadMovers();
     return;
   }
 
@@ -859,7 +869,9 @@ async function loadQuotes() {
     setUpdated(`${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true })}`);
   }
   renderTable();
+  buildMoversLookup();
   renderSidebar();
+  loadMovers();
   // Sparkline history refreshes at most once per hour. Always load so the
   // user sees sparklines regardless of market state — historical data is
   // available even when the market is closed (it's just not changing).
@@ -1051,6 +1063,13 @@ async function drawSpark(canvas, symbol, chgPct) {
 // Sidebars are ALWAYS liquid-only (independent of the view toggle): a +20%
 // move on two shares is not a "top gainer".
 function renderSidebar() {
+  if (moversCache) {
+    renderSidePanel('gainersItems', moversCache.winners || [], 'winners');
+    renderSidePanel('losersItems', moversCache.losers || [], 'losers');
+    renderSidePanel('activeItems', moversCache.mostTraded || [], 'mostTraded');
+    return;
+  }
+  // Fallback until /api/movers has data (cold start): derive from quotes.
   const pool = quotesCache.filter((r) => isPrimary(r) && r.liq === true);
   renderSidePanel('gainersItems',
     pool.filter((r) => r.changePct != null && r.changePct > 0)
@@ -1063,22 +1082,54 @@ function renderSidebar() {
       .sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 5));
 }
 
-function renderSidePanel(containerId, items) {
+// Symbol → quote lookup for name/logo enrichment of movers rows.
+const moversLookup = {};
+function buildMoversLookup() {
+  for (const q of quotesCache) moversLookup[q.symbol] = q;
+}
+
+// Fetch the official MSE movers panels. Called on the same cadence as the
+// quotes poll; renders the strip when the payload arrives.
+async function loadMovers() {
+  try {
+    const d = await fetch('/api/movers').then((r) => (r.ok ? r.json() : null));
+    if (d && Array.isArray(d.winners) && Array.isArray(d.losers) && Array.isArray(d.mostTraded)) {
+      moversCache = d;
+      renderSidebar();
+    }
+  } catch (e) { /* keep last movers / computed fallback */ }
+}
+
+function renderSidePanel(containerId, items, kind) {
   const el = $(`#${containerId}`);
   el.innerHTML = '';
+  if (!items.length) {
+    const emptyTxt = kind === 'winners' ? t('movers_empty_winners')
+      : kind === 'losers' ? t('movers_empty_losers')
+        : t('movers_empty_active');
+    el.innerHTML = `<div class="side-item"><div class="si-left"><span class="muted" style="font-size:12px">${esc(emptyTxt)}</span></div></div>`;
+    return;
+  }
   for (const r of items) {
+    const q = moversLookup[r.symbol] || {};
+    const name = r.name || q.name || '';
+    const site = r.site || q.site;
+    const fav = r.fav != null ? r.fav : q.fav;
+    const favv = r.favv != null ? r.favv : q.favv;
+    const price = r.avgPrice != null ? r.avgPrice : r.lastPrice;
+    const daily = r.dailyChange != null ? r.dailyChange : q.dailyChange;
     const div = document.createElement('div');
     div.className = 'side-item';
     div.dataset.sym = r.symbol;
     div.innerHTML = `
       <div class="si-left">
-        <div class="si-sym">${logoHTML(r.symbol, r.name, r.site, 22, r.fav, r.favv)}<span>${esc(r.symbol)}</span></div>
-        <div class="si-name">${esc(r.name || '')}</div>
+        <div class="si-sym">${logoHTML(r.symbol, name, site, 22, fav, favv)}<span>${esc(r.symbol)}</span></div>
+        <div class="si-name">${esc(name)}</div>
       </div>
       <div class="si-spark"><canvas data-spark-side="${esc(r.symbol)}"></canvas></div>
       <div class="si-right">
-        <div class="si-price">${fmt(r.lastPrice)}</div>
-        <div class="si-chg ${pctClass(r.changePct)}">${chgStr(r.dailyChange)} (${pctStr(r.changePct)})</div>
+        <div class="si-price">${fmt(price)}</div>
+        <div class="si-chg ${pctClass(r.changePct)}">${r.changePct != null ? (daily != null ? chgStr(daily) + ' (' + pctStr(r.changePct) + ')' : pctStr(r.changePct)) : ''}</div>
       </div>`;
     el.appendChild(div);
   }
