@@ -79,6 +79,38 @@ body {
 @media (max-width: 599px) {
   .w-footer { font-size: 10px; }
 }
+
+/* ---- Company logo (favicon + monogram fallback) ----
+   Embeds don't load styles.css, so the .co-logo chrome lives here too
+   (markup comes from logo.js). Sizes follow the context: 14px in symbol
+   tabs, 16px in the head. */
+.co-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--md-sys-color-surface-variant);
+  vertical-align: -3px;
+}
+.co-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.co-logo-mono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  color: #FFFFFF;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.ov-tabs .co-logo, .ov-tabs .co-logo-mono { width: 14px; height: 14px; margin-right: 4px; }
+.ov-head .co-logo, .ov-head .co-logo-mono { width: 16px; height: 16px; margin-right: 5px; }
 .w-error { padding: 16px; text-align: center; color: var(--md-sys-color-on-surface-variant); font-size: 12px; }
 .up { color: var(--md-sys-color-positive); }
 .down { color: var(--md-sys-color-negative); }
@@ -165,6 +197,9 @@ body {
   white-space: nowrap;
 }
 .w-table th:first-child { text-align: left; }
+/* The Компанија column's cells are left-aligned (w-name-cell) — the header
+   must match, not float right over left text. */
+.w-table th:nth-child(2) { text-align: left; }
 .w-table td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--md-sys-color-outline-variant); font-feature-settings: 'tnum' 1; white-space: nowrap; }
 .w-table td:first-child { text-align: left; font-weight: 700; color: var(--md-sys-color-primary); }
 .w-table td.w-name-cell {

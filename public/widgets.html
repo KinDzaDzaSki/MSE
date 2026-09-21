@@ -13,7 +13,7 @@
      render in Inter, not the system fallback. -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/styles.css?v=7.8" />
-<link rel="stylesheet" href="/widget.css?v=3" />
+<link rel="stylesheet" href="/widget.css?v=4" />
 <!-- Material Symbols (shared topbar icons; display=block — no ligature flash) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
 <style>
@@ -123,8 +123,6 @@
     font-family: 'SF Mono', 'Consolas', monospace; font-size: 12px; line-height: 1.5;
   }
   .b-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .b-open { color: var(--md-sys-color-primary); font-size: 13px; text-decoration: none; }
-  .b-open:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -157,12 +155,7 @@
   <section class="b-step">
     <h2>1. Избери тип на виџет</h2>
     <div class="b-types" id="types">
-      <button type="button" class="b-type active" data-type="quote">
-        <span class="t-check">✓</span>
-        <div class="t-name">Картичка</div>
-        <div class="t-desc">Цена, промена и мини тренд за една компанија или индекс</div>
-      </button>
-      <button type="button" class="b-type" data-type="chart">
+      <button type="button" class="b-type active" data-type="chart">
         <span class="t-check">✓</span>
         <div class="t-name">Преглед на симбол</div>
         <div class="t-desc">Котации + график за една или повеќе компании, со избор на период — како TradingView Symbol Overview</div>
@@ -183,16 +176,6 @@
   <section class="b-step">
     <h2>2. Поставки</h2>
     <div class="b-cfg">
-      <div class="b-row" id="rowSymbol">
-        <div class="b-field">
-          <label for="symbolInput">Компанија / индекс</label>
-          <div class="m3-cmb">
-            <input id="symbolInput" class="m3-cmb-input" autocomplete="off" role="combobox" aria-expanded="false" value="KMB" placeholder="пр. KMB" />
-            <button type="button" class="m3-cmb-btn" id="symbolMenuBtn" aria-label="Отвори листа">⌄</button>
-            <div class="m3-menu" id="symbolMenu" hidden></div>
-          </div>
-        </div>
-      </div>
       <div class="b-row" id="rowRange" style="display:none">
         <div class="b-field">
           <label for="rangeSel">Почетен период</label>
@@ -259,11 +242,11 @@
         </div>
         <div class="b-field" style="flex:0 0 120px">
           <label for="hInput">Височина (px)</label>
-          <input id="hInput" type="number" min="40" max="1200" value="220" />
+          <input id="hInput" type="number" min="40" max="1200" value="420" />
         </div>
         <div class="b-field" style="flex:0 0 120px">
           <label for="wInput">Ширина (px или %)</label>
-          <input id="wInput" type="text" value="100%" />
+          <input id="wInput" type="text" value="480" />
         </div>
       </div>
     </div>
@@ -279,7 +262,6 @@
     <textarea id="snippet" readonly></textarea>
     <div class="b-actions">
       <button type="button" class="b-copy" id="copyBtn">Копирај код</button>
-      <a class="b-open" id="openLink" target="_blank" rel="noopener">Отвори виџет во нов tab →</a>
     </div>
   </section>
 </main>
@@ -289,17 +271,16 @@
 <script src="/logo.js?v=4"></script>
 <script src="/widget.js?v=10"></script>
 <script>
-const DEFAULT_H = { quote: 220, chart: 420, ticker: 46, dividends: 380 };
-const DEFAULT_W = { quote: '320', chart: '480', ticker: '100%', dividends: '100%' };
+const DEFAULT_H = { chart: 420, ticker: 40, dividends: 380 };
+const DEFAULT_W = { chart: '480', ticker: '100%', dividends: '100%' };
 const state = {
-  type: 'quote',
-  symbol: 'KMB',
-  symbolsByType: { quote: [], chart: ['KMB', 'ALK', 'TEL'], ticker: [], dividends: [] },
+  type: 'chart',
+  symbolsByType: { chart: ['KMB', 'ALK', 'TEL'], ticker: [], dividends: [] },
   range: '1Y',
   n: 10,
   theme: 'dark',
-  height: DEFAULT_H.quote,
-  width: DEFAULT_W.quote,
+  height: DEFAULT_H.chart,
+  width: DEFAULT_W.chart,
   chartType: 'area',
   changeMode: 'pp',
   showVolume: false,
@@ -311,20 +292,22 @@ function curSyms() {
     : state.type === 'chart' ? state.symbolsByType.chart : [];
 }
 
-// Debounce timer for preview/snippet refresh (declared early: onTheme can
-// fire before the update() definition below executes).
+// Debounce timer for preview/snippet refresh.
 let previewTimer = null;
 
-// ---- theme: shared topbar toggle drives it; config seg mirrors ----
+// ---- widget theme: independent from the site theme ----
+// The seg only sets state.theme, which is passed to the preview iframe via
+// the URL (?theme=) — the iframe is its own document. The topbar theme
+// toggle (W.initTopbar) changes the page theme only and is not wired back
+// here, so the two themes never touch each other in either direction.
 function setBuilderTheme(t) {
   state.theme = t;
-  document.documentElement.dataset.theme = t;
   document.querySelectorAll('#themeSeg button').forEach((b) => b.classList.toggle('active', b.dataset.t === t));
   update();
 }
 document.querySelectorAll('#themeSeg button').forEach((b) => b.addEventListener('click', () => setBuilderTheme(b.dataset.t)));
 if (typeof W !== 'undefined' && W.initTopbar) {
-  W.initTopbar({ onTheme: (t) => { state.theme = t; setBuilderTheme(t); } });
+  W.initTopbar();
   W.renderFoot();
 }
 
@@ -377,11 +360,6 @@ function initCombobox(input, menu, onPick) {
 }
 
 initCombobox(
-  document.getElementById('symbolInput'),
-  document.getElementById('symbolMenu'),
-  (sym) => { state.symbol = sym; update(); }
-);
-initCombobox(
   document.getElementById('tickerInput'),
   document.getElementById('tickerMenu'),
   () => addTicker()
@@ -389,17 +367,22 @@ initCombobox(
 
 // ---- type switching ----
 const CFG_ROWS = {
-  quote: ['rowSymbol'],
   chart: ['rowSymbols', 'rowRange', 'rowChartOpts'],
   ticker: ['rowSymbols'],
   dividends: ['rowN'],
 };
+function applyCfgRows() {
+  CFG_ROWS[state.type].forEach((id) => { document.getElementById(id).style.display = ''; });
+  // rowSymbols is shared by chart + ticker — visible for both; everything
+  // else outside the active type is hidden. Runs once at init too (the
+  // default type is already active in markup, so first load shows chart rows).
+  Object.keys(CFG_ROWS).forEach((t) => CFG_ROWS[t].forEach((id) => { document.getElementById(id).style.display = (t === state.type) ? '' : 'none'; }));
+  document.getElementById('rowSymbols').style.display = (state.type === 'chart' || state.type === 'ticker') ? '' : 'none';
+}
 document.querySelectorAll('.b-type').forEach((b) => b.addEventListener('click', () => {
   state.type = b.dataset.type;
   document.querySelectorAll('.b-type').forEach((x) => x.classList.toggle('active', x === b));
-  Object.keys(CFG_ROWS).forEach((t) => CFG_ROWS[t].forEach((id) => { document.getElementById(id).style.display = (t === state.type) ? '' : 'none'; }));
-  // rowSymbols is shared by chart + ticker — visible for both
-  document.getElementById('rowSymbols').style.display = (state.type === 'chart' || state.type === 'ticker') ? '' : 'none';
+  applyCfgRows();
   state.height = DEFAULT_H[state.type];
   state.width = DEFAULT_W[state.type];
   document.getElementById('hInput').value = state.height;
@@ -407,6 +390,7 @@ document.querySelectorAll('.b-type').forEach((b) => b.addEventListener('click', 
   renderTickerChips();
   update();
 }));
+applyCfgRows();
 
 // ---- multi-symbol chips (ticker + symbol overview) ----
 function renderTickerChips() {
@@ -443,10 +427,6 @@ document.getElementById('cbOnly').addEventListener('change', (e) => { state.char
 document.getElementById('cbPills').addEventListener('change', (e) => { state.pills = e.target.checked; update(); });
 
 // ---- inputs ----
-document.getElementById('symbolInput').addEventListener('input', (e) => {
-  state.symbol = e.target.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || 'KMB';
-  update();
-});
 document.getElementById('rangeSel').addEventListener('change', (e) => { state.range = e.target.value; update(); });
 document.getElementById('nInput').addEventListener('input', (e) => { state.n = Math.min(30, Math.max(3, parseInt(e.target.value, 10) || 10)); update(); });
 document.getElementById('hInput').addEventListener('input', (e) => { state.height = Math.min(1200, Math.max(40, parseInt(e.target.value, 10) || DEFAULT_H[state.type])); update(); });
@@ -456,7 +436,6 @@ document.getElementById('wInput').addEventListener('input', (e) => { state.width
 function embedURL() {
   const p = new URLSearchParams();
   p.set('theme', state.theme);
-  if (state.type === 'quote') p.set('symbol', state.symbol);
   if (state.type === 'chart') {
     p.set('symbols', curSyms().join(','));
     p.set('range', state.range);
@@ -481,9 +460,9 @@ function update() {
   previewTimer = setTimeout(() => {
     const url = embedURL();
     const f = document.getElementById('preview');
+    f.height = state.height; // preview should mirror the real embed height
     if (f.src !== url) f.src = url;
     document.getElementById('snippet').value = snippet();
-    document.getElementById('openLink').href = url;
   }, 400);
 }
 

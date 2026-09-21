@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MSE Berza — виџет</title>
-<link rel="stylesheet" href="/widget.css?v=3" />
+<link rel="stylesheet" href="/widget.css?v=4" />
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <script src="/logo.js?v=4"></script>
 <script src="/widget.js?v=8"></script>
@@ -13,6 +13,7 @@
 <div class="w-main">
   <div class="ov-tabs" id="tabs"></div>
   <div class="ov-head" id="head">
+    <span id="symLogo"></span>
     <span class="w-sym" id="sym">—</span>
     <span class="w-price" id="price">—</span>
     <span class="w-chg" id="chg"></span>
@@ -56,8 +57,12 @@ const RANGE_LBL = { '1M': 'изминат месец', '3M': 'изминати 3
 
 function renderTabs() {
   const tabs = document.getElementById('tabs');
-  tabs.innerHTML = state.syms.map((s, i) =>
-    `<button type="button" data-i="${i}" class="${i === state.cur ? 'active' : ''}">${s}</button>`).join('');
+  tabs.innerHTML = state.syms.map((s, i) => {
+    const q = state.quotes[s] || {};
+    return `<button type="button" data-i="${i}" class="${i === state.cur ? 'active' : ''}">`
+      + (window.CoLogo ? CoLogo.icon(s, q.name, q.site, 14, q.fav, q.favv) : '')
+      + s + '</button>';
+  }).join('');
   tabs.style.display = state.syms.length > 1 ? '' : 'none';
   tabs.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
     state.cur = +b.dataset.i;
@@ -83,6 +88,7 @@ function renderRanges() {
 function renderHead() {
   const sym = state.syms[state.cur];
   const q = state.quotes[sym] || {};
+  document.getElementById('symLogo').innerHTML = window.CoLogo ? CoLogo.icon(sym, q.name, q.site, 16, q.fav, q.favv) : '';
   document.getElementById('sym').textContent = sym;
   document.getElementById('price').textContent = W.fmt(q.lastPrice) + ' MKD';
   const chgEl = document.getElementById('chg');
