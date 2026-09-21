@@ -355,7 +355,10 @@ const I18N = {
 // Default to Macedonian: the brand, the SSR pages and <html lang> are all MK.
 // English stays one tap away via the language toggle.
 let lang = localStorage.getItem('mse_lang') || 'mk';
-const APP_VERSION = '2.7.0';
+// Fallback only — the footer version is refreshed from /api/version (which
+// reads package.json) at boot, so a release bump updates every footer without
+// editing this file. Keep in sync with package.json anyway.
+let APP_VERSION = '2.8.0';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -2060,6 +2063,14 @@ $('#themeToggle').addEventListener('click', () => {
     const fxEl = $('#fxChip');
     if (fxEl) fxEl.addEventListener('click', () => W.showFxList());
   }
+  // Footer version comes from package.json via /api/version so a release bump
+  // updates every footer (dashboard, SSR pages, widgets) with no code edit.
+  fetch('/api/version').then((r) => (r.ok ? r.json() : null)).then((d) => {
+    if (d && d.version && d.version !== APP_VERSION) {
+      APP_VERSION = d.version;
+      applyStaticI18n();
+    }
+  }).catch(() => {});
 })();
 
 // Dedicated scheduler for the MBI10 chip — slower cadence is fine since

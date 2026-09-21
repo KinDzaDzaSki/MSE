@@ -13,11 +13,17 @@
      render in Inter, not the system fallback. -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/styles.css?v=7.9" />
-<link rel="stylesheet" href="/widget.css?v=4" />
+<!-- NOTE: widget.css is intentionally NOT loaded here — it is the embeds'
+     stylesheet and sets html/body height:100% + overflow:hidden globally,
+     which capped this builder page to the viewport and produced an inset
+     .b-main scrollbar (plus the page scrollbar). The builder uses only
+     .b-* / topbar / footer styles (styles.css + the inline block below). -->
 <!-- Material Symbols (shared topbar icons; display=block — no ligature flash) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
 <style>
-  body { overflow: auto; }
+  /* Let the page grow and scroll as one document (no viewport-capped body,
+     no inner .b-main scrollbar). */
+  body { height: auto; overflow: auto; }
   /* Shared topbar comes from styles.css; the footer too (.foot). */
   .b-main { flex: 1 1 auto; overflow: auto; padding: 20px; display: flex; flex-direction: column; gap: 18px; max-width: 1100px; margin: 0 auto; width: 100%; }
   .b-step h2 { font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--md-sys-color-on-surface-variant); margin-bottom: 10px; }

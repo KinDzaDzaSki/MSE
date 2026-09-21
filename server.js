@@ -359,9 +359,11 @@ async function handleApi(req, res, url) {
 
   if (url.pathname === '/api/movers') {
     // Official MSE homepage movers panels (Добитници/Губитници/Најтргувани),
-    // scraped by the scheduler during the trading session.
+    // scraped by the scheduler. null (no-store) when nothing is stored yet —
+    // clients then keep their own computed fallback instead of showing empty
+    // cards (a real panel may legitimately be empty, e.g. "Нема добитници").
     const movers = await store.getMovers();
-    return sendJson(res, movers || { winners: [], losers: [], mostTraded: [] }, 200, req, 60);
+    return sendJson(res, movers, 200, req, movers ? 60 : 0);
   }
 
   if (url.pathname === '/api/fx') {
