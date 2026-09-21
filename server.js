@@ -93,8 +93,16 @@ function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd
 <meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+<!-- Preconnect for font loading -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- Inter font for UI — same links as the homepage so every page renders the
+     topbar and footer in Inter, not the system fallback. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<!-- Material Symbols variable font (display=block: icon ligature text is hidden
+     until the font loads, so late font loading can never reflow the layout) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
 <link rel="stylesheet" href="/styles.css?v=7.8" />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${esc(canonical)}" />
