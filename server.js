@@ -506,6 +506,18 @@ async function handleApi(req, res, url) {
     return sendJson(res, { ok: true, job: job.id, total: job.total, force });
   }
 
+  if (url.pathname === '/api/admin/push-test') {
+    // One-off: send a test notification to every active push subscriber.
+    // GET or POST; admin only (?token= or x-admin-token when ADMIN_TOKEN set).
+    if (!needAdmin(url, req, res)) return;
+    try {
+      const result = await store.broadcastPush();
+      return sendJson(res, { ok: true, ...result }, 200);
+    } catch (e) {
+      return sendJson(res, { error: e.message }, 500);
+    }
+  }
+
   const favRoute = url.pathname.match(/^\/api\/favicon\/([A-Za-z0-9]+)$/);
   if (favRoute) {
     // Self-hosted favicon bytes (PNG/ICO/SVG etc.) stored by the backfill job.

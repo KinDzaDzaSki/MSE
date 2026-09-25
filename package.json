@@ -1,6 +1,6 @@
 {
   "name": "mse-berza",
-  "version": "2.10.3",
+  "version": "2.10.4",
   "description": "MSE Berza — self-hosted clone of the Macedonian Stock Exchange (mse.mk) with a Yahoo-Finance-style dashboard",
   "main": "server.js",
   "scripts": {
