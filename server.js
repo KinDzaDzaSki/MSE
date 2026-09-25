@@ -507,12 +507,16 @@ async function handleApi(req, res, url) {
   }
 
   if (url.pathname === '/api/admin/push-test') {
-    // One-off: send a test notification to every active push subscriber.
+    // Admin broadcast to every active push subscriber.
+    //   (default)        → a "test" notification
+    //   ?type=movers      → the current day's movers recap (bypasses the daily dedupe)
     // GET or POST; admin only (?token= or x-admin-token when ADMIN_TOKEN set).
     if (!needAdmin(url, req, res)) return;
     try {
-      const result = await store.broadcastPush();
-      return sendJson(res, { ok: true, ...result }, 200);
+      const result = url.searchParams.get('type') === 'movers'
+        ? await store.broadcastMovers()
+        : await store.broadcastPush();
+      return sendJson(res, { ok: !result.error, ...result }, 200);
     } catch (e) {
       return sendJson(res, { error: e.message }, 500);
     }
