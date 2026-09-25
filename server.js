@@ -383,8 +383,10 @@ async function handleApi(req, res, url) {
   }
 
   if (url.pathname === '/api/push/key') {
-    // VAPID public key for the client to subscribe. null → push not configured.
-    return sendJson(res, { key: process.env.VAPID_PUBLIC_KEY || null }, 200, req, 3600);
+    // VAPID public key for the client to subscribe. `enabled` is only true when
+    // the server can actually send (web-push installed + both VAPID keys set) —
+    // the client hides the bell otherwise. null key → not configured.
+    return sendJson(res, { key: process.env.VAPID_PUBLIC_KEY || null, enabled: !!store.pushEnabled }, 200, req, 3600);
   }
 
   if (url.pathname === '/api/push/subscribe' && req.method === 'POST') {

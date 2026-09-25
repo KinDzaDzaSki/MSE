@@ -359,7 +359,7 @@ let lang = localStorage.getItem('mse_lang') || 'mk';
 // Fallback only — the footer version is refreshed from /api/version (which
 // reads package.json) at boot, so a release bump updates every footer without
 // editing this file. Keep in sync with package.json anyway.
-let APP_VERSION = '2.10.0';
+let APP_VERSION = '2.10.1';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -2146,7 +2146,7 @@ async function initPush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
   try {
     const d = await fetch('/api/push/key').then((r) => (r.ok ? r.json() : null));
-    if (!d || !d.key) return; // not configured
+    if (!d || !d.key || d.enabled === false) return; // not configured / can't send
     pushPublicKey = d.key;
   } catch (_) { return; }
   try {
