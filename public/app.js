@@ -359,7 +359,7 @@ let lang = localStorage.getItem('mse_lang') || 'mk';
 // Fallback only — the footer version is refreshed from /api/version (which
 // reads package.json) at boot, so a release bump updates every footer without
 // editing this file. Keep in sync with package.json anyway.
-let APP_VERSION = '2.10.1';
+let APP_VERSION = '2.10.2';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -2144,19 +2144,24 @@ async function initPush() {
   const btn = document.getElementById('pushToggle');
   if (!btn) return;
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
-  try {
-    const d = await fetch('/api/push/key').then((r) => (r.ok ? r.json() : null));
-    if (!d || !d.key || d.enabled === false) return; // not configured / can't send
-    pushPublicKey = d.key;
-  } catch (_) { return; }
+  const secure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!secure) return;
+  let keyData = null;
+  try { keyData = await fetch('/api/push/key').then((r) => (r.ok ? r.json() : null)); } catch (_) { return; }
+  if (!keyData || !keyData.key || keyData.enabled === false) return; // not configured / can't send
+  pushPublicKey = keyData.key;
+  // Show the bell as soon as the feature is available; resolve the current
+  // subscription in the background so a slow service worker can never keep the
+  // button hidden.
+  btn.hidden = false;
+  updateBell();
+  btn.addEventListener('click', () => { (pushSubscribed ? disablePush : enablePush)(); });
   try {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
     pushSubscribed = !!sub && Notification.permission === 'granted';
   } catch (_) { pushSubscribed = false; }
-  btn.hidden = false;
   updateBell();
-  btn.addEventListener('click', () => { (pushSubscribed ? disablePush : enablePush)(); });
 }
   // Light theme is the default (dark is one tap away via the toggle).
   applyTheme(localStorage.getItem(THEME_KEY) || 'light');

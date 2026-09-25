@@ -386,7 +386,15 @@ async function handleApi(req, res, url) {
     // VAPID public key for the client to subscribe. `enabled` is only true when
     // the server can actually send (web-push installed + both VAPID keys set) —
     // the client hides the bell otherwise. null key → not configured.
-    return sendJson(res, { key: process.env.VAPID_PUBLIC_KEY || null, enabled: !!store.pushEnabled }, 200, req, 3600);
+    // Short edge TTL so a just-configured key is not served stale.
+    return sendJson(res, { key: process.env.VAPID_PUBLIC_KEY || null, enabled: !!store.pushEnabled }, 200, req, 60);
+  }
+
+  if (url.pathname === '/api/push/status') {
+    // Diagnostics (no PII): is push configured, and how many subscriptions exist?
+    let subscriptions = 0;
+    try { subscriptions = await store.countPushSubscriptions(); } catch (e) { /* ignore */ }
+    return sendJson(res, { enabled: !!store.pushEnabled, subscriptions }, 200, req, 0);
   }
 
   if (url.pathname === '/api/push/subscribe' && req.method === 'POST') {
@@ -396,15 +404,20 @@ async function handleApi(req, res, url) {
       if (!sub || typeof sub.endpoint !== 'string' || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
         return sendJson(res, { error: 'invalid subscription' }, 400);
       }
-      await store.savePushSubscription({
+      const saved = {
         endpoint: sub.endpoint,
         keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth },
         lang: body.lang === 'en' ? 'en' : 'mk',
         watchlist: Array.isArray(body.watchlist)
           ? body.watchlist.filter((s) => typeof s === 'string' && /^[A-Z0-9]+$/.test(s)).slice(0, 100)
           : [],
-      });
-      return sendJson(res, { ok: true }, 200);
+      };
+      await store.savePushSubscription(saved);
+      log.info(`push subscribe (${saved.lang}, ${saved.watchlist.length} watchlist) ok=${!!store.pushEnabled}`);
+      // Immediate confirmation so the user sees the pipeline works right away
+      // (the real daily notification only fires after the session close).
+      store.sendTestPush({ endpoint: saved.endpoint, keys: saved.keys }, saved.lang).catch(() => {});
+      return sendJson(res, { ok: true, confirmed: true }, 200);
     } catch (e) {
       return sendJson(res, { error: e.message }, 400);
     }
