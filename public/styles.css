@@ -342,6 +342,21 @@ a:hover {
   gap: var(--md-space-md);
 }
 
+/* Top-level nav link in the header. Desktop only — the mobile topbar stays
+   compact and the footer already carries the same links. */
+.topbar-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+}
+.topbar-link:hover {
+  color: var(--md-sys-color-primary);
+  text-decoration: none;
+}
+
 /* Market status chip — identical chrome to #mbiChip / #fxChip below; only the
    icon colour signals the state (green = open, muted = closed). */
 .market-status {
@@ -532,7 +547,6 @@ body.has-ad .ad-rail {
 .panel-header .search-wrapper { flex: 1; min-width: 200px; }
 .panel-header .search { height: 44px; font-size: 14px; }
 .panel-header .view-toggle { flex-shrink: 0; }
-.panel-header #lastPoll { margin-left: auto; flex-shrink: 0; }
 
 /* Quotes | Dividends view switcher — segmented, matches the Liquid toggle */
 .main-tabs {
@@ -1587,20 +1601,6 @@ table.quotes td.sym .sym-text { display: inline-block; }
 }
 .foot-lang .material-symbols-outlined { font-size: 18px; }
 
-/* "Ажурирано HH:MM" — shown as a bottom bar above the footer on every screen
-   size (the header stamp is hidden everywhere; app.js setUpdated fills both
-   #lastPoll and #lastPollBottom). 11px on desktop, 10px on mobile to match
-   the footer. */
-.updated-bar { display: none; }
-.updated-bar:not(:empty) {
-  display: block;
-  text-align: center;
-  font-size: 11px;
-  color: var(--md-sys-color-on-surface-variant);
-  padding: 10px 12px;
-}
-.panel-header #lastPoll { display: none; }
-
 /* ==========================================================================
    SCROLLBAR STYLING
    ========================================================================== */
@@ -1717,7 +1717,6 @@ table.quotes td.sym .sym-text { display: inline-block; }
   .panel-header #mainTabs .main-tab,
   .panel-header #viewToggle button { flex: 1; text-align: center; padding: 6px 8px; }
   .panel-header .search-wrapper { flex: 1 1 0; min-width: 0; }
-  #lastPoll { width: auto; text-align: right; margin-left: auto; }
 
   /* Watchlist collapses to a ★ toggle bar; chips expand on tap */
   .watch-strip .watch-label { display: none; }
@@ -1745,6 +1744,10 @@ table.quotes td.sym .sym-text { display: inline-block; }
     font-size: 14px;
   }
   .brand-sub {
+    display: none;
+  }
+  /* Header nav link is desktop-only (the footer carries the same links). */
+  .topbar-link {
     display: none;
   }
   .topbar-right {
@@ -1808,7 +1811,6 @@ table.quotes td.sym .sym-text { display: inline-block; }
   .panel-header #mainTabs .main-tab,
   .panel-header #viewToggle button { padding: 8px 6px; }
   .panel-header .search-wrapper { flex: 1 1 auto; }
-  #lastPoll { margin-left: auto; }
 
   /* Touch-friendly table rows on compact */
   table.quotes th {
@@ -1850,8 +1852,6 @@ table.quotes td.sym .sym-text { display: inline-block; }
     padding: 10px 12px;
     line-height: 1.9;
   }
-  /* Mobile bottom bar: 10px to match the mobile footer. */
-  .updated-bar:not(:empty) { font-size: 10px; }
 }
 
 /* Extra compact: <400px — hide sparkline column to save horizontal space */

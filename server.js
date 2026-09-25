@@ -71,6 +71,7 @@ const TOPBAR_HTML = `<header class="topbar">
     </div>
   </a>
   <div class="topbar-right">
+    <a class="topbar-link" href="/prasanja">Прашања</a>
     <span class="market-status" id="marketStatus">—</span>
     <span id="mbiChip">MBI10</span>
     <span id="fxChip" title="">€ — · <span class="fx-usd">$ —</span></span>
@@ -207,6 +208,21 @@ function sendJson(res, obj, status = 200, req = null, sMaxAge = 0, maxAge = 0) {
   sendRaw(res, Buffer.from(JSON.stringify(obj)), 'application/json; charset=utf-8', req, status, headers);
 }
 
+// Read + parse a small JSON request body (POST endpoints).
+function readJsonBody(req, limit = 16384) {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', (c) => {
+      data += c;
+      if (data.length > limit) { reject(new Error('body too large')); req.destroy(); }
+    });
+    req.on('end', () => {
+      try { resolve(data ? JSON.parse(data) : {}); } catch (e) { reject(new Error('invalid JSON')); }
+    });
+    req.on('error', reject);
+  });
+}
+
 function sendFile(res, file, req = null) {
   fs.readFile(file, (err, data) => {
     if (err) {
@@ -221,7 +237,9 @@ function sendFile(res, file, req = null) {
       // Service worker: must revalidate every load or updates never propagate.
       cacheHeaders['Cache-Control'] = 'no-cache';
     } else if (ext === '.css' || ext === '.js') {
-      cacheHeaders['Cache-Control'] = 'public, max-age=300';
+      // Versioned via ?v= in the HTML — safe to cache immutably for a year.
+      // (Always bump the ?v= query when changing an asset.)
+      cacheHeaders['Cache-Control'] = 'public, max-age=31536000, immutable';
     } else if (ext === '.html') {
       cacheHeaders['Cache-Control'] = 'no-cache';
     } else if (ext === '.webmanifest') {
@@ -362,6 +380,42 @@ async function handleApi(req, res, url) {
   if (url.pathname === '/api/dividends') {
     const dividends = await store.computeDividends();
     return sendJson(res, { dividends, count: dividends.length }, 200, req, 300);
+  }
+
+  if (url.pathname === '/api/push/key') {
+    // VAPID public key for the client to subscribe. null → push not configured.
+    return sendJson(res, { key: process.env.VAPID_PUBLIC_KEY || null }, 200, req, 3600);
+  }
+
+  if (url.pathname === '/api/push/subscribe' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req);
+      const sub = body && body.subscription;
+      if (!sub || typeof sub.endpoint !== 'string' || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
+        return sendJson(res, { error: 'invalid subscription' }, 400);
+      }
+      await store.savePushSubscription({
+        endpoint: sub.endpoint,
+        keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth },
+        lang: body.lang === 'en' ? 'en' : 'mk',
+        watchlist: Array.isArray(body.watchlist)
+          ? body.watchlist.filter((s) => typeof s === 'string' && /^[A-Z0-9]+$/.test(s)).slice(0, 100)
+          : [],
+      });
+      return sendJson(res, { ok: true }, 200);
+    } catch (e) {
+      return sendJson(res, { error: e.message }, 400);
+    }
+  }
+
+  if (url.pathname === '/api/push/unsubscribe' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req);
+      if (body && typeof body.endpoint === 'string') await store.removePushSubscription(body.endpoint);
+      return sendJson(res, { ok: true }, 200);
+    } catch (e) {
+      return sendJson(res, { error: e.message }, 400);
+    }
   }
 
   if (url.pathname === '/api/movers') {
@@ -1004,7 +1058,7 @@ function withTimeoutMs(promise, ms, label) {
 // Static assets and DB-free endpoints answer instantly on a cold start; every
 // other route reads Postgres and therefore waits for the init gate.
 const STATIC_ASSET_RE = /\.(css|js|mjs|map|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|eot|json|webmanifest|txt)$/i;
-const DB_FREE_PATHS = new Set(['/api/version', '/api/market', '/api/logs', '/robots.txt', '/health', '/healthz']);
+const DB_FREE_PATHS = new Set(['/api/version', '/api/market', '/api/logs', '/api/push/key', '/robots.txt', '/health', '/healthz']);
 function needsDb(pathname) {
   if (DB_FREE_PATHS.has(pathname)) return false;
   if (pathname === '/sitemap.xml') return true; // XML, but built from the DB

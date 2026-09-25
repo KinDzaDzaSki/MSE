@@ -62,6 +62,7 @@ function toggleWatch(sym) {
   saveWatchlist();
   refreshStars();
   renderWatchStrip();
+  schedulePushSync(); // keep the server-side watchlist in sync for notifications
 }
 // Update every rendered star button (table rows + modal header) in place —
 // avoids a full table re-render (and sparkline rebuild) on each toggle.
@@ -358,7 +359,7 @@ let lang = localStorage.getItem('mse_lang') || 'mk';
 // Fallback only — the footer version is refreshed from /api/version (which
 // reads package.json) at boot, so a release bump updates every footer without
 // editing this file. Keep in sync with package.json anyway.
-let APP_VERSION = '2.9.0';
+let APP_VERSION = '2.10.0';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -397,9 +398,15 @@ function applyStaticI18n() {
   $$('th', h)[7].textContent = t('th_52w_range');
   // index 2 = sparkline column (no label)
   $('#search').placeholder = t('search');
+  const topFaq = $('#topFaq');
+  if (topFaq) topFaq.textContent = t('footer_faq');
   updateToggleLabels();
   renderWatchStrip();
-  $('.foot').innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>${t('source')} · <a href="/prasanja">${t('footer_faq')}</a> · <a href="/za-nas">${t('footer_about')}</a> · <a href="/izvor-na-podatoci">${t('footer_source')}</a> · <a href="/metodologija">${t('footer_method')}</a> · <a href="/widgets.html">${t('widgets_link')}</a> · <a href="/sitemap">${t('footer_sitemap')}</a> · v${APP_VERSION}<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button>`;
+  $('.foot').innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>${t('source')} · <a href="/prasanja">${t('footer_faq')}</a> · <a href="/za-nas">${t('footer_about')}</a> · <a href="/izvor-na-podatoci">${t('footer_source')}</a> · <a href="/metodologija">${t('footer_method')}</a> · <a href="/widgets.html">${t('widgets_link')}</a> · <a href="/sitemap">${t('footer_sitemap')}</a><span id="lastPollFoot"></span> · v${APP_VERSION}<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button>`;
+  // The footer is re-created on every language switch — restore the
+  // "Ажурирано HH:MM" stamp (label re-translated) if we already have it.
+  if (lastUpdatedTime) setUpdated(lastUpdatedTime);
+  updateBell();
   // Strip titles: target the [data-i18n] span so the leading icon survives.
   const stripTitles = [t('gainers'), t('losers'), t('active')];
   $$('.side-title [data-i18n]').forEach((el, i) => { if (stripTitles[i]) el.textContent = stripTitles[i]; });
@@ -804,14 +811,14 @@ const HISTORY_REFRESH_MS = 60 * 60 * 1000; // 1 hour
 let lastHistoryFetch = 0;
 if (typeof window !== 'undefined') { window.__lastHistoryFetch = () => lastHistoryFetch; window.__setLastHistoryFetch = (t) => { lastHistoryFetch = t; }; }
 
-// The "Ажурирано HH:MM" stamp renders twice: in the panel header (desktop)
-// and in the bottom bar above the footer (mobile — see .updated-bar in
-// styles.css). One setter keeps both in sync.
-function setUpdated(txt) {
-  const header = document.getElementById('lastPoll');
-  const bottom = document.getElementById('lastPollBottom');
-  if (header) header.textContent = txt;
-  if (bottom) bottom.textContent = txt;
+// The "Ажурирано HH:MM" stamp lives in the footer, just before the version.
+// setUpdated takes the time string; the label is translated at render time so
+// a language switch re-renders it correctly.
+let lastUpdatedTime = null;
+function setUpdated(timeStr) {
+  lastUpdatedTime = timeStr || null;
+  const el = document.getElementById('lastPollFoot');
+  if (el) el.textContent = lastUpdatedTime ? ` · ${t('updated')} ${lastUpdatedTime}` : '';
 }
 
 // ---- MAIN TABLE ----
@@ -839,7 +846,7 @@ async function loadQuotes() {
       const st = $('#marketStatus');
       st.innerHTML = t('market_closed_at').replace('{time}', timeStr);
       st.className = 'market-status closed';
-      setUpdated(`${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true })}`);
+      setUpdated(new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true }));
     }
     // Movers are final too, but a first-time visitor outside the session
     // still wants the persisted official panels.
@@ -869,7 +876,7 @@ async function loadQuotes() {
     st.className = 'market-status closed';
   }
   if (d.lastPoll) {
-    setUpdated(`${t('updated')} ${new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true })}`);
+    setUpdated(new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true }));
   }
   renderTable();
   buildMoversLookup();
@@ -1069,7 +1076,10 @@ async function drawSpark(canvas, symbol, chgPct) {
 // derived rows visibly contradict mse.mk. Until /api/movers arrives we show
 // the loading state instead.
 function renderSidebar() {
-  if (!moversCache) {
+  // Wait for BOTH the official panels and the quote lookup (names + logos).
+  // Rendering with an empty lookup first would paint monogram tiles and blank
+  // names, then swap to the real logos/names — a visible flicker.
+  if (!moversCache || !quotesCache.length) {
     for (const id of ['gainersItems', 'losersItems', 'activeItems']) {
       const el = $(`#${id}`);
       if (el) el.innerHTML = `<div class="side-item"><div class="si-left"><span class="muted" style="font-size:12px">${esc(t('loading'))}</span></div></div>`;
@@ -2058,6 +2068,96 @@ function setupOfflineBanner() {
   window.addEventListener('offline', sync);
   sync();
 }
+
+// ---- Web Push: daily movers + watchlist notifications ----
+// Opt-in bell in the topbar. Hidden unless the server has VAPID keys
+// (/api/push/key) and the browser supports push + notifications.
+let pushSubscribed = false;
+let pushPublicKey = null;
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+function updateBell() {
+  const btn = document.getElementById('pushToggle');
+  const icon = document.getElementById('pushIcon');
+  if (!btn || !icon) return;
+  icon.textContent = pushSubscribed ? 'notifications_active' : 'notifications';
+  const on = lang === 'mk' ? 'Исклучи известувања' : 'Disable notifications';
+  const off = lang === 'mk' ? 'Вклучи известувања' : 'Enable notifications';
+  btn.title = pushSubscribed ? on : off;
+  btn.setAttribute('aria-label', btn.title);
+  btn.setAttribute('aria-pressed', pushSubscribed ? 'true' : 'false');
+  btn.style.color = pushSubscribed ? 'var(--md-sys-color-primary)' : '';
+}
+async function postSubscription(sub) {
+  try {
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub, watchlist, lang }),
+    });
+  } catch (_) {}
+}
+let pushSyncTimer = null;
+function schedulePushSync() {
+  if (!pushSubscribed) return;
+  clearTimeout(pushSyncTimer);
+  pushSyncTimer = setTimeout(async () => {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) await postSubscription(sub);
+    } catch (_) {}
+  }, 1500);
+}
+async function enablePush() {
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { updateBell(); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(pushPublicKey) });
+    await postSubscription(sub);
+    pushSubscribed = true;
+  } catch (_) { pushSubscribed = false; }
+  updateBell();
+}
+async function disablePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      const endpoint = sub.endpoint;
+      await sub.unsubscribe();
+      await fetch('/api/push/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint }) }).catch(() => {});
+    }
+  } catch (_) {}
+  pushSubscribed = false;
+  updateBell();
+}
+async function initPush() {
+  const btn = document.getElementById('pushToggle');
+  if (!btn) return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+  try {
+    const d = await fetch('/api/push/key').then((r) => (r.ok ? r.json() : null));
+    if (!d || !d.key) return; // not configured
+    pushPublicKey = d.key;
+  } catch (_) { return; }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    pushSubscribed = !!sub && Notification.permission === 'granted';
+  } catch (_) { pushSubscribed = false; }
+  btn.hidden = false;
+  updateBell();
+  btn.addEventListener('click', () => { (pushSubscribed ? disablePush : enablePush)(); });
+}
   // Light theme is the default (dark is one tap away via the toggle).
   applyTheme(localStorage.getItem(THEME_KEY) || 'light');
 $('#themeToggle').addEventListener('click', () => {
@@ -2070,6 +2170,7 @@ $('#themeToggle').addEventListener('click', () => {
   renderWatchStrip();
   registerSW();
   setupOfflineBanner();
+  initPush();
   // Sparklines + official movers first, in parallel with the rest: the strip
   // shows "Вчитување…" until /api/movers responds (never derived numbers).
   loadSparks();

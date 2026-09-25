@@ -9,7 +9,7 @@
  *
  * Bump CACHE_VERSION on any change so `activate` purges the old caches.
  */
-const CACHE_VERSION = 'mse-berza-v1';
+const CACHE_VERSION = 'mse-berza-v2';
 const PRECACHE = CACHE_VERSION + '-precache';
 const RUNTIME = CACHE_VERSION + '-runtime';
 const OFFLINE_URL = '/offline.html';
@@ -104,3 +104,30 @@ async function staleWhileRevalidate(req) {
   }).catch(() => null);
   return hit || (await network) || new Response('', { status: 504, statusText: 'offline' });
 }
+
+// ---- Web Push: daily movers + watchlist notifications ----
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) { data = {}; }
+  const title = data.title || 'MSE Berza';
+  event.waitUntil(self.registration.showNotification(title, {
+    body: data.body || '',
+    icon: '/icon-512.png',
+    badge: '/favicon-192.png',
+    tag: data.tag || 'mse-movers',
+    renotify: true,
+    data: { url: data.url || '/' },
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil((async () => {
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of clients) {
+      if ('focus' in c) { if ('navigate' in c) c.navigate(url).catch(() => {}); return c.focus(); }
+    }
+    if (self.clients.openWindow) return self.clients.openWindow(url);
+  })());
+});
