@@ -36,8 +36,10 @@ const MIME = {
   '.js': 'application/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
+  '.png': 'image/png',
   '.txt': 'text/plain; charset=utf-8',
   '.xml': 'application/xml; charset=utf-8',
 };
@@ -215,10 +217,15 @@ function sendFile(res, file, req = null) {
     // CSS/JS: short cache so CDN picks up new versions quickly.
     // HTML: no-cache so the latest version (with cache-busting ?v=) always loads.
     const cacheHeaders = {};
-    if (ext === '.css' || ext === '.js') {
+    if (path.basename(file) === 'sw.js') {
+      // Service worker: must revalidate every load or updates never propagate.
+      cacheHeaders['Cache-Control'] = 'no-cache';
+    } else if (ext === '.css' || ext === '.js') {
       cacheHeaders['Cache-Control'] = 'public, max-age=300';
     } else if (ext === '.html') {
       cacheHeaders['Cache-Control'] = 'no-cache';
+    } else if (ext === '.webmanifest') {
+      cacheHeaders['Cache-Control'] = 'public, max-age=3600';
     }
     sendRaw(res, data, MIME[ext] || 'application/octet-stream', req, 200, cacheHeaders);
   });

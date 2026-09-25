@@ -358,7 +358,7 @@ let lang = localStorage.getItem('mse_lang') || 'mk';
 // Fallback only — the footer version is refreshed from /api/version (which
 // reads package.json) at boot, so a release bump updates every footer without
 // editing this file. Keep in sync with package.json anyway.
-let APP_VERSION = '2.8.1';
+let APP_VERSION = '2.9.0';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels
@@ -2024,6 +2024,39 @@ function applyTheme(theme) {
   localStorage.setItem(THEME_KEY, theme);
   const icon = $('#themeIcon');
   icon.textContent = theme === 'light' ? 'light_mode' : 'dark_mode';
+  // Keep the PWA/browser chrome colour in sync with the active theme.
+  const meta = document.getElementById('themeColorMeta');
+  if (meta) {
+    const surface = getComputedStyle(document.documentElement).getPropertyValue('--md-sys-color-surface').trim();
+    if (surface) meta.setAttribute('content', surface);
+  }
+}
+
+// ---- PWA (dashboard): register the service worker + offline banner ----
+function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  const secure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!secure) return;
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* PWA is an enhancement */ });
+  });
+}
+
+function setupOfflineBanner() {
+  const el = document.createElement('div');
+  el.id = 'offlineBanner';
+  el.setAttribute('role', 'status');
+  el.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;text-align:center;padding:8px 12px;font-size:12px;background:var(--md-sys-color-error-container);color:var(--md-sys-color-on-error-container);border-top:1px solid var(--md-sys-color-outline)';
+  document.body.appendChild(el);
+  const sync = () => {
+    el.textContent = lang === 'mk'
+      ? 'Нема интернет врска — прикажаните податоци може да не се најнови.'
+      : 'No internet connection — shown data may be stale.';
+    el.style.display = navigator.onLine ? 'none' : 'block';
+  };
+  window.addEventListener('online', sync);
+  window.addEventListener('offline', sync);
+  sync();
 }
   // Light theme is the default (dark is one tap away via the toggle).
   applyTheme(localStorage.getItem(THEME_KEY) || 'light');
@@ -2035,6 +2068,8 @@ $('#themeToggle').addEventListener('click', () => {
 (async function init() {
   applyStaticI18n();
   renderWatchStrip();
+  registerSW();
+  setupOfflineBanner();
   // Sparklines + official movers first, in parallel with the rest: the strip
   // shows "Вчитување…" until /api/movers responds (never derived numbers).
   loadSparks();
