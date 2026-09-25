@@ -397,6 +397,22 @@ async function handleApi(req, res, url) {
     return sendJson(res, { enabled: !!store.pushEnabled, subscriptions }, 200, req, 0);
   }
 
+  if (url.pathname === '/api/cron/movers') {
+    // Daily job (Vercel Cron, see vercel.json): refresh the official movers and
+    // send the day's notification. When CRON_SECRET is set, Vercel sends it as
+    // `Authorization: Bearer <secret>` — reject anything else.
+    const secret = process.env.CRON_SECRET;
+    if (secret && req.headers['authorization'] !== `Bearer ${secret}`) {
+      return sendJson(res, { error: 'forbidden' }, 403);
+    }
+    try {
+      await store.moversTick();
+      return sendJson(res, { ok: true, enabled: !!store.pushEnabled, subscriptions: await store.countPushSubscriptions() }, 200, req, 0);
+    } catch (e) {
+      return sendJson(res, { error: e.message }, 500);
+    }
+  }
+
   if (url.pathname === '/api/push/subscribe' && req.method === 'POST') {
     try {
       const body = await readJsonBody(req);
@@ -1029,7 +1045,7 @@ let readyPromise = null;
 function ensureReady() {
   if (!readyPromise) {
     readyPromise = store.init()
-      .then((syms) => {
+      .then(async (syms) => {
         log.info(`store ready: ${Array.isArray(syms) ? syms.length : 0} symbols`);
         // startScheduler is synchronous (it kicks off its own async IIFE), so a
         // throw here must not be mistaken for an init failure.
@@ -1037,6 +1053,18 @@ function ensureReady() {
           store.startScheduler();
         } catch (e) {
           log.error(`scheduler start error: ${e.message}`);
+        }
+        // Serverless functions freeze once the response is sent, so the
+        // scheduler's background timers can't be relied on for the daily push.
+        // Run the (guarded, deduped) movers refresh + notify inside this real
+        // request instead — normally a no-op, bounded so it can't stall boot.
+        try {
+          await Promise.race([
+            store.moversTick(),
+            new Promise((r) => setTimeout(r, 7000)),
+          ]);
+        } catch (e) {
+          log.warn(`movers tick at boot: ${e.message}`);
         }
         return true;
       })

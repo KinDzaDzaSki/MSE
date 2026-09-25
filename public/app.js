@@ -359,7 +359,7 @@ let lang = localStorage.getItem('mse_lang') || 'mk';
 // Fallback only — the footer version is refreshed from /api/version (which
 // reads package.json) at boot, so a release bump updates every footer without
 // editing this file. Keep in sync with package.json anyway.
-let APP_VERSION = '2.10.2';
+let APP_VERSION = '2.10.3';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // EN → MK translation map for financial data / ratios labels

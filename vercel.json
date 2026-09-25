@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/cron/movers", "schedule": "0 14 * * 1-5" }
+  ]
+}
