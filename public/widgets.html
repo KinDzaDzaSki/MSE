@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MSE Berza — Виџети</title>
 <meta name="description" content="Креирај embeddable виџети со податоци од Македонската берза: ticker лента, картичка за компанија, мини график или дивиденди." />
+<link rel="canonical" href="https://mseberza.info/widgets.html" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
 <!-- Preconnect for font loading -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -273,7 +274,9 @@
   </section>
 </main>
 
-<footer class="foot"></footer>
+<!-- Pre-JS fallback: the same links W.renderFoot() draws, so crawlers that
+     don't run JS still see the footer navigation. -->
+<footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · <a href="/sitemap">Мапа на сајтот</a></footer>
 
 <script src="/logo.js?v=4"></script>
 <script src="/widget.js?v=11"></script>

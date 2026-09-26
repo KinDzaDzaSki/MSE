@@ -245,6 +245,11 @@ function sendFile(res, file, req = null) {
     } else if (ext === '.webmanifest') {
       cacheHeaders['Cache-Control'] = 'public, max-age=3600';
     }
+    // Embeddable widget pages are thin iframe shells (meant to be embedded on
+    // other sites, not indexed as standalone pages) — keep them out of search.
+    if (path.relative(PUBLIC_DIR, file).replace(/\\/g, '/').startsWith('embed/')) {
+      cacheHeaders['X-Robots-Tag'] = 'noindex, nofollow';
+    }
     sendRaw(res, data, MIME[ext] || 'application/octet-stream', req, 200, cacheHeaders);
   });
 }
@@ -1116,7 +1121,7 @@ function withTimeoutMs(promise, ms, label) {
 
 // Static assets and DB-free endpoints answer instantly on a cold start; every
 // other route reads Postgres and therefore waits for the init gate.
-const STATIC_ASSET_RE = /\.(css|js|mjs|map|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|eot|json|webmanifest|txt)$/i;
+const STATIC_ASSET_RE = /\.(html|css|js|mjs|map|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|eot|json|webmanifest|txt)$/i;
 // /sitemap.xml is intentionally NOT gated on store.init: it only needs a plain
 // quotes read, and it must answer crawlers even during a cold start or a DB
 // hiccup (a 5xx here is what shows up as "Couldn't fetch" in Search Console).
