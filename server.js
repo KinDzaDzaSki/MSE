@@ -1117,12 +1117,26 @@ function withTimeoutMs(promise, ms, label) {
 // Static assets and DB-free endpoints answer instantly on a cold start; every
 // other route reads Postgres and therefore waits for the init gate.
 const STATIC_ASSET_RE = /\.(css|js|mjs|map|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|eot|json|webmanifest|txt)$/i;
-const DB_FREE_PATHS = new Set(['/api/version', '/api/market', '/api/logs', '/api/push/key', '/robots.txt', '/health', '/healthz']);
+// /sitemap.xml is intentionally NOT gated on store.init: it only needs a plain
+// quotes read, and it must answer crawlers even during a cold start or a DB
+// hiccup (a 5xx here is what shows up as "Couldn't fetch" in Search Console).
+const DB_FREE_PATHS = new Set(['/api/version', '/api/market', '/api/logs', '/api/push/key', '/robots.txt', '/sitemap.xml', '/health', '/healthz']);
 function needsDb(pathname) {
   if (DB_FREE_PATHS.has(pathname)) return false;
-  if (pathname === '/sitemap.xml') return true; // XML, but built from the DB
   return !STATIC_ASSET_RE.test(pathname);
 }
+
+// Sitemap XML builder + cache. On a DB failure we serve the last good sitemap
+// (or the static pages) with a 200 — a crawler must never see an error here.
+function buildSitemapXml(symbols) {
+  const urls = ['/', '/widgets.html', '/prasanja', '/kursna-lista', '/za-nas', '/izvor-na-podatoci', '/metodologija', '/sitemap']
+    .concat(symbols.map((s) => `/s/${s}`));
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    + urls.map((u) => `  <url><loc>${SITE_URL}${u}</loc></url>`).join('\n')
+    + '\n</urlset>';
+}
+const STATIC_SITEMAP_XML = buildSitemapXml([]);
+let sitemapCache = null; // last successfully built full sitemap
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -1143,20 +1157,18 @@ const server = http.createServer(async (req, res) => {
 
   // ---- SEO / SSR routes ----
   if (url.pathname === '/sitemap.xml') {
+    let xml;
     try {
       const quotes = Object.values(await store.getQuotes());
       const prim = quotes.filter((q) => q.primary !== false).map((q) => q.symbol).sort();
-      const urls = ['/', '/widgets.html', '/prasanja', '/kursna-lista', '/za-nas', '/izvor-na-podatoci', '/metodologija', '/sitemap', ...prim.map((s) => `/s/${s}`)];
-      const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        + urls.map((u) => `  <url><loc>${SITE_URL}${u}</loc></url>`).join('\n')
-        + '\n</urlset>';
-      res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, s-maxage=3600' });
-      return res.end(xml);
+      xml = buildSitemapXml(prim);
+      sitemapCache = { xml, at: Date.now() };
     } catch (e) {
-      log.error(`sitemap: ${e.message}`);
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      return res.end('error');
+      log.warn(`sitemap build failed, serving fallback: ${e.message}`);
+      xml = (sitemapCache && sitemapCache.xml) || STATIC_SITEMAP_XML;
     }
+    res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=1800, s-maxage=3600' });
+    return res.end(xml);
   }
 
   const sm = url.pathname.match(/^\/s\/([A-Za-z0-9]+)$/);
