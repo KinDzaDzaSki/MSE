@@ -124,7 +124,32 @@
   #tickerAdd { height: 44px; white-space: nowrap; }
   .b-check { display: flex; align-items: center; gap: 6px; color: var(--md-sys-color-on-surface); cursor: pointer; min-height: 44px; }
   .b-check input { accent-color: var(--md-sys-color-primary); width: 18px; height: 18px; }
-  .b-preview { width: 100%; border: 1px solid var(--md-sys-color-outline); border-radius: 10px; background: var(--md-sys-color-surface); min-height: 120px; }
+  /* Preview device toolbar (desktop / tablet / mobile) + size readout */
+  .b-preview-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .b-devices { display: inline-flex; gap: 2px; padding: 3px; background: var(--md-sys-color-surface-variant); border: 1px solid var(--md-sys-color-outline); border-radius: 8px; }
+  .b-dev {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 30px; border: none; background: transparent;
+    color: var(--md-sys-color-on-surface-variant); border-radius: 6px; cursor: pointer;
+  }
+  .b-dev:hover { color: var(--md-sys-color-on-surface); }
+  .b-dev.active { background: var(--md-sys-color-surface); color: var(--md-sys-color-primary); box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .b-dev .material-symbols-outlined { font-size: 18px; }
+  .b-dev-size { font-size: 12px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); font-variant-numeric: tabular-nums; }
+  .b-dev-reset {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border: 1px solid var(--md-sys-color-outline);
+    border-radius: 999px; background: transparent; color: var(--md-sys-color-on-surface-variant); cursor: pointer;
+  }
+  .b-dev-reset:hover { color: var(--md-sys-color-primary); border-color: var(--md-sys-color-primary); }
+  .b-dev-reset .material-symbols-outlined { font-size: 18px; }
+  .b-preview-stage {
+    display: flex; justify-content: center; align-items: flex-start;
+    background: var(--md-sys-color-surface-variant);
+    border: 1px solid var(--md-sys-color-outline); border-radius: 10px;
+    padding: 10px; overflow: auto;
+  }
+  .b-preview { width: 100%; border: 1px solid var(--md-sys-color-outline); border-radius: 10px; background: var(--md-sys-color-surface); min-height: 120px; flex: 0 0 auto; }
   #snippet {
     width: 100%; min-height: 84px; resize: vertical;
     background: var(--md-sys-color-surface-variant); border: 1px solid var(--md-sys-color-outline);
@@ -176,6 +201,11 @@
         <span class="t-check" aria-hidden="true">✓</span>
         <div class="t-name">Преглед на симбол</div>
         <div class="t-desc">Котации + график за една или повеќе компании, со избор на период — како TradingView Symbol Overview</div>
+      </button>
+      <button type="button" class="b-type" data-type="watchlist" aria-pressed="false">
+        <span class="t-check" aria-hidden="true">✓</span>
+        <div class="t-name">Преглед на пазарот</div>
+        <div class="t-desc">Групирана листа — индекси и најтргувани акции, или добитници/губитници/најтргувани — како TradingView Market Overview</div>
       </button>
       <button type="button" class="b-type" data-type="ticker" aria-pressed="false">
         <span class="t-check" aria-hidden="true">✓</span>
@@ -229,6 +259,53 @@
           </div>
         </div>
       </div>
+      <div class="b-row" id="rowTickerOpts" style="display:none">
+        <div class="b-field" style="flex:0 0 auto">
+          <label>Брзина</label>
+          <div class="b-seg" id="tickSpeedSeg" role="group" aria-label="Брзина на лентата">
+            <button type="button" data-v="slow" aria-pressed="false">Бавна</button>
+            <button type="button" data-v="normal" class="active" aria-pressed="true">Нормална</button>
+            <button type="button" data-v="fast" aria-pressed="false">Брза</button>
+          </div>
+        </div>
+        <div class="b-field" style="flex:1 1 auto">
+          <label>Опции</label>
+          <div style="display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px">
+            <label class="b-check"><input type="checkbox" id="cbLogos" /> Логоа на компании</label>
+            <label class="b-check"><input type="checkbox" id="cbTransparent" /> Транспарентна позадина</label>
+            <label class="b-check"><input type="checkbox" id="cbLarge" /> Голема лента</label>
+            <label class="b-check"><input type="checkbox" id="cbTickerCompact" /> Без промена %</label>
+          </div>
+        </div>
+      </div>
+      <div class="b-row" id="rowWatchlistOpts" style="display:none">
+        <div class="b-field" style="flex:0 0 auto">
+          <label>Приказ</label>
+          <div class="b-seg" id="watchSeg" role="group" aria-label="Приказ на пазарот">
+            <button type="button" data-v="market" class="active" aria-pressed="true">Пазар</button>
+            <button type="button" data-v="movers" aria-pressed="false">Движења</button>
+          </div>
+        </div>
+        <div class="b-field" style="flex:0 0 130px">
+          <label for="watchNInput">Редови по секција</label>
+          <input id="watchNInput" type="number" min="3" max="20" value="8" />
+        </div>
+        <div class="b-field" style="flex:0 0 auto">
+          <label>Густина</label>
+          <div class="b-seg" id="watchDensitySeg" role="group" aria-label="Густина">
+            <button type="button" data-v="comfortable" class="active" aria-pressed="true">Комфор</button>
+            <button type="button" data-v="compact" aria-pressed="false">Компакт</button>
+          </div>
+        </div>
+        <div class="b-field" style="flex:1 1 auto">
+          <label>Колони</label>
+          <div style="display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px">
+            <label class="b-check"><input type="checkbox" id="cbColPrice" checked /> Последна</label>
+            <label class="b-check"><input type="checkbox" id="cbColChg" checked /> Промена %</label>
+            <label class="b-check"><input type="checkbox" id="cbColVol" /> Промет</label>
+          </div>
+        </div>
+      </div>
       <div class="b-row" id="rowN" style="display:none">
         <div class="b-field">
           <label for="nInput">Број на компании (топ по принос)</label>
@@ -271,7 +348,18 @@
 
   <section class="b-step">
     <h2>3. Преглед</h2>
-    <iframe class="b-preview" id="preview" title="Преглед на виџет" height="420"></iframe>
+    <div class="b-preview-bar">
+      <div class="b-devices" role="group" aria-label="Големина на преглед">
+        <button type="button" class="b-dev active" data-dev="desktop" aria-pressed="true" title="Десктоп"><span class="material-symbols-outlined" aria-hidden="true">desktop_windows</span><span class="sr-only">Десктоп</span></button>
+        <button type="button" class="b-dev" data-dev="tablet" aria-pressed="false" title="Таблет"><span class="material-symbols-outlined" aria-hidden="true">tablet_mac</span><span class="sr-only">Таблет</span></button>
+        <button type="button" class="b-dev" data-dev="mobile" aria-pressed="false" title="Мобилен"><span class="material-symbols-outlined" aria-hidden="true">smartphone</span><span class="sr-only">Мобилен</span></button>
+      </div>
+      <span class="b-dev-size" id="devSize">480 × 420</span>
+      <button type="button" class="b-dev-reset" id="devReset" title="Ресетирај големина"><span class="material-symbols-outlined" aria-hidden="true">restart_alt</span><span class="sr-only">Ресетирај</span></button>
+    </div>
+    <div class="b-preview-stage">
+      <iframe class="b-preview" id="preview" title="Преглед на виџет" height="420"></iframe>
+    </div>
   </section>
 
   <section class="b-step">
@@ -291,14 +379,15 @@
 <script src="/logo.js?v=5"></script>
 <script src="/widget.js?v=12"></script>
 <script>
-const DEFAULT_H = { chart: 420, ticker: 40, dividends: 380 };
-const DEFAULT_W = { chart: '480', ticker: '100%', dividends: '100%' };
+const DEFAULT_H = { chart: 420, ticker: 40, dividends: 380, watchlist: 440 };
+const DEFAULT_W = { chart: '480', ticker: '100%', dividends: '100%', watchlist: '100%' };
 const state = {
   type: 'chart',
   symbolsByType: { chart: ['KMB', 'ALK', 'TEL'], ticker: [], dividends: [] },
   range: '1Y',
   n: 10,
   theme: 'dark',
+  device: 'desktop', // preview device preset: desktop | tablet | mobile | custom
   height: DEFAULT_H.chart,
   width: DEFAULT_W.chart,
   chartType: 'area',
@@ -306,6 +395,10 @@ const state = {
   showVolume: false,
   chartOnly: false,
   pills: true,
+  // Market Overview / Watchlist widget
+  watch: { preset: 'market', n: 8, density: 'comfortable', cols: { price: true, chgPct: true, vol: false } },
+  // Ticker-tape options
+  tick: { speed: 'normal', logos: false, transparent: false, large: false, compact: false },
 };
 function curSyms() {
   return state.type === 'ticker' ? state.symbolsByType.ticker
@@ -418,7 +511,8 @@ initCombobox(
 // ---- type switching ----
 const CFG_ROWS = {
   chart: ['rowSymbols', 'rowRange', 'rowChartOpts'],
-  ticker: ['rowSymbols'],
+  watchlist: ['rowWatchlistOpts'],
+  ticker: ['rowSymbols', 'rowTickerOpts'],
   dividends: ['rowN'],
 };
 function applyCfgRows() {
@@ -437,10 +531,12 @@ document.querySelectorAll('.b-type').forEach((b) => b.addEventListener('click', 
     x.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
   applyCfgRows();
+  state.device = 'desktop';
   state.height = DEFAULT_H[state.type];
   state.width = DEFAULT_W[state.type];
   document.getElementById('hInput').value = state.height;
   document.getElementById('wInput').value = state.width;
+  syncDeviceButtons();
   renderTickerChips();
   update();
 }));
@@ -484,11 +580,84 @@ document.getElementById('cbVolume').addEventListener('change', (e) => { state.sh
 document.getElementById('cbOnly').addEventListener('change', (e) => { state.chartOnly = e.target.checked; update(); });
 document.getElementById('cbPills').addEventListener('change', (e) => { state.pills = e.target.checked; update(); });
 
+// ---- segmented control helper (aria-pressed + active class) ----
+function wireSeg(id, apply) {
+  const seg = document.getElementById(id);
+  seg.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    seg.querySelectorAll('button').forEach((x) => {
+      const on = x === b;
+      x.classList.toggle('active', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    apply(b.dataset.v);
+    update();
+  }));
+}
+
+// ---- ticker opts ----
+wireSeg('tickSpeedSeg', (v) => { state.tick.speed = v; });
+document.getElementById('cbLogos').addEventListener('change', (e) => { state.tick.logos = e.target.checked; update(); });
+document.getElementById('cbTransparent').addEventListener('change', (e) => { state.tick.transparent = e.target.checked; update(); });
+document.getElementById('cbLarge').addEventListener('change', (e) => { state.tick.large = e.target.checked; update(); });
+document.getElementById('cbTickerCompact').addEventListener('change', (e) => { state.tick.compact = e.target.checked; update(); });
+
+// ---- watchlist (market overview) opts ----
+wireSeg('watchSeg', (v) => { state.watch.preset = v; });
+wireSeg('watchDensitySeg', (v) => { state.watch.density = v; });
+document.getElementById('watchNInput').addEventListener('input', (e) => { state.watch.n = Math.min(20, Math.max(3, parseInt(e.target.value, 10) || 8)); update(); });
+document.getElementById('cbColPrice').addEventListener('change', (e) => { state.watch.cols.price = e.target.checked; update(); });
+document.getElementById('cbColChg').addEventListener('change', (e) => { state.watch.cols.chgPct = e.target.checked; update(); });
+document.getElementById('cbColVol').addEventListener('change', (e) => { state.watch.cols.vol = e.target.checked; update(); });
+
+// ---- preview device presets (desktop / tablet / mobile) ----
+// The device sets the widget WIDTH (state.width) so the preview frame and the
+// generated snippet stay in sync (WYSIWYG). "desktop" uses the type's natural
+// default width; tablet/mobile are fixed responsive widths. Height is left to
+// the user's Височина field, since every widget has its own height.
+const DEVICES = {
+  desktop: { w: () => DEFAULT_W[state.type] },
+  tablet: { w: () => '768' },
+  mobile: { w: () => '390' },
+};
+function syncDeviceButtons() {
+  document.querySelectorAll('.b-dev').forEach((b) => {
+    const on = b.dataset.dev === state.device;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+function setDevice(name) {
+  if (!DEVICES[name]) return;
+  state.device = name;
+  state.width = DEVICES[name].w();
+  const wi = document.getElementById('wInput');
+  if (wi) wi.value = state.width;
+  syncDeviceButtons();
+  update();
+}
+document.querySelectorAll('.b-dev').forEach((b) => b.addEventListener('click', () => setDevice(b.dataset.dev)));
+const devReset = document.getElementById('devReset');
+if (devReset) devReset.addEventListener('click', () => {
+  state.device = 'desktop';
+  state.width = DEFAULT_W[state.type];
+  state.height = DEFAULT_H[state.type];
+  const wi = document.getElementById('wInput'), hi = document.getElementById('hInput');
+  if (wi) wi.value = state.width;
+  if (hi) hi.value = state.height;
+  syncDeviceButtons();
+  update();
+});
+
 // ---- inputs ----
 document.getElementById('rangeSel').addEventListener('change', (e) => { state.range = e.target.value; update(); });
 document.getElementById('nInput').addEventListener('input', (e) => { state.n = Math.min(30, Math.max(3, parseInt(e.target.value, 10) || 10)); update(); });
 document.getElementById('hInput').addEventListener('input', (e) => { state.height = Math.min(1200, Math.max(40, parseInt(e.target.value, 10) || DEFAULT_H[state.type])); update(); });
-document.getElementById('wInput').addEventListener('input', (e) => { state.width = e.target.value.trim() || DEFAULT_W[state.type]; update(); });
+document.getElementById('wInput').addEventListener('input', (e) => {
+  state.width = e.target.value.trim() || DEFAULT_W[state.type];
+  state.device = 'custom'; // manual width → no device preset is active
+  syncDeviceButtons();
+  update();
+});
 
 // ---- URL + snippet ----
 function embedURL() {
@@ -503,8 +672,22 @@ function embedURL() {
     p.set('dateRanges', state.pills ? '1' : '0');
     p.set('changeMode', state.changeMode);
   }
-  if (state.type === 'ticker') p.set('symbols', curSyms().join(','));
+  if (state.type === 'ticker') {
+    p.set('symbols', curSyms().join(','));
+    p.set('speed', state.tick.speed);
+    if (state.tick.logos) p.set('logos', '1');
+    if (state.tick.transparent) p.set('transparent', '1');
+    if (state.tick.large) p.set('large', '1');
+    if (state.tick.compact) p.set('displayMode', 'compact');
+  }
   if (state.type === 'dividends') p.set('n', state.n);
+  if (state.type === 'watchlist') {
+    p.set('preset', state.watch.preset);
+    p.set('n', state.watch.n);
+    p.set('density', state.watch.density);
+    const cols = ['price', 'chgPct', 'vol'].filter((c) => state.watch.cols[c]);
+    p.set('cols', cols.length ? cols.join(',') : 'price,chgPct');
+  }
   return `${location.origin}/embed/${state.type}.html?${p.toString()}`;
 }
 function snippet() {
@@ -522,6 +705,8 @@ function update() {
     // …and width, so the builder is actually WYSIWYG (was always 100%).
     const w = String(state.width || '').trim();
     f.style.width = /^\d+$/.test(w) ? w + 'px' : (w || '100%');
+    const sizeEl = document.getElementById('devSize');
+    if (sizeEl) sizeEl.textContent = state.width + ' × ' + state.height;
     if (f.src !== url) f.src = url;
     document.getElementById('snippet').value = snippet();
   }, 400);
@@ -554,6 +739,7 @@ document.getElementById('copyBtn').addEventListener('click', async () => {
   renderTickerChips();
   update();
 })();
+syncDeviceButtons();
 update();
 </script>
 <!-- Vercel Web Analytics -->

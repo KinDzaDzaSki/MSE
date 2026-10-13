@@ -6,6 +6,18 @@
 <title>MSE Berza — виџет</title>
 <meta name="robots" content="noindex, nofollow" />
 <link rel="stylesheet" href="/widget.css?v=5" />
+<style>
+/* Optional tape variants driven by query params. Tokens only; widget.css is
+   left untouched. With no class applied the tape is byte-for-byte the old one. */
+.w-ticker.large { padding: 8px 0; }
+.w-ticker.large .w-t-item { font-size: 16px; gap: 9px; }
+.w-t-item .w-t-logo { display: inline-flex; align-items: center; align-self: center; }
+.w-t-item .w-t-logo .co-logo,
+.w-t-item .w-t-logo .co-logo-mono { width: 14px; height: 14px; }
+.w-ticker.compact .w-t-chg { display: none; }
+body.w-transparent { background: transparent; }
+body.w-transparent .w-footer { background: transparent; }
+</style>
 <script src="/logo.js?v=5"></script>
 <script src="/widget.js?v=9"></script>
 </head>
@@ -18,7 +30,8 @@
   <div class="w-footer" id="wFooter"></div>
 </div>
 <script>
-W.setTheme(W.params().get('theme'));
+const P = W.params();
+W.setTheme(P.get('theme'));
 W.footer(document.getElementById('wFooter'));
 // Accessibility: a visible pause control for the auto-scrolling tape.
 const pauseBtn = document.getElementById('tickerPause');
@@ -28,12 +41,25 @@ pauseBtn.addEventListener('click', () => {
   pauseBtn.setAttribute('aria-label', paused ? 'Продолжи движење' : 'Паузирај движење');
   pauseBtn.textContent = paused ? '▶' : '❚❚';
 });
-const SYMBOLS = (W.params().get('symbols') || '')
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// ---- TradingView-style tape options (all optional; defaults match the old tape) ----
+const SPEED = { slow: 64, normal: 40, fast: 22 }; // seconds
+const durSec = Math.min(Math.max(SPEED[(P.get('speed') || 'normal').toLowerCase()] || SPEED.normal, 8), 120);
+const showLogos = P.get('logos') === '1';
+const displayMode = P.get('displayMode') === 'compact' ? 'compact' : 'regular';
+const tickerEl = document.getElementById('ticker');
+tickerEl.classList.toggle('large', P.get('large') === '1');
+tickerEl.classList.toggle('compact', displayMode === 'compact');
+if (P.get('transparent') === '1') document.body.classList.add('w-transparent');
+// Keep the @keyframes/animation from widget.css; override only the duration.
+document.getElementById('track').style.animationDuration = durSec + 's';
+const SYMBOLS = (P.get('symbols') || P.get('symbol') || '')
   .split(',').map((s) => s.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean);
 
 function itemHTML(sym) {
-  return `<span class="w-t-item" data-sym="${sym}">
-    <span class="w-t-sym">${sym}</span>
+  return `<span class="w-t-item" data-sym="${esc(sym)}">
+    ${showLogos ? '<span class="w-t-logo"></span>' : ''}
+    <span class="w-t-sym">${esc(sym)}</span>
     <span class="w-t-price">—</span>
     <span class="w-t-chg">…</span>
   </span>`;
@@ -49,6 +75,11 @@ function updateValues(quotes) {
   document.querySelectorAll('.w-t-item').forEach((el) => {
     const q = quotes[el.dataset.sym];
     if (!q) return;
+    // The track holds two copies of each item; fill every match (values + logo).
+    if (showLogos) {
+      const logo = el.querySelector('.w-t-logo');
+      if (logo && window.CoLogo) logo.innerHTML = CoLogo.icon(q.symbol, q.name, q.site, 14, q.fav, q.favv);
+    }
     el.querySelector('.w-t-price').textContent = W.fmt(q.lastPrice);
     const chg = el.querySelector('.w-t-chg');
     chg.textContent = W.pctStr(q.changePct);

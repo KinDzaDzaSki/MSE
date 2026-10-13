@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="mk" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MSE Berza — виџет</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="stylesheet" href="/widget.css?v=5" />
+<script src="/logo.js?v=5"></script>
+<script src="/widget.js?v=9"></script>
+<style>
+  /* Market Overview / Watchlist — self-contained (widget.css untouched).
+     TradingView-style grouped watchlist: sticky section header + right-aligned
+     value columns, scrolling internally so the iframe never double-scrolls. */
+
+  .mo-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+
+  .mo-sec { border-bottom: 1px solid var(--md-sys-color-outline); }
+  .mo-sec:last-child { border-bottom: 0; }
+
+  .mo-head,
+  .mo-row {
+    display: grid;
+    grid-template-columns: var(--mo-grid, minmax(0, 1fr) 96px 78px);
+    align-items: center;
+    column-gap: 10px;
+  }
+
+  .mo-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 6px 12px;
+    background: var(--md-sys-color-surface);
+    border-bottom: 1px solid var(--md-sys-color-outline);
+  }
+  .mo-head-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--md-sys-color-on-surface);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mo-col {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--md-sys-color-on-surface-variant);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .mo-row {
+    padding: 7px 12px;
+    text-decoration: none;
+    color: var(--md-sys-color-on-surface);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    transition: background-color 90ms linear;
+  }
+  .mo-sec .mo-row:last-child { border-bottom: 0; }
+  .mo-row:hover { background: var(--md-sys-color-surface-variant); }
+  .mo-row:focus-visible { outline: 2px solid var(--md-sys-color-primary); outline-offset: -2px; border-radius: 4px; }
+
+  .mo-sym { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .mo-logo { flex-shrink: 0; display: inline-flex; }
+  .mo-sym-txt { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+  .mo-sym-code {
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--md-sys-color-primary);
+    letter-spacing: .2px;
+    flex-shrink: 0;
+  }
+  .mo-sym-name {
+    font-size: 11px;
+    color: var(--md-sys-color-on-surface-variant);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .mo-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .mo-vol { color: var(--md-sys-color-on-surface-variant); }
+
+  .mo-empty {
+    padding: 14px 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  /* density */
+  body.mo-compact .mo-row { padding: 4px 10px; }
+  body.mo-compact .mo-head { padding: 4px 10px; }
+  body.mo-compact .mo-num { font-size: 12px; }
+  body.mo-compact .mo-sym-code { font-size: 12px; }
+  body.mo-compact .mo-sym-name { font-size: 10px; }
+
+  /* transparent page background so the embed blends into a host page */
+  body.mo-transparent,
+  body.mo-transparent .mo-scroll { background: transparent; }
+</style>
+</head>
+<body>
+  <div class="w-main">
+    <div class="mo-scroll" id="moScroll" role="region" aria-label="Преглед на пазарот">
+      <div class="mo-empty">Вчитување…</div>
+    </div>
+  </div>
+  <div class="w-footer" id="wFooter"></div>
+  <script>
+const P = W.params();
+W.setTheme(P.get('theme'));
+W.footer(document.getElementById('wFooter'));
+
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// ---- options (open/tolerant: unknown values fall back to the defaults) ----
+const state = {
+  preset: P.get('preset') === 'movers' ? 'movers' : 'market',
+  density: P.get('density') === 'compact' ? 'compact' : 'comfortable',
+  transparent: P.get('transparent') === '1',
+  n: (() => {
+    const v = parseInt(P.get('n') || '8', 10);
+    return Number.isFinite(v) ? Math.min(20, Math.max(3, v)) : 8;
+  })(),
+  cols: (() => {
+    const ALLOWED = ['price', 'chgPct', 'vol'];
+    const raw = P.get('cols');
+    if (raw == null) return ['price', 'chgPct'];
+    const out = [];
+    raw.split(',').forEach((c) => {
+      const t = c.trim();
+      if (ALLOWED.indexOf(t) !== -1 && out.indexOf(t) === -1) out.push(t);
+    });
+    return out;
+  })(),
+  rendered: false,
+};
+
+if (state.density === 'compact') document.body.classList.add('mo-compact');
+if (state.transparent) document.body.classList.add('mo-transparent');
+
+const COL = {
+  price: { label: 'Последна', w: '96px' },
+  chgPct: { label: 'Пром. %', w: '78px' },
+  vol: { label: 'Промет', w: '84px' },
+};
+const LOGO_SIZE = 18;
+
+// Compact turnover: 3575235 -> "3.6М", 464000 -> "464К" (М = милион, К = илјада).
+function compact(n) {
+  if (n == null || isNaN(n)) return '—';
+  const a = Math.abs(n);
+  if (a >= 1e9) return W.fmt(n / 1e9, 1) + 'Б';
+  if (a >= 1e6) return W.fmt(n / 1e6, 1) + 'М';
+  if (a >= 1e3) return W.fmt(n / 1e3, 0) + 'К';
+  return W.fmt(n, 0);
+}
+
+function gridFor(cols) {
+  return 'minmax(0, 1fr) ' + cols.map((c) => COL[c].w).join(' ');
+}
+
+function logoFor(r) {
+  if (r.noLogo) return '';
+  return '<span class="mo-logo">' + W.companyIcon(r.symbol, r.name, r.site, LOGO_SIZE, r.fav, r.favv) + '</span>';
+}
+
+function cellFor(col, r) {
+  if (col === 'price') return '<span class="mo-num">' + W.fmt(r.price) + '</span>';
+  if (col === 'chgPct') return '<span class="mo-num ' + W.pctClass(r.chgPct) + '">' + W.pctStr(r.chgPct) + '</span>';
+  if (col === 'vol') return '<span class="mo-num mo-vol">' + compact(r.vol) + '</span>';
+  return '';
+}
+
+function rowHTML(cols, r) {
+  const name = r.name ? '<span class="mo-sym-name">' + esc(r.name) + '</span>' : '';
+  const label = esc(r.name ? r.symbol + ' — ' + r.name : r.symbol);
+  return '<a class="mo-row" href="/s/' + encodeURIComponent(r.symbol) + '" target="_blank" rel="noopener" aria-label="' + label + '">'
+    + '<span class="mo-sym">' + logoFor(r)
+    + '<span class="mo-sym-txt"><span class="mo-sym-code">' + esc(r.symbol) + '</span>' + name + '</span>'
+    + '</span>'
+    + cols.map((c) => cellFor(c, r)).join('')
+    + '</a>';
+}
+
+// forcedVol: the "Најтргувани" movers section always carries turnover, even
+// when ?cols omitted vol (the other presets keep the strict cols contract).
+function sectionHTML(title, rows, forcedVol) {
+  const cols = forcedVol && state.cols.indexOf('vol') === -1 ? state.cols.concat('vol') : state.cols;
+  const heads = cols.map((c) => '<span class="mo-col">' + COL[c].label + '</span>').join('');
+  const body = rows.length
+    ? rows.map((r) => rowHTML(cols, r)).join('')
+    : '<div class="mo-empty">Нема податоци</div>';
+  return '<section class="mo-sec" style="--mo-grid:' + gridFor(cols) + '" aria-label="' + esc(title) + '">'
+    + '<div class="mo-head"><span class="mo-head-title">' + esc(title) + '</span>' + heads + '</div>'
+    + body
+    + '</section>';
+}
+
+function renderMarket(idx, q) {
+  const order = ['MBI10', 'OMB'];
+  const idxRows = order.filter((code) => idx && idx[code]).map((code) => ({
+    symbol: code,
+    noLogo: true,
+    price: idx[code].value,
+    chgPct: idx[code].changePct,
+    vol: null,
+  }));
+  const top = ((q && q.quotes) || [])
+    .filter((x) => x.liq === true && x.primary !== false)
+    .sort((a, b) => (b.value || 0) - (a.value || 0))
+    .slice(0, state.n)
+    .map((x) => ({
+      symbol: x.symbol,
+      name: x.name,
+      site: x.site,
+      fav: x.fav,
+      favv: x.favv,
+      price: x.lastPrice,
+      chgPct: x.changePct,
+      vol: x.value,
+    }));
+  return sectionHTML('Индекси', idxRows, false)
+    + sectionHTML('Најтргувани акции', top, false);
+}
+
+// qmap lets us enrich the movers payload (which carries only symbol/price/%) with
+// the company name + favicon from /api/quotes, so rows get real logos.
+function renderMovers(d, qmap) {
+  const map = (arr) => (arr || []).slice(0, state.n).map((x) => {
+    const q = (qmap && qmap[x.symbol]) || {};
+    return {
+      symbol: x.symbol,
+      name: q.name,
+      site: q.site,
+      fav: q.fav,
+      favv: q.favv,
+      price: x.avgPrice,
+      chgPct: x.changePct,
+      vol: x.value,
+    };
+  });
+  return sectionHTML('Добитници', map(d && d.winners), false)
+    + sectionHTML('Губитници', map(d && d.losers), false)
+    + sectionHTML('Најтргувани', map(d && d.mostTraded), true);
+}
+
+async function load() {
+  const box = document.getElementById('moScroll');
+  try {
+    if (state.preset === 'movers') {
+      const [d, q] = await Promise.all([
+        W.fetchJSON('/api/movers'),
+        W.fetchJSON('/api/quotes').catch(() => null),
+      ]);
+      const qmap = {};
+      if (q && Array.isArray(q.quotes)) for (const x of q.quotes) qmap[x.symbol] = x;
+      box.innerHTML = renderMovers(d, qmap);
+    } else {
+      const [idx, q] = await Promise.all([
+        W.fetchJSON('/api/indices').catch(() => null),
+        W.fetchJSON('/api/quotes').catch(() => null),
+      ]);
+      if (!idx && !q) throw new Error('no data');
+      box.innerHTML = renderMarket(idx, q);
+    }
+    state.rendered = true;
+  } catch (e) {
+    // Keep the last good snapshot on a refresh failure; only blank on first load.
+    if (!state.rendered) box.innerHTML = '<div class="w-error">Нема податоци</div>';
+  }
+}
+
+load();
+W.autoRefresh(load);
+  </script>
+</body>
+</html>
