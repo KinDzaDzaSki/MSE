@@ -106,7 +106,7 @@ function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd
 <!-- Material Symbols variable font (display=block: icon ligature text is hidden
      until the font loads, so late font loading can never reflow the layout) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
-<link rel="stylesheet" href="/styles.css?v=7.10" />
+<link rel="stylesheet" href="/styles.css?v=7.11" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${esc(canonical)}" />

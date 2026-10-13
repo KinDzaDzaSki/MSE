@@ -1,6 +1,8 @@
 {
   "crons": [
-    { "path": "/api/cron/movers", "schedule": "0 14 * * 1-5" }
+    { "path": "/api/cron/movers", "schedule": "0 14 * * 1-5" },
+    { "path": "/api/cron/movers", "schedule": "0 15 * * 1-5" },
+    { "path": "/api/cron/movers", "schedule": "0 17 * * 1-5" }
   ],
   "headers": [
     {

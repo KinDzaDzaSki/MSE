@@ -346,17 +346,29 @@ a:hover {
 }
 
 /* Top-level nav link in the header. Desktop only — the mobile topbar stays
-   compact and the footer already carries the same links. */
+   compact and the footer already carries the same links. Styled as an M3
+   outlined button (pill) so it reads as clickable, not as body text. */
 .topbar-link {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 14px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--md-sys-color-on-surface-variant);
+  color: var(--md-sys-color-primary);
   text-decoration: none;
   white-space: nowrap;
-  transition: color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-full);
+  background: transparent;
+  transition: background var(--md-motion-duration-short-2) var(--md-motion-easing-standard),
+              border-color var(--md-motion-duration-short-2) var(--md-motion-easing-standard),
+              color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
 .topbar-link:hover {
   color: var(--md-sys-color-primary);
+  border-color: var(--md-sys-color-primary);
+  background: color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent);
   text-decoration: none;
 }
 
@@ -2424,11 +2436,15 @@ table.quotes th[data-divsort]:focus-visible { outline-offset: -2px; }
 /* Lock background scroll while the company dialog is open. */
 body.modal-open { overflow: hidden; }
 
-/* Skip link — first tab stop on every page, visible only when focused. */
+/* Skip link — first tab stop on every page, revealed only when focused.
+   `position: fixed` + a transform offset is used instead of an absolute top
+   offset: the transform move is immune to flex/containing-block quirks, so the
+   link can never render in the visual flow above the logo. */
 .skip-link {
-  position: absolute;
+  position: fixed;
   left: 12px;
-  top: -60px;
+  top: 8px;
+  transform: translateY(-200%);
   z-index: 100;
   padding: 10px 16px;
   background: var(--md-sys-color-primary);
@@ -2436,9 +2452,10 @@ body.modal-open { overflow: hidden; }
   border-radius: var(--md-shape-small);
   font-weight: 600;
   font-size: 14px;
-  transition: top var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+  text-decoration: none;
+  transition: transform var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
-.skip-link:focus { top: 10px; }
+.skip-link:focus { transform: translateY(0); }
 
 @media (prefers-reduced-motion: reduce) {
   *,
