@@ -42,8 +42,22 @@
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  // Pick a foreground for a monogram tile that keeps the initials legible:
+  // white on dark swatches, near-black on light ones (white on #E0A800 is only
+  // ~2.1:1). Returns whichever of white/near-black has more contrast.
+  function inkFor(bg) {
+    const hex = String(bg).replace('#', '');
+    const c = [0, 1, 2].map((i) => {
+      const v = parseInt(hex.substr(i * 2, 2), 16) / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    const L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    return (1.05 / (L + 0.05)) >= ((L + 0.05) / 0.05) ? '#FFFFFF' : '#101418';
+  }
+
   function monoStyle(sym, name, size, hidden) {
-    return 'background:' + monogramColor(sym)
+    const bg = monogramColor(sym);
+    return 'background:' + bg + ';color:' + inkFor(bg)
       + ';width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.46) + 'px'
       + (hidden ? ';display:none' : '');
   }

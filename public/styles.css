@@ -130,8 +130,11 @@
   --md-sys-color-inverse-on-surface: #EDEFF4;
   --md-sys-color-inverse-primary: #AAC7FF;
 
-  /* Semantic — Market movement */
-  --md-sys-color-positive: #0FA76C;
+  /* Semantic — Market movement. #0FA76C only reached 2.95:1 on the light
+     surface (AA fail as text, and under the 3:1 floor for UI glyphs); darkened
+     to #07794A → 5.2:1 on surface / 4.8:1 on background, so .up text and
+     positive sparklines clear WCAG AA in light mode. */
+  --md-sys-color-positive: #07794A;
   --md-sys-color-on-positive: #FFFFFF;
   --md-sys-color-positive-container: #B8F0D6;
   --md-sys-color-on-positive-container: #00391E;
@@ -362,6 +365,7 @@ a:hover {
 .market-status {
   font-size: 12px;
   font-weight: 500;
+  font-family: inherit;
   color: var(--md-sys-color-on-surface-variant);
   padding: 4px 12px;
   border-radius: var(--md-shape-small);
@@ -371,6 +375,7 @@ a:hover {
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+  cursor: pointer;
   transition: all var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
 .market-status:hover {
@@ -392,6 +397,7 @@ a:hover {
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
+  font-family: inherit;
   color: var(--md-sys-color-on-surface-variant);
   padding: 4px 12px;
   border-radius: var(--md-shape-small);
@@ -421,6 +427,7 @@ a:hover {
 #fxChip {
   font-size: 12px;
   font-weight: 500;
+  font-family: inherit;
   color: var(--md-sys-color-on-surface-variant);
   padding: 4px 12px;
   border-radius: var(--md-shape-small);
@@ -429,7 +436,10 @@ a:hover {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   min-width: 92px;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 #mbiChip {
   min-width: 118px;
@@ -450,8 +460,10 @@ a:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  /* 44px keeps the tap target comfortable inside the 56px app bar (M3 aims at
+     48dp; 44 is the practical touch minimum that still fits the bar chrome). */
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: none;
   background: transparent;
@@ -1125,7 +1137,7 @@ table.quotes td.sym .sym-text { display: inline-block; }
 .wk-range-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--md-sys-color-on-surface-variant);
   margin-top: 4px;
   font-feature-settings: 'tnum' 1;
@@ -1319,10 +1331,10 @@ table.quotes td.sym .sym-text { display: inline-block; }
 
 .close {
   position: absolute;
-  right: 12px;
-  top: 12px;
-  width: 36px;
-  height: 36px;
+  right: 10px;
+  top: 10px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1585,8 +1597,8 @@ table.quotes td.sym .sym-text { display: inline-block; }
   display: none;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   margin: 8px auto 0;
   padding: 0;
   border: 1px solid var(--md-sys-color-outline);
@@ -2268,6 +2280,9 @@ table.quotes td.sym .sym-text { display: inline-block; }
   color: var(--md-sys-color-on-surface);
 }
 .fx-table td.num, .fx-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* On the SSR /kursna-lista page the table scrolls with the document, so the
+   sticky header must clear the 56px app bar instead of hiding behind it. */
+.seo-wrap .fx-table th { top: 56px; }
 .fx-code {
   display: inline-block;
   margin-left: 6px;
@@ -2295,6 +2310,7 @@ table.quotes td.sym .sym-text { display: inline-block; }
   line-height: 1.75;
   color: var(--md-sys-color-on-surface-variant);
   margin: 0;
+  max-width: 72ch; /* keep the measure inside the 50–75ch readability band */
 }
 .faq-toc {
   display: flex;
@@ -2375,6 +2391,7 @@ table.quotes td.sym .sym-text { display: inline-block; }
   line-height: 1.8;
   margin: 0 0 12px;
   color: var(--md-sys-color-on-surface-variant);
+  max-width: 72ch; /* long-form answers read best at 50–75ch */
 }
 .faq-a p:last-child { margin-bottom: 0; }
 @keyframes faqIn {
@@ -2386,4 +2403,54 @@ table.quotes td.sym .sym-text { display: inline-block; }
   .faq-item > summary { font-size: 16.5px; padding: 15px 16px; }
   .faq-a { padding: 0 16px 15px; }
   .faq-a p { font-size: 15.5px; }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY FOUNDATIONS (M3)
+   - One consistent visible focus indicator for every keyboard-focusable
+     control, using the low-specificity :where() selector so component rules
+     can still refine it.
+   - A global reduced-motion contract: honour the OS "reduce motion" setting by
+     collapsing every animation/transition to a near-instant frame.
+   ========================================================================== */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+/* Focus rings should never be clipped by an overflow:hidden ancestor. */
+table.quotes th[data-sort]:focus-visible,
+table.quotes th[data-divsort]:focus-visible { outline-offset: -2px; }
+
+/* Lock background scroll while the company dialog is open. */
+body.modal-open { overflow: hidden; }
+
+/* Skip link — first tab stop on every page, visible only when focused. */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  padding: 10px 16px;
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border-radius: var(--md-shape-small);
+  font-weight: 600;
+  font-size: 14px;
+  transition: top var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+}
+.skip-link:focus { top: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Belt-and-braces for the entrance animations that carry transform/opacity. */
+  .modal,
+  .modal-card,
+  .faq-a { animation: none !important; }
 }

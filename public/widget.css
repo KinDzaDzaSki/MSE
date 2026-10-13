@@ -17,6 +17,7 @@
   --md-sys-color-on-surface: #E6E9EF;
   --md-sys-color-surface-variant: #1C2230;
   --md-sys-color-on-surface-variant: #A0A8B5;
+  --md-sys-color-link: #8AB4F8;
   --md-sys-color-outline: #2A3140;
   --md-sys-color-outline-variant: #434B5C;
   --md-sys-color-background: #070A0F;
@@ -27,7 +28,9 @@
 
 /* ---- M3 Color Tokens (Light) ---- */
 [data-theme="light"] {
-  --md-sys-color-primary: #1A6DF5;
+  /* #1A6DF5 is only 4.38:1 on the light surface (AA fail as text); use the
+     same corrected primary the dashboard uses so light embeds match. */
+  --md-sys-color-primary: #1560D8;
   --md-sys-color-on-primary: #FFFFFF;
   --md-sys-color-primary-container: #D6E3FF;
   --md-sys-color-on-primary-container: #001B3E;
@@ -39,11 +42,13 @@
   --md-sys-color-on-surface: #1A1D26;
   --md-sys-color-surface-variant: #EDEFF4;
   --md-sys-color-on-surface-variant: #464D5E;
+  --md-sys-color-link: #0B57D0;
   --md-sys-color-outline: #C4C9D6;
   --md-sys-color-outline-variant: #AFB5C5;
   --md-sys-color-background: #EDEFF4;
   --md-sys-color-on-background: #1A1D26;
-  --md-sys-color-positive: #0FA76C;
+  /* Darkened from #0FA76C (2.95:1 = AA fail) to clear AA on the light surface. */
+  --md-sys-color-positive: #07794A;
   --md-sys-color-negative: #DC2626;
 }
 
@@ -74,7 +79,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.w-footer a { color: var(--md-sys-color-primary); text-decoration: none; font-weight: 600; }
+.w-footer a { color: var(--md-sys-color-link); text-decoration: none; font-weight: 600; }
 /* Match the main .foot footer scale: 11px desktop, 10px on mobile. */
 @media (max-width: 599px) {
   .w-footer { font-size: 10px; }
@@ -137,8 +142,15 @@ body {
   animation: w-marquee 40s linear infinite;
   will-change: transform;
 }
-.w-ticker:hover .w-ticker-track { animation-play-state: paused; }
+/* Pause on hover, on keyboard focus, or via the explicit pause control. */
+.w-ticker:hover .w-ticker-track,
+.w-ticker:focus-within .w-ticker-track,
+.w-ticker.paused .w-ticker-track { animation-play-state: paused; }
 @keyframes w-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+/* Honour the OS reduce-motion setting: hold the ticker still (WCAG 2.2.2). */
+@media (prefers-reduced-motion: reduce) {
+  .w-ticker-track { animation: none; }
+}
 .w-t-item { display: inline-flex; gap: 7px; align-items: baseline; font-size: 13px; font-feature-settings: 'tnum' 1; }
 .w-t-sym { font-weight: 700; color: var(--md-sys-color-primary); }
 .w-t-price { font-weight: 600; }
@@ -205,4 +217,32 @@ body {
 .w-table td.w-name-cell {
   text-align: left; font-weight: 400; color: var(--md-sys-color-on-surface-variant);
   max-width: 170px; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---- Accessibility ---- */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+/* Pause/play control for the auto-scrolling ticker (WCAG 2.2.2). */
+.w-ticker-control {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--md-sys-color-outline); border-radius: 999px;
+  background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface-variant);
+  font-size: 16px; line-height: 1; cursor: pointer; font-family: inherit;
+  /* Always visible (0.85) so touch users can pause too — hover-only would make
+     the control unreachable without a pointer (WCAG 2.2.2). */
+  opacity: 0.85; transition: opacity var(--md-motion-duration-short-2, 100ms) linear;
+}
+.w-ticker { position: relative; }
+.w-ticker:hover .w-ticker-control,
+.w-ticker-control:focus-visible { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .w-ticker-track { animation: none !important; }
 }

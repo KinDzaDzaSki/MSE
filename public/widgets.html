@@ -13,7 +13,7 @@
 <!-- Inter font for UI — same links as the homepage so the topbar and footer
      render in Inter, not the system fallback. -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="/styles.css?v=7.9" />
+<link rel="stylesheet" href="/styles.css?v=7.10" />
 <!-- NOTE: widget.css is intentionally NOT loaded here — it is the embeds'
      stylesheet and sets html/body height:100% + overflow:hidden globally,
      which capped this builder page to the viewport and produced an inset
@@ -27,6 +27,8 @@
   body { height: auto; overflow: auto; }
   /* Shared topbar comes from styles.css; the footer too (.foot). */
   .b-main { flex: 1 1 auto; overflow: auto; padding: 20px; display: flex; flex-direction: column; gap: 18px; max-width: 1100px; margin: 0 auto; width: 100%; }
+  .b-title { font-size: 24px; font-weight: 700; line-height: 1.25; margin: 0; color: var(--md-sys-color-on-surface); }
+  .b-lead { font-size: 14px; line-height: 1.6; color: var(--md-sys-color-on-surface-variant); margin: 0; max-width: 72ch; }
   .b-step h2 { font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--md-sys-color-on-surface-variant); margin-bottom: 10px; }
   .b-types { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
   .b-type {
@@ -120,8 +122,8 @@
     font-size: 13px; font-weight: 700; cursor: pointer;
   }
   #tickerAdd { height: 44px; white-space: nowrap; }
-  .b-check { display: flex; align-items: center; gap: 6px; color: var(--md-sys-color-on-surface); cursor: pointer; }
-  .b-check input { accent-color: var(--md-sys-color-primary); width: 14px; height: 14px; }
+  .b-check { display: flex; align-items: center; gap: 6px; color: var(--md-sys-color-on-surface); cursor: pointer; min-height: 44px; }
+  .b-check input { accent-color: var(--md-sys-color-primary); width: 18px; height: 18px; }
   .b-preview { width: 100%; border: 1px solid var(--md-sys-color-outline); border-radius: 10px; background: var(--md-sys-color-surface); min-height: 120px; }
   #snippet {
     width: 100%; min-height: 84px; resize: vertical;
@@ -131,6 +133,15 @@
   }
   .b-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 </style>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-HTQV2NXQ1L"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-HTQV2NXQ1L');
+</script>
 </head>
 <body>
 <!-- TOPBAR — shared with the dashboard (index.html) -->
@@ -146,35 +157,33 @@
   </a>
   <div class="topbar-right">
     <a class="topbar-link" href="/prasanja">Прашања</a>
-    <span class="market-status" id="marketStatus">—</span>
-    <span id="mbiChip">MBI10</span>
-    <span id="fxChip" title="">€ — · <span class="fx-usd">$ —</span></span>
-    <button class="icon-btn" id="themeToggle" title="Toggle theme / Промени тема">
-      <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
-    </button>
-    <button class="icon-btn" id="langToggle" title="Switch language / Промени јазик">
-      <span class="material-symbols-outlined" id="langIcon">translate</span>
+    <button type="button" class="market-status" id="marketStatus" aria-live="polite">—</button>
+    <button type="button" id="mbiChip">MBI10</button>
+    <button type="button" id="fxChip">€ — · <span class="fx-usd">$ —</span></button>
+    <button class="icon-btn" id="themeToggle" title="Toggle theme / Промени тема" aria-label="Toggle theme / Промени тема">
+      <span class="material-symbols-outlined" id="themeIcon" aria-hidden="true">dark_mode</span>
     </button>
   </div>
 </header>
 
 <main class="b-main">
-  <h1 class="sr-only">Виџети од Македонската берза за твој сајт</h1>
+  <h1 class="b-title">Виџети од Македонската берза за твој сајт</h1>
+  <p class="b-lead">Избери тип, постави параметри и копирај готовиот <code>&lt;iframe&gt;</code> код — виџетот се освежува автоматски со податоците од mse.mk.</p>
   <section class="b-step">
     <h2>1. Избери тип на виџет</h2>
     <div class="b-types" id="types">
-      <button type="button" class="b-type active" data-type="chart">
-        <span class="t-check">✓</span>
+      <button type="button" class="b-type active" data-type="chart" aria-pressed="true">
+        <span class="t-check" aria-hidden="true">✓</span>
         <div class="t-name">Преглед на симбол</div>
         <div class="t-desc">Котации + график за една или повеќе компании, со избор на период — како TradingView Symbol Overview</div>
       </button>
-      <button type="button" class="b-type" data-type="ticker">
-        <span class="t-check">✓</span>
+      <button type="button" class="b-type" data-type="ticker" aria-pressed="false">
+        <span class="t-check" aria-hidden="true">✓</span>
         <div class="t-name">Ticker лента</div>
         <div class="t-desc">Движечка лента со повеќе тикери — идеална за header</div>
       </button>
-      <button type="button" class="b-type" data-type="dividends">
-        <span class="t-check">✓</span>
+      <button type="button" class="b-type" data-type="dividends" aria-pressed="false">
+        <span class="t-check" aria-hidden="true">✓</span>
         <div class="t-name">Дивиденди</div>
         <div class="t-desc">Топ исплатери по принос — табела</div>
       </button>
@@ -199,9 +208,9 @@
       <div class="b-row" id="rowChartOpts" style="display:none">
         <div class="b-field" style="flex:0 0 auto">
           <label>Стил</label>
-          <div class="b-seg" id="chartTypeSeg">
-            <button type="button" data-t="area" class="active">Област</button>
-            <button type="button" data-t="line">Линија</button>
+          <div class="b-seg" id="chartTypeSeg" role="group" aria-label="Стил на график">
+            <button type="button" data-t="area" class="active" aria-pressed="true">Област</button>
+            <button type="button" data-t="line" aria-pressed="false">Линија</button>
           </div>
         </div>
         <div class="b-field" style="flex:0 0 auto">
@@ -242,10 +251,10 @@
       </div>
       <div class="b-row">
         <div class="b-field" style="flex:0 0 auto">
-          <label>Тема</label>
-          <div class="b-seg" id="themeSeg">
-            <button type="button" data-t="light">Светла</button>
-            <button type="button" data-t="dark" class="active">Темна</button>
+          <label>Тема на виџетот</label>
+          <div class="b-seg" id="themeSeg" role="group" aria-label="Тема на виџетот">
+            <button type="button" data-t="light" aria-pressed="false">Светла</button>
+            <button type="button" data-t="dark" class="active" aria-pressed="true">Темна</button>
           </div>
         </div>
         <div class="b-field" style="flex:0 0 120px">
@@ -262,7 +271,7 @@
 
   <section class="b-step">
     <h2>3. Преглед</h2>
-    <iframe class="b-preview" id="preview" title="Преглед на виџет" height="280"></iframe>
+    <iframe class="b-preview" id="preview" title="Преглед на виџет" height="420"></iframe>
   </section>
 
   <section class="b-step">
@@ -270,6 +279,7 @@
     <textarea id="snippet" readonly></textarea>
     <div class="b-actions">
       <button type="button" class="b-copy" id="copyBtn">Копирај код</button>
+      <span id="copyStatus" class="sr-only" role="status"></span>
     </div>
   </section>
 </main>
@@ -278,8 +288,8 @@
      don't run JS still see the footer navigation. -->
 <footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · <a href="/sitemap">Мапа на сајтот</a></footer>
 
-<script src="/logo.js?v=4"></script>
-<script src="/widget.js?v=11"></script>
+<script src="/logo.js?v=5"></script>
+<script src="/widget.js?v=12"></script>
 <script>
 const DEFAULT_H = { chart: 420, ticker: 40, dividends: 380 };
 const DEFAULT_W = { chart: '480', ticker: '100%', dividends: '100%' };
@@ -312,7 +322,11 @@ let previewTimer = null;
 // here, so the two themes never touch each other in either direction.
 function setBuilderTheme(t) {
   state.theme = t;
-  document.querySelectorAll('#themeSeg button').forEach((b) => b.classList.toggle('active', b.dataset.t === t));
+  document.querySelectorAll('#themeSeg button').forEach((b) => {
+    const on = b.dataset.t === t;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
   update();
 }
 document.querySelectorAll('#themeSeg button').forEach((b) => b.addEventListener('click', () => setBuilderTheme(b.dataset.t)));
@@ -333,9 +347,21 @@ let SYMBOL_LIST = [];
 })();
 
 // M3 dropdown combobox: input + ⌄ button + filterable menu.
+const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function initCombobox(input, menu, onPick) {
   const btn = input.parentElement.querySelector('.m3-cmb-btn');
   let filtered = [];
+  menu.setAttribute('role', 'listbox');
+  input.setAttribute('aria-controls', menu.id);
+  input.setAttribute('aria-haspopup', 'listbox');
+  input.setAttribute('aria-autocomplete', 'list');
+  const highlight = (b) => {
+    if (!b) return;
+    menu.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active');
+    input.setAttribute('aria-activedescendant', b.id);
+    b.scrollIntoView({ block: 'nearest' });
+  };
   const render = () => {
     const q = input.value.trim().toUpperCase();
     // exact symbol prefixes first, then name matches (keeps TEL above FUBT for "tel")
@@ -343,13 +369,14 @@ function initCombobox(input, menu, onPick) {
     const names = SYMBOL_LIST.filter((s) => !s.symbol.startsWith(q) && (s.name || '').toUpperCase().includes(q));
     filtered = starts.concat(names).slice(0, 40);
     menu.innerHTML = filtered.length
-      ? filtered.map((s, i) => `<button type="button" data-i="${i}"><span class="m3-sym">${s.symbol}</span><span class="m3-name">${s.name}</span></button>`).join('')
-      : '<div class="m3-empty">Нема резултати</div>';
+      ? filtered.map((s, i) => `<button type="button" role="option" id="cmb-opt-${i}" data-i="${i}"><span class="m3-sym">${escHtml(s.symbol)}</span><span class="m3-name">${escHtml(s.name)}</span></button>`).join('')
+      : `<div class="m3-empty">${SYMBOL_LIST.length ? 'Нема резултати' : 'Листата не е достапна'}</div>`;
     menu.hidden = false;
     input.setAttribute('aria-expanded', 'true');
   };
-  const open = () => { if (SYMBOL_LIST.length) render(); };
-  const close = () => { menu.hidden = true; input.setAttribute('aria-expanded', 'false'); };
+  // Even with no symbols loaded, open so the user gets explicit feedback.
+  const open = () => render();
+  const close = () => { menu.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); };
   input.addEventListener('focus', open);
   input.addEventListener('input', open);
   menu.addEventListener('click', (e) => {
@@ -361,10 +388,23 @@ function initCombobox(input, menu, onPick) {
   });
   btn.addEventListener('click', () => (menu.hidden ? open() : close()));
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); if (menu.hidden) open(); else { const cur = menu.querySelector('button.active'); const next = cur ? cur.nextElementSibling : menu.querySelector('button'); if (next && next.tagName === 'BUTTON') { menu.querySelectorAll('button').forEach(b => b.classList.remove('active')); next.classList.add('active'); next.scrollIntoView({ block: 'nearest' }); } } }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); const cur = menu.querySelector('button.active'); const prev = cur ? cur.previousElementSibling : null; if (prev && prev.tagName === 'BUTTON') { menu.querySelectorAll('button').forEach(b => b.classList.remove('active')); prev.classList.add('active'); prev.scrollIntoView({ block: 'nearest' }); } }
-    else if (e.key === 'Enter') { const act = menu.querySelector('button.active'); if (!menu.hidden && act) { act.click(); e.preventDefault(); } }
-    else if (e.key === 'Escape') { close(); }
+    const opts = () => Array.from(menu.querySelectorAll('button[role="option"]'));
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (menu.hidden) { open(); const first = opts()[0]; if (first) highlight(first); return; }
+      const cur = menu.querySelector('button.active');
+      const list = opts();
+      highlight(cur ? (list[list.indexOf(cur) + 1] || list[0]) : list[0]);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const list = opts();
+      if (!list.length) return;
+      const cur = menu.querySelector('button.active');
+      highlight(cur ? (list[list.indexOf(cur) - 1] || list[list.length - 1]) : list[list.length - 1]);
+    } else if (e.key === 'Enter') {
+      const act = menu.querySelector('button.active');
+      if (!menu.hidden && act) { act.click(); e.preventDefault(); }
+    } else if (e.key === 'Escape') { close(); }
   });
   document.addEventListener('click', (e) => { if (!input.closest('.m3-cmb').contains(e.target)) close(); });
 }
@@ -391,7 +431,11 @@ function applyCfgRows() {
 }
 document.querySelectorAll('.b-type').forEach((b) => b.addEventListener('click', () => {
   state.type = b.dataset.type;
-  document.querySelectorAll('.b-type').forEach((x) => x.classList.toggle('active', x === b));
+  document.querySelectorAll('.b-type').forEach((x) => {
+    const on = x === b;
+    x.classList.toggle('active', on);
+    x.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
   applyCfgRows();
   state.height = DEFAULT_H[state.type];
   state.width = DEFAULT_W[state.type];
@@ -428,7 +472,11 @@ function addTicker() {
 // ---- chart opts ----
 document.querySelectorAll('#chartTypeSeg button').forEach((b) => b.addEventListener('click', () => {
   state.chartType = b.dataset.t;
-  document.querySelectorAll('#chartTypeSeg button').forEach((x) => x.classList.toggle('active', x === b));
+  document.querySelectorAll('#chartTypeSeg button').forEach((x) => {
+    const on = x === b;
+    x.classList.toggle('active', on);
+    x.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
   update();
 }));
 document.getElementById('changeModeSel').addEventListener('change', (e) => { state.changeMode = e.target.value; update(); });
@@ -462,7 +510,7 @@ function embedURL() {
 function snippet() {
   const h = encodeURIComponent(state.height).replace(/%20/g, '') || state.height;
   const w = state.width;
-  return `<iframe src="${embedURL()}" width="${w}" height="${state.height}" style="border:0;border-radius:8px" title="MSE Berza — виџет" loading="lazy"></iframe>`;
+  return `<iframe src="${embedURL()}" width="${w}" height="${state.height}" style="border:0;border-radius:8px" title="MSE Berza — виџет"></iframe>`;
 }
 
 function update() {
@@ -471,6 +519,9 @@ function update() {
     const url = embedURL();
     const f = document.getElementById('preview');
     f.height = state.height; // preview should mirror the real embed height
+    // …and width, so the builder is actually WYSIWYG (was always 100%).
+    const w = String(state.width || '').trim();
+    f.style.width = /^\d+$/.test(w) ? w + 'px' : (w || '100%');
     if (f.src !== url) f.src = url;
     document.getElementById('snippet').value = snippet();
   }, 400);
@@ -478,14 +529,18 @@ function update() {
 
 document.getElementById('copyBtn').addEventListener('click', async () => {
   const ta = document.getElementById('snippet');
+  let ok = true;
   try {
     await navigator.clipboard.writeText(ta.value);
   } catch (_) {
-    ta.select(); document.execCommand('copy');
+    ta.select();
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
   }
   const btn = document.getElementById('copyBtn');
-  btn.textContent = 'Копирано ✓';
-  setTimeout(() => { btn.textContent = 'Копирај код'; }, 1500);
+  const status = document.getElementById('copyStatus');
+  btn.textContent = ok ? 'Копирано ✓' : 'Копирањето не успеа';
+  if (status) status.textContent = ok ? 'Кодот е копиран' : 'Копирањето не успеа';
+  setTimeout(() => { btn.textContent = 'Копирај код'; if (status) status.textContent = ''; }, 1800);
 });
 
 // ---- init: default ticker symbols = liquid top ----

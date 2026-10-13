@@ -41,8 +41,8 @@ function setView(v) {
   view = v;
   localStorage.setItem('mse_view', v);
   const bl = $('#btnLiquid'), ba = $('#btnAll');
-  if (bl) bl.classList.toggle('active', v === 'liquid');
-  if (ba) ba.classList.toggle('active', v === 'all');
+  if (bl) { bl.classList.toggle('active', v === 'liquid'); bl.setAttribute('aria-pressed', v === 'liquid' ? 'true' : 'false'); }
+  if (ba) { ba.classList.toggle('active', v === 'all'); ba.setAttribute('aria-pressed', v === 'all' ? 'true' : 'false'); }
   renderTable();
   if (dividendsCache) renderDivTable();
 }
@@ -93,9 +93,9 @@ function logoHTML(sym, name, site, size = 22, fav = false, favv = 0) {
 // ---- i18n ----
 const I18N = {
   en: {
-      market_open: '<span class="material-symbols-outlined icon-fill" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Market Open',
-      market_closed: '<span class="material-symbols-outlined" style="font-size:14px">block</span> Market Closed',
-      market_closed_at: '<span class="material-symbols-outlined" style="font-size:14px">block</span> Market Closed · {time}',
+      market_open: '<span class="material-symbols-outlined icon-fill" aria-hidden="true" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Market Open',
+      market_closed: '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span> Market Closed',
+      market_closed_at: '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span> Market Closed · {time}',
       search: 'Search ticker or company…',
       sort_volume: 'Volume',
       sort_change: 'Change %',
@@ -179,6 +179,7 @@ const I18N = {
       div_liquid_empty: 'No dividends among liquid companies.',
       div_show_all: 'Show all dividends',
       div_no_results: 'No results.',
+      no_results: 'No results.',
       chart_legend: 'Green = closed above yesterday · Red = closed below yesterday',
       analysis_sma50: '50-day SMA',
       analysis_sma200: '200-day SMA',
@@ -223,9 +224,9 @@ const I18N = {
       ],
     },
     mk: {
-      market_open: '<span class="material-symbols-outlined icon-fill" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Пазарот е отворен',
-      market_closed: '<span class="material-symbols-outlined" style="font-size:14px">block</span> Пазарот е затворен',
-      market_closed_at: '<span class="material-symbols-outlined" style="font-size:14px">block</span> Пазарот е затворен · {time}',
+      market_open: '<span class="material-symbols-outlined icon-fill" aria-hidden="true" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Пазарот е отворен',
+      market_closed: '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span> Пазарот е затворен',
+      market_closed_at: '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span> Пазарот е затворен · {time}',
       search: 'Пребарај тикер или компанија…',
       sort_volume: 'Волумен',
       sort_change: 'Промена %',
@@ -309,6 +310,7 @@ const I18N = {
       div_liquid_empty: 'Нема дивиденди кај ликвидните компании.',
       div_show_all: 'Прикажи сите дивиденди',
       div_no_results: 'Нема резултати.',
+      no_results: 'Нема резултати.',
       chart_legend: 'Зелено = затворено над вчера · Црвено = затворено под вчера',
       analysis_sma50: '50-дневен ПП',
       analysis_sma200: '200-дневен ПП',
@@ -387,15 +389,26 @@ function tl(label) {
   return label;
 }
 
+// Update only the label text node of a header cell, leaving the sort-icon
+// child in place. Assigning th.textContent would wipe the icon, which removed
+// the only visual sort affordance on the quotes table.
+function setThLabel(th, text) {
+  if (!th) return;
+  const tn = Array.prototype.find.call(th.childNodes, (n) => n.nodeType === 3);
+  if (tn) tn.nodeValue = text + ' ';
+  else th.insertBefore(document.createTextNode(text + ' '), th.firstChild);
+}
+
 function applyStaticI18n() {
   const h = $('thead tr');
-  $$('th', h)[0].textContent = t('th_symbol');
-  $$('th', h)[1].textContent = t('th_name');
-  $$('th', h)[3].textContent = t('th_price');
-  $$('th', h)[4].textContent = t('th_change_pct');
-  $$('th', h)[5].textContent = t('th_volume');
-  $$('th', h)[6].textContent = t('th_52w_chg');
-  $$('th', h)[7].textContent = t('th_52w_range');
+  const ths = $$('th', h);
+  setThLabel(ths[0], t('th_symbol'));
+  setThLabel(ths[1], t('th_name'));
+  setThLabel(ths[3], t('th_price'));
+  setThLabel(ths[4], t('th_change_pct'));
+  setThLabel(ths[5], t('th_volume'));
+  setThLabel(ths[6], t('th_52w_chg'));
+  setThLabel(ths[7], t('th_52w_range'));
   // index 2 = sparkline column (no label)
   $('#search').placeholder = t('search');
   const topFaq = $('#topFaq');
@@ -451,6 +464,8 @@ function updateToggleLabels() {
   ba.textContent = `${t('view_all')} (${allCount})`;
   bl.classList.toggle('active', view === 'liquid');
   ba.classList.toggle('active', view === 'all');
+  bl.setAttribute('aria-pressed', view === 'liquid' ? 'true' : 'false');
+  ba.setAttribute('aria-pressed', view === 'all' ? 'true' : 'false');
 }
 
 // Watchlist strip — always visible: label + chips inline on desktop; on
@@ -489,7 +504,12 @@ function setMainView(v) {
   const qv = $('#quotesView'), dv = $('#dividendsView');
   if (qv) qv.classList.toggle('hidden', v !== 'quotes');
   if (dv) dv.classList.toggle('hidden', v !== 'dividends');
-  $$('#mainTabs .main-tab').forEach((b) => b.classList.toggle('active', b.dataset.mtab === v));
+  $$('#mainTabs .main-tab').forEach((b) => {
+    const active = b.dataset.mtab === v;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', active ? 'true' : 'false');
+    b.tabIndex = active ? 0 : -1;
+  });
   updateToggleLabels();
   if (v === 'dividends' && !dividendsCache) loadDividends();
 }
@@ -514,10 +534,7 @@ function divSortVal(r, col) {
 }
 
 function syncDivHeader() {
-  $$('#divHead th').forEach((th) => {
-    th.classList.toggle('sorted-asc', th.dataset.divsort === divSortCol && divSortDir === 'asc');
-    th.classList.toggle('sorted-desc', th.dataset.divsort === divSortCol && divSortDir === 'desc');
-  });
+  syncSortState($$('#divHead th'), divSortCol, divSortDir);
 }
 
 async function loadDividends() {
@@ -535,7 +552,7 @@ async function loadDividends() {
 
 function buildDivHead(years) {
   const y0 = years ? years[0] : null;
-  const th = (label, cls, col) => `<th class="${cls || ''}"${col ? ` data-divsort="${col}"` : ''}>${esc(label)}${col ? '<span class="material-symbols-outlined sort-icon">arrow_upward</span>' : ''}</th>`;
+  const th = (label, cls, col) => `<th scope="col" class="${cls || ''}"${col ? ` data-divsort="${col}" role="columnheader" tabindex="0" aria-sort="none"` : ''}>${esc(label)}${col ? '<span class="material-symbols-outlined sort-icon" aria-hidden="true">arrow_upward</span>' : ''}</th>`;
   $('#divHead').innerHTML = [
     th(t('th_symbol'), '', 'symbol'),
     th(t('th_name'), '', 'name'),
@@ -949,6 +966,11 @@ function renderTable() {
   });
   const body = $('#quotesBody');
   if (!body) { console.error('quotesBody not found'); return; }
+  if (!rows.length) {
+    // Empty search / filter result — otherwise the card silently goes blank.
+    body.innerHTML = `<tr><td colspan="8" class="muted" style="padding:24px;text-align:center">${esc(t('no_results'))}</td></tr>`;
+    return;
+  }
   body.innerHTML = '';
   // Wipe sparkCache — previous Chart.js instances are bound to the now-removed
   // canvases. Without this, redrawSparklines sees truthy cache entries and
@@ -1012,10 +1034,13 @@ function buildRangeBar(r) {
   if (r.week52Min == null || r.week52Max == null || r.lastPrice == null) return '—';
   const lo = r.week52Min, hi = r.week52Max, cur = r.lastPrice;
   const pct = hi === lo ? 50 : Math.max(0, Math.min(100, ((cur - lo) / (hi - lo)) * 100));
-  const ariaLabel = `52-week range: ${fmt(lo, 0)} – ${fmt(hi, 0)}`;
+  // Colour the fill by where the price sits in the range (above/below the
+  // midpoint). --green/--red were never defined, so the fill rendered invisible.
+  const fill = cur >= (lo + hi) / 2 ? 'var(--md-sys-color-positive)' : 'var(--md-sys-color-negative)';
+  const ariaLabel = `52-week range: ${fmt(lo, 0)} – ${fmt(hi, 0)}, current ${fmt(cur, 0)} (${Math.round(pct)}%)`;
   return `<div class="wk-range-bar" role="img" aria-label="${esc(ariaLabel)}" title="${esc(ariaLabel)}">
-      <div class="wk-range-fill" style="left:0;width:${pct}%;background:${cur >= lo ? 'var(--green)' : 'var(--red)'};opacity:0.25"></div>
-      <div class="wk-range-pointer" style="left:calc(${pct}% - 1.5px)"></div>
+      <div class="wk-range-fill" style="left:0;width:${pct}%;background:${fill}"></div>
+      <div class="wk-range-pointer" style="left:${pct}%"></div>
     </div>
     <div class="wk-range-labels" aria-hidden="true"><span>${fmt(lo, 0)}</span><span>${fmt(hi, 0)}</span></div>`;
 }
@@ -1129,6 +1154,9 @@ function renderSidePanel(containerId, items, kind) {
     const div = document.createElement('div');
     div.className = 'side-item';
     div.dataset.sym = r.symbol;
+    div.setAttribute('role', 'button');
+    div.setAttribute('tabindex', '0');
+    div.setAttribute('aria-label', `${r.symbol}${name ? ' — ' + name : ''}`);
     div.innerHTML = `
       <div class="si-left">
         <div class="si-sym">${logoHTML(r.symbol, name, site, 22, fav, favv)}<span>${esc(r.symbol)}</span></div>
@@ -1167,11 +1195,22 @@ async function drawSparkSide(canvas, symbol, chgPct) {
 }
 
 // ---- COMPANY MODAL ----
+// Focus management: remember the trigger, lock background scroll, move focus
+// into the dialog, trap Tab, close on Escape, and restore focus on close.
+let lastFocused = null;
 async function openCompany(symbol) {
   const modal = $('#companyModal');
   const content = $('#companyContent');
+  if (modal.classList.contains('hidden')) {
+    lastFocused = document.activeElement;
+    document.body.classList.add('modal-open');
+  }
   modal.dataset.company = symbol;
+  modal.setAttribute('aria-label', lang === 'mk' ? 'Детали за компанијата' : 'Company details');
+  const closeBtn = $('#modalClose');
+  if (closeBtn) closeBtn.setAttribute('aria-label', lang === 'mk' ? 'Затвори' : 'Close');
   modal.classList.remove('hidden');
+  if (closeBtn) closeBtn.focus();
   content.innerHTML = `<div class="muted">${t('loading')}</div>`;
 
   // Reset tab panels. The bar is hidden up-front: otherwise the previous
@@ -1918,71 +1957,130 @@ function buildAnalysisHTML(analysis) {
 function switchFinTab(tab) {
   const btn = document.querySelector(`.fin-tab[data-tab="${tab}"]`);
   if (!btn || btn.classList.contains('hidden')) return;
-  $$('.fin-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  $$('.fin-tab').forEach(b => {
+    const active = b === btn;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', active ? 'true' : 'false');
+    b.tabIndex = active ? 0 : -1;
+  });
   $$('.fin-tab-panel').forEach(p => p.classList.add('hidden'));
   const panel = tab === 'chart' ? document.getElementById('finTabChart') :
     tab === 'data' ? document.getElementById('finTabData') : tab === 'ratios' ? document.getElementById('finTabRatios') : document.getElementById('finTabAnalysis');
   if (panel) panel.classList.remove('hidden');
 }
 window.switchFinTab = switchFinTab;
+// One delegated handler for the financial tab bar (the markup used to also
+// carry inline onclick + a document-level handler, so a single click fired
+// switchFinTab up to three times).
 const _finTabBar = document.getElementById('finTabBar');
-if (_finTabBar) _finTabBar.addEventListener('click', (e) => {
-  const btn = e.target.closest('.fin-tab');
-  if (btn) { e.preventDefault(); switchFinTab(btn.dataset.tab); }
-});
-document.querySelectorAll('.fin-tab').forEach(b => b.addEventListener('click', (e) => { e.preventDefault(); switchFinTab(b.dataset.tab); }));
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('.fin-tab');
-  if (btn && btn.closest('#finTabBar')) { e.preventDefault(); switchFinTab(btn.dataset.tab); }
-});
+if (_finTabBar) {
+  _finTabBar.addEventListener('click', (e) => {
+    const btn = e.target.closest('.fin-tab');
+    if (btn) { e.preventDefault(); switchFinTab(btn.dataset.tab); }
+  });
+  _finTabBar.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const tabs = $$('.fin-tab', _finTabBar).filter((b) => !b.classList.contains('hidden'));
+    const i = tabs.indexOf(e.target.closest('.fin-tab'));
+    if (i < 0 || !tabs.length) return;
+    e.preventDefault();
+    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+    switchFinTab(next.dataset.tab);
+    next.focus();
+  });
+}
 
 // ---- WIRE UP ----
 $$('#mainTabs .main-tab').forEach((b) => b.addEventListener('click', () => setMainView(b.dataset.mtab)));
+$('#mainTabs').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const tabs = $$('.main-tab', $('#mainTabs'));
+  const i = tabs.indexOf(e.target.closest('.main-tab'));
+  if (i < 0 || !tabs.length) return;
+  e.preventDefault();
+  const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+  setMainView(next.dataset.mtab);
+  next.focus();
+});
 // Dividends header sorting — delegation survives buildDivHead re-renders
-$('#divHead').addEventListener('click', (e) => {
-  const th = e.target.closest('th[data-divsort]');
-  if (!th) return;
-  const col = th.dataset.divsort;
+function toggleDivSort(col) {
   if (divSortCol === col) divSortDir = divSortDir === 'asc' ? 'desc' : 'asc';
   else { divSortCol = col; divSortDir = 'desc'; }
   renderDivTable();
+}
+$('#divHead').addEventListener('click', (e) => {
+  const th = e.target.closest('th[data-divsort]');
+  if (th) toggleDivSort(th.dataset.divsort);
+});
+$('#divHead').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const th = e.target.closest('th[data-divsort]');
+  if (th) { e.preventDefault(); toggleDivSort(th.dataset.divsort); }
 });
 $('#btnLiquid').addEventListener('click', () => setView('liquid'));
 $('#btnAll').addEventListener('click', () => setView('all'));
-$('#search').addEventListener('input', () => { renderTable(); if (dividendsCache) renderDivTable(); });
+// Debounce search: a full table rebuild on every keystroke blew past the
+// ~400ms Doherty budget on large lists. 180ms keeps typing responsive.
+let searchDebounce = null;
+$('#search').addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => { renderTable(); if (dividendsCache) renderDivTable(); }, 180);
+});
 // Watchlist collapse (mobile): ★ bar toggles the chips row. Default
 // collapsed on small screens; desktop ignores it via CSS.
 const watchStripEl = $('#watchStrip');
-$('#watchToggle').addEventListener('click', () => watchStripEl.classList.toggle('collapsed'));
+function syncWatchAria() {
+  const toggle = $('#watchToggle');
+  if (toggle) toggle.setAttribute('aria-expanded', watchStripEl.classList.contains('collapsed') ? 'false' : 'true');
+}
+$('#watchToggle').addEventListener('click', () => {
+  watchStripEl.classList.toggle('collapsed');
+  syncWatchAria();
+});
 if (window.matchMedia('(max-width: 839px)').matches) watchStripEl.classList.add('collapsed');
+syncWatchAria();
 $('#search').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     const rows = getFilteredQuotes();
     if (rows.length) {
       const first = document.querySelector('#quotesBody tr');
-      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (first) first.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
     }
   }
 });
+function toggleSort(col) {
+  if (headerSortCol === col) {
+    headerSortDir = headerSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    headerSortCol = col;
+    headerSortDir = 'desc';
+  }
+  syncHeaderIndicators();
+  renderTable();
+}
 $$('th[data-sort]').forEach((th) => {
-  th.addEventListener('click', () => {
-    const col = th.dataset.sort;
-    if (headerSortCol === col) {
-      headerSortDir = headerSortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      headerSortCol = col;
-      headerSortDir = 'desc';
-    }
-    syncHeaderIndicators();
-    renderTable();
+  th.addEventListener('click', () => toggleSort(th.dataset.sort));
+  th.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort(th.dataset.sort); }
   });
 });
-function syncHeaderIndicators() {
-  $$('th[data-sort]').forEach((th) => {
-    th.classList.toggle('sorted-asc', th.dataset.sort === headerSortCol && headerSortDir === 'asc');
-    th.classList.toggle('sorted-desc', th.dataset.sort === headerSortCol && headerSortDir === 'desc');
+// Reflect the active sort in both the icon glyph and aria-sort, on the quotes
+// and dividends header rows.
+function syncSortState(ths, activeCol, activeDir) {
+  ths.forEach((th) => {
+    const col = th.dataset.sort || th.dataset.divsort;
+    const active = col === activeCol;
+    th.classList.toggle('sorted-asc', active && activeDir === 'asc');
+    th.classList.toggle('sorted-desc', active && activeDir === 'desc');
+    if (active) th.setAttribute('aria-sort', activeDir === 'asc' ? 'ascending' : 'descending');
+    else th.removeAttribute('aria-sort');
+    const icon = th.querySelector('.sort-icon');
+    if (icon) icon.textContent = (active && activeDir === 'asc') ? 'arrow_upward' : 'arrow_downward';
   });
+}
+function syncHeaderIndicators() {
+  syncSortState($$('th[data-sort]'), headerSortCol, headerSortDir);
 }
 document.addEventListener('click', (e) => {
   // Star toggles (table rows, modal header) and chip ✕ removals are handled
@@ -1996,18 +2094,41 @@ document.addEventListener('click', (e) => {
   const item = e.target.closest('[data-sym]');
   if (item) openCompany(item.dataset.sym);
 });
+// Keyboard equivalent for the same clickable rows/cards.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const item = e.target.closest && e.target.closest('[data-sym][role="button"]');
+  if (item) { e.preventDefault(); openCompany(item.dataset.sym); }
+});
 function closeModal() {
   const modal = $('#companyModal');
+  if (modal.classList.contains('hidden')) return;
   modal.classList.add('hidden');
+  document.body.classList.remove('modal-open');
   // Cleanup: remove any chart stored on the modal element
   if (modal._chart) {
     try { modal._chart.remove(); } catch (_) {}
     modal._chart = null;
   }
+  if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+  lastFocused = null;
 }
 $('#modalClose').addEventListener('click', closeModal);
 $('#companyModal').addEventListener('click', (e) => {
   if (e.target.id === 'companyModal') closeModal();
+});
+// Escape closes; Tab is trapped inside the visible dialog.
+document.addEventListener('keydown', (e) => {
+  const modal = $('#companyModal');
+  if (!modal || modal.classList.contains('hidden')) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+  if (e.key !== 'Tab') return;
+  const nodes = modal.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+  const list = Array.prototype.filter.call(nodes, (el) => el.offsetParent !== null || el === document.activeElement);
+  if (!list.length) return;
+  const first = list[0], last = list[list.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 });
 // Language toggle — delegated so both buttons work: the topbar one and the
 // mobile-only footer clone (.foot-lang), which applyStaticI18n re-creates on
@@ -2016,6 +2137,7 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#langToggle, .foot-lang')) return;
   lang = lang === 'en' ? 'mk' : 'en';
   localStorage.setItem('mse_lang', lang);
+  document.documentElement.lang = lang === 'mk' ? 'mk' : 'en';
   applyStaticI18n();
   // Re-render open company modal so all modal strings (stats, chart period, asOf) switch language
   const modal = $('#companyModal');
@@ -2171,6 +2293,7 @@ $('#themeToggle').addEventListener('click', () => {
 });
 
 (async function init() {
+  document.documentElement.lang = lang === 'mk' ? 'mk' : 'en';
   applyStaticI18n();
   renderWatchStrip();
   registerSW();

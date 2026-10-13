@@ -72,14 +72,11 @@ const TOPBAR_HTML = `<header class="topbar">
   </a>
   <div class="topbar-right">
     <a class="topbar-link" href="/prasanja">Прашања</a>
-    <span class="market-status" id="marketStatus">—</span>
-    <span id="mbiChip">MBI10</span>
-    <span id="fxChip" title="">€ — · <span class="fx-usd">$ —</span></span>
-    <button class="icon-btn" id="themeToggle" title="Toggle theme / Промени тема">
-      <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
-    </button>
-    <button class="icon-btn" id="langToggle" title="Switch language / Промени јазик">
-      <span class="material-symbols-outlined" id="langIcon">translate</span>
+    <button type="button" class="market-status" id="marketStatus" aria-live="polite">—</button>
+    <button type="button" id="mbiChip">MBI10</button>
+    <button type="button" id="fxChip">€ — · <span class="fx-usd">$ —</span></button>
+    <button class="icon-btn" id="themeToggle" title="Toggle theme / Промени тема" aria-label="Toggle theme / Промени тема">
+      <span class="material-symbols-outlined" id="themeIcon" aria-hidden="true">dark_mode</span>
     </button>
   </div>
 </header>`;
@@ -91,7 +88,11 @@ function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd
 <html lang="mk" data-theme="light">
 <head>
 <meta charset="utf-8" />
+<!-- Pre-paint theme: apply the saved choice before first paint so dark-mode
+     users never see a light flash on content pages (matches index.html). -->
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('mse_theme')||'light'}catch(e){document.documentElement.dataset.theme='light'}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" id="themeColorMeta" content="#F8F9FB" />
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
@@ -105,7 +106,7 @@ function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd
 <!-- Material Symbols variable font (display=block: icon ligature text is hidden
      until the font loads, so late font loading can never reflow the layout) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
-<link rel="stylesheet" href="/styles.css?v=7.9" />
+<link rel="stylesheet" href="/styles.css?v=7.10" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${esc(canonical)}" />
@@ -119,8 +120,13 @@ ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script
   /* Unprefixed (specificity 0,0,1) on purpose: page-specific class rules
      (e.g. .faq-sec-title, .faq-a p) must be able to override these. */
   h1 { font-size: 28px; line-height: 1.25; }
-  h2 { font-size: 16px; margin-top: 6px; color: var(--md-sys-color-on-surface); }
+  /* h2 sits above body/FAQ-question text so section headings read as headings. */
+  h2 { font-size: 20px; line-height: 1.3; margin-top: 10px; color: var(--md-sys-color-on-surface); }
+  h3 { font-size: 16px; line-height: 1.4; margin-top: 8px; color: var(--md-sys-color-on-surface); }
   p, li { font-size: 15px; line-height: 1.75; color: var(--md-sys-color-on-surface); }
+  /* Keep long-form prose inside the 50–75ch readability band while tables
+     (and the sitemap) can still use the full container width. */
+  .seo-wrap > p, .seo-wrap > ul, .seo-wrap > ol, .seo-wrap > blockquote { max-width: 72ch; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { padding: 8px 10px; border-bottom: 1px solid var(--md-sys-color-outline-variant); text-align: left; }
   td.num, th.num { text-align: right; font-feature-settings: 'tnum' 1; }
@@ -134,15 +140,25 @@ ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script
      identical to the primary bg in both themes, i.e. unreadable. */
   .cta:hover { color: var(--md-sys-color-on-primary); text-decoration: none; }
 </style>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-HTQV2NXQ1L"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-HTQV2NXQ1L');
+</script>
 </head>
 <body>
+<a class="skip-link" href="#main">Прескокни до содржината</a>
 ${TOPBAR_HTML}
-<main class="seo-wrap">
+<main class="seo-wrap" id="main" tabindex="-1">
 <h1>${h1Html || esc(h1)}</h1>
 ${bodyHtml}
 </main>
-<footer class="foot"><span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · <a href="/sitemap">Мапа на сајтот</a> · v${esc(PKG.version)}<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button></footer>
-<script src="/widget.js?v=11"></script>
+<footer class="foot"><span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · <a href="/sitemap">Мапа на сајтот</a> · v${esc(PKG.version)}</footer>
+<script src="/widget.js?v=12"></script>
 <script>if (window.W && W.initTopbar) W.initTopbar();</script>
 <!-- Vercel Web Analytics -->
 <script defer src="/_vercel/insights/script.js"></script>
@@ -706,12 +722,18 @@ async function renderSymbolPage(sym) {
     ? `${FinView.T('as_of')} ${FinView.fmtDate(tsOf(fullHistory[fullHistory.length - 1].date))} · ${FinView.T('eod_note')}` : '';
   const logoHtml = `<span class="h1-logo">${CoLogo.icon(sym, name, q.site, 30, q.fav, q.favv)}</span>`;
   const rangeBtn = (r) => `<button type="button" data-r="${r}"${r === '1Y' ? ' class="active"' : ''}>${FinView.T('range_' + r.toLowerCase())}</button>`;
-  const finTab = (tab, label, hidden) => `<button type="button" class="fin-tab${tab === 'chart' ? ' active' : ''}${hidden ? ' hidden' : ''}" data-tab="${tab}">${label}</button>`;
+  const FIN_PANEL = { chart: 'finTabChart', data: 'finTabData', ratios: 'finTabRatios', analysis: 'finTabAnalysis' };
+  const finTab = (tab, label, hidden) => {
+    const pid = FIN_PANEL[tab];
+    const active = tab === 'chart';
+    return `<button type="button" id="${pid}-tab" class="fin-tab${active ? ' active' : ''}${hidden ? ' hidden' : ''}" data-tab="${tab}" role="tab" aria-selected="${active}" aria-controls="${pid}"${active ? '' : ' tabindex="-1"'}>${label}</button>`;
+  };
   const emptyNote = (key) => `<div class="muted" style="padding:20px;text-align:center">${FinView.T(key)}</div>`;
 
   const chartPanel = fullHistory.length > 1 ? `
-<div id="finTabChart" class="fin-tab-panel">
+<div id="finTabChart" class="fin-tab-panel" role="tabpanel" aria-labelledby="finTabChart-tab">
   <div class="chart-head">
+
     <div class="chart-price" id="chartPrice">${y1last != null ? fmtN(y1last) + ' MKD' : '—'}</div>
     <div class="chart-chg ${y1chg == null ? '' : y1chg >= 0 ? 'up' : 'down'}" id="chartChg">${y1chg == null ? '—' : `${y1chg >= 0 ? '+' : ''}${y1chg.toFixed(2)}%`}</div>
     <div class="chart-period" id="chartPeriod">${y1.length ? `${FinView.T('period_1y')} · ${FinView.fmtDate(tsOf(y1[0].date))} – ${FinView.fmtDate(tsOf(y1[y1.length - 1].date))}` : ''}</div>
@@ -720,7 +742,7 @@ async function renderSymbolPage(sym) {
   <div class="chart-box" id="companyChart"></div>
   <div class="chart-legend-note" id="chartLegend">${FinView.T('chart_legend')}</div>
 </div>` : `
-<div id="finTabChart" class="fin-tab-panel">
+<div id="finTabChart" class="fin-tab-panel" role="tabpanel" aria-labelledby="finTabChart-tab">
   <div class="muted" style="padding:20px;text-align:center">Нема доволно податоци за график.</div>
 </div>`;
 
@@ -735,22 +757,22 @@ async function renderSymbolPage(sym) {
 ${FinView.companyHead(sym, q, logoHtml, asOf)}
 ${isIndex ? '' : FinView.statGrids(q)}
 ${isIndex ? chartPanel : `
-<div id="finTabBar" class="fin-tab-bar">
+<div id="finTabBar" class="fin-tab-bar" role="tablist" aria-label="Детали за компанијата">
   ${finTab('chart', FinView.T('tab_chart'))}
   ${finTab('data', FinView.T('tab_fin_data'), !hasFinData)}
   ${finTab('ratios', FinView.T('tab_ratios'), !hasRatios)}
   ${finTab('analysis', FinView.T('tab_analysis'))}
 </div>
 ${chartPanel}
-<div id="finTabData" class="fin-tab-panel hidden">
+<div id="finTabData" class="fin-tab-panel hidden" role="tabpanel" aria-labelledby="finTabData-tab">
   <h2>Финансиски податоци</h2>
   ${hasFinData ? FinView.buildFinTable(fin.financialData, false) : emptyNote('fin_no_data')}
 </div>
-<div id="finTabRatios" class="fin-tab-panel hidden">
+<div id="finTabRatios" class="fin-tab-panel hidden" role="tabpanel" aria-labelledby="finTabRatios-tab">
   <h2>Финансиски показатели</h2>
   ${hasRatios ? FinView.buildDividendSummary(fin) + FinView.buildFinTable(fin.financialRatios, true) : emptyNote('fin_no_ratios')}
 </div>
-<div id="finTabAnalysis" class="fin-tab-panel hidden">
+<div id="finTabAnalysis" class="fin-tab-panel hidden" role="tabpanel" aria-labelledby="finTabAnalysis-tab">
   <h2>Анализа</h2>
   ${analysisHtml}
 </div>`}
@@ -763,7 +785,12 @@ ${chartPanel}
   function activate(name) {
     if (bar) {
       var btns = bar.querySelectorAll('.fin-tab');
-      for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-tab') === name);
+      for (var i = 0; i < btns.length; i++) {
+        var on = btns[i].getAttribute('data-tab') === name;
+        btns[i].classList.toggle('active', on);
+        btns[i].setAttribute('aria-selected', on ? 'true' : 'false');
+        btns[i].setAttribute('tabindex', on ? '0' : '-1');
+      }
     }
     for (var j = 0; j < order.length; j++) {
       var p = document.getElementById(panels[order[j]]);
@@ -930,7 +957,7 @@ async function renderFxListPage() {
   const rows = list.map((c) => `<tr><td class="fx-cur">${esc(c.name || c.code)} <span class="fx-code">${esc(c.code)}</span>${c.unit && c.unit !== 1 ? ` <span class="fx-unit">за ${fmtN(c.unit, 0)}</span>` : ''}</td><td class="num">${fmtRate(c.mid)}</td></tr>`).join('\n');
   const bodyHtml = list.length
     ? `<p>Среден курс на Народната банка на Република Северна Македонија за <strong>${esc(dateLabel)}</strong>. Извор: <a href="https://www.nbrm.mk/kursna_lista.nspx" target="_blank" rel="noopener">НБРМ</a>.</p>
-<table class="fx-table"><thead><tr><th>Валута</th><th class="num">Среден курс (денари)</th></tr></thead><tbody>${rows}</tbody></table>`
+<table class="fx-table"><caption class="sr-only">Курсна листа на НБРМ</caption><thead><tr><th scope="col">Валута</th><th scope="col" class="num">Среден курс (денари)</th></tr></thead><tbody>${rows}</tbody></table>`
     : '<p>Податоците за курсната листа сè уште не се вчитани.</p>';
   return pageShell({
     title: `Курсна листа на НБРМ за ${esc(dateLabel)} | MSE Berza`,
@@ -984,7 +1011,13 @@ function renderTrustPage(pathname) {
     description: p.description,
     canonical: `${SITE_URL}${pathname}`,
     h1: p.h1,
-    bodyHtml: p.body.map((t) => `<p>${t}</p>`).join('\n'),
+    // Promote a leading run-in label ("<strong>Label:</strong> …") into a real
+    // <h3> so long trust pages get a scannable outline instead of a wall of
+    // paragraphs (Chunking / Proximity).
+    bodyHtml: p.body.map((t) => {
+      const m = /^<strong>(.+?):<\/strong>\s*([\s\S]*)$/.exec(t);
+      return m ? `<h3>${m[1]}</h3>\n<p>${m[2]}</p>` : `<p>${t}</p>`;
+    }).join('\n'),
   });
 }
 

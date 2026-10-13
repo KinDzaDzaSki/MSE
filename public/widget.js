@@ -4,7 +4,16 @@
 
   W.params = () => new URLSearchParams(location.search);
 
-  W.setTheme = (t) => { document.documentElement.dataset.theme = (t === 'light') ? 'light' : 'dark'; };
+  // Resolve the embed theme: an explicit ?theme=light|dark always wins;
+  // otherwise follow the host's OS/browser preference instead of forcing dark,
+  // so an embed dropped into a light page no longer looks broken.
+  W.setTheme = (t) => {
+    const theme = (t === 'light' || t === 'dark')
+      ? t
+      : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.dataset.theme = theme;
+    return theme;
+  };
 
   W.fetchJSON = async (url) => {
     const r = await fetch(url);
@@ -86,10 +95,10 @@
     if (!window.LightweightCharts || !rows || !rows.length) return null;
     const cs = getComputedStyle(document.documentElement);
     const txt = (cs.getPropertyValue('--md-sys-color-on-surface-variant') || '#a0a8b5').trim();
-    const grid = 'rgba(128,140,160,0.18)';
+    const grid = (cs.getPropertyValue('--md-sys-color-outline-variant') || 'rgba(128,140,160,0.18)').trim();
     const chart = LightweightCharts.createChart(container, {
       autoSize: true,
-      layout: { background: { color: 'transparent' }, textColor: txt, fontSize: 10 },
+      layout: { background: { color: 'transparent' }, textColor: txt, fontSize: 11 },
       grid: { vertLines: { color: grid }, horzLines: { color: grid } },
       rightPriceScale: { borderColor: grid },
       timeScale: { borderColor: grid },
@@ -128,7 +137,7 @@
     const lastClose = lineData.length ? lineData[lineData.length - 1].value : null;
     if (lastClose != null && series.length) {
       series[0].createPriceLine({
-        price: lastClose, color: '#ea3943', lineWidth: 1,
+        price: lastClose, color: (cs.getPropertyValue('--md-sys-color-on-surface-variant') || '#a0a8b5').trim(), lineWidth: 1,
         lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: '',
       });
     }
@@ -164,17 +173,8 @@
     let stored = 'light';
     try { stored = localStorage.getItem('mse_theme') || 'light'; } catch (_) {}
     applyTheme(stored);
-    // Language toggle — click-delegated so the mobile footer clone (.foot-lang)
-    // works too, even though W.renderFoot() re-renders the footer after this.
-    if (!W._langWired) {
-      W._langWired = true;
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('#langToggle, .foot-lang')) return;
-        let cur = 'en';
-        try { cur = localStorage.getItem('mse_lang') || 'en'; } catch (_) {}
-        try { localStorage.setItem('mse_lang', cur === 'en' ? 'mk' : 'en'); } catch (_) {}
-      });
-    }
+    // No language toggle here: the widget-builder page is MK-only, so a
+    // translate button would be a false affordance (clicked → nothing changed).
     // Chips double as buttons: market status → hours popover, FX → full list.
     const statusEl = document.getElementById('marketStatus');
     if (statusEl && !statusEl.dataset.wired) {
@@ -196,13 +196,13 @@
         const st = document.getElementById('marketStatus');
         if (st && q) {
           if (q.marketOpen) {
-            st.innerHTML = '<span class="material-symbols-outlined icon-fill" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Пазарот е отворен';
+            st.innerHTML = '<span class="material-symbols-outlined icon-fill" aria-hidden="true" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Пазарот е отворен';
             st.className = 'market-status open';
           } else {
             // Current Skopje time, matching the dashboard — never the lastPoll
             // capture time (that would read "затворен · 13:57" hours later).
             const time = new Date().toLocaleTimeString('mk-MK', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit' });
-            st.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px">block</span> Пазарот е затворен · ' + time;
+            st.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span> Пазарот е затворен · ' + time;
             st.className = 'market-status closed';
           }
         }
@@ -239,8 +239,7 @@
     el.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>'
       + 'Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · '
       + '<a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · '
-      + '<a href="/widgets.html">Виџети</a> · <a href="/sitemap">Мапа на сајтот</a>' + version
-      + '<button type="button" class="foot-lang" id="langToggleFoot" title="Switch language / Промени јазик" aria-label="Промени јазик / Switch language"><span class="material-symbols-outlined">translate</span></button>';
+      + '<a href="/widgets.html">Виџети</a> · <a href="/sitemap">Мапа на сајтот</a>' + version;
   };
 
   // ---- Chip modals (market hours + full NBRM list) ----
@@ -269,7 +268,7 @@
     overlay.setAttribute('aria-modal', 'true');
     overlay.setAttribute('aria-label', title);
     overlay.innerHTML = '<div class="modal-card pop-card">'
-      + '<button class="close" type="button" aria-label="Затвори"><span class="material-symbols-outlined">close</span></button>'
+      + '<button class="close" type="button" aria-label="Затвори"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>'
       + '<h2 class="pop-title">' + esc(title) + '</h2>'
       + '<div class="pop-body">' + bodyHtml + '</div>'
       + (footerHtml ? '<div class="pop-foot">' + footerHtml + '</div>' : '')

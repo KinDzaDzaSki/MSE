@@ -9,7 +9,6 @@
 try { document.documentElement.dataset.theme = localStorage.getItem('mse_theme') || 'light'; }
 catch (e) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MSE Berza | Македонска берза во живо</title>
 <meta name="description" content="MSE Berza — котации во живо, графици, дивиденди и анализа од Македонската берза (mse.mk). Live quotes, charts, dividends and analysis for the Macedonian Stock Exchange." />
 <link rel="canonical" href="https://mseberza.info/" />
@@ -60,8 +59,19 @@ catch (e) { document.documentElement.dataset.theme = 'light'; }
 <script>
 window.__sparksP = fetch('/api/sparks').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
 </script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-HTQV2NXQ1L"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-HTQV2NXQ1L');
+</script>
 </head>
 <body>
+
+<a class="skip-link" href="#main">Прескокни до содржината</a>
 
 <h1 class="sr-only">Македонска берза во живо — котации, графици и дивиденди</h1>
 
@@ -78,17 +88,17 @@ window.__sparksP = fetch('/api/sparks').then(function (r) { return r.ok ? r.json
   </a>
   <div class="topbar-right">
     <a class="topbar-link" href="/prasanja" id="topFaq">Прашања</a>
-    <span class="market-status" id="marketStatus">—</span>
-    <span id="mbiChip">MBI10</span>
-    <span id="fxChip" title="">€ — · <span class="fx-usd">$ —</span></span>
-    <button class="icon-btn" id="pushToggle" title="Известувања" aria-label="Известувања" hidden>
-      <span class="material-symbols-outlined" id="pushIcon">notifications</span>
+    <button type="button" class="market-status" id="marketStatus" aria-live="polite">—</button>
+    <button type="button" id="mbiChip">MBI10</button>
+    <button type="button" id="fxChip">€ — · <span class="fx-usd">$ —</span></button>
+    <button class="icon-btn" id="pushToggle" title="Известувања" aria-label="Известувања" aria-pressed="false" hidden>
+      <span class="material-symbols-outlined" id="pushIcon" aria-hidden="true">notifications</span>
     </button>
-    <button class="icon-btn" id="themeToggle" title="Toggle theme / Промени тема">
-      <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+    <button class="icon-btn" id="themeToggle" title="Toggle theme / Промени тема" aria-label="Toggle theme / Промени тема">
+      <span class="material-symbols-outlined" id="themeIcon" aria-hidden="true">dark_mode</span>
     </button>
-    <button class="icon-btn" id="langToggle" title="Switch language / Промени јазик">
-      <span class="material-symbols-outlined" id="langIcon">translate</span>
+    <button class="icon-btn" id="langToggle" title="Switch language / Промени јазик" aria-label="Switch language / Промени јазик">
+      <span class="material-symbols-outlined" id="langIcon" aria-hidden="true">translate</span>
     </button>
   </div>
 </header>
@@ -100,21 +110,21 @@ window.__sparksP = fetch('/api/sparks').then(function (r) { return r.ok ? r.json
   <h2 class="sr-only">Топ движења на Македонската берза — добитници, губитници и најтргувани</h2>
   <div class="side-card" id="gainersCard">
     <h3 class="side-title">
-      <span class="material-symbols-outlined icon-fill" style="color:var(--md-sys-color-positive)">trending_up</span>
+      <span class="material-symbols-outlined icon-fill" aria-hidden="true" style="color:var(--md-sys-color-positive)">trending_up</span>
       <span data-i18n="gainers">Најголеми добитници</span>
     </h3>
     <div class="side-items" id="gainersItems"></div>
   </div>
   <div class="side-card" id="losersCard">
     <h3 class="side-title">
-      <span class="material-symbols-outlined icon-fill" style="color:var(--md-sys-color-negative)">trending_down</span>
+      <span class="material-symbols-outlined icon-fill" aria-hidden="true" style="color:var(--md-sys-color-negative)">trending_down</span>
       <span data-i18n="losers">Најголеми губитници</span>
     </h3>
     <div class="side-items" id="losersItems"></div>
   </div>
   <div class="side-card" id="activeCard">
     <h3 class="side-title">
-      <span class="material-symbols-outlined">bar_chart</span>
+      <span class="material-symbols-outlined" aria-hidden="true">bar_chart</span>
       <span data-i18n="active">Најтргувани</span>
     </h3>
     <div class="side-items" id="activeItems"></div>
@@ -122,66 +132,68 @@ window.__sparksP = fetch('/api/sparks').then(function (r) { return r.ok ? r.json
 </div>
 
 <!-- MAIN LAYOUT -->
-<main class="layout">
+<main class="layout" id="main" tabindex="-1">
   <!-- LEFT: MAIN TABLE -->
   <section class="main-panel">
     <!-- SHARED HEADER: tabs + search + liquid filter (both views) -->
     <div class="panel-header">
-      <div class="view-toggle" id="mainTabs">
-        <button type="button" class="main-tab active" data-mtab="quotes">Котации</button>
-        <button type="button" class="main-tab" data-mtab="dividends">Дивиденди</button>
+      <div class="view-toggle" id="mainTabs" role="tablist" aria-label="Приказ">
+        <button type="button" id="tabQuotes" class="main-tab active" data-mtab="quotes" role="tab" aria-selected="true" aria-controls="quotesView">Котации</button>
+        <button type="button" id="tabDividends" class="main-tab" data-mtab="dividends" role="tab" aria-selected="false" aria-controls="dividendsView" tabindex="-1">Дивиденди</button>
       </div>
-      <div class="view-toggle" id="viewToggle">
-        <button type="button" id="btnLiquid" class="active">Ликвидни</button>
-        <button type="button" id="btnAll">Сите</button>
+      <div class="view-toggle" id="viewToggle" role="group" aria-label="Филтер на компании">
+        <button type="button" id="btnLiquid" class="active" aria-pressed="true">Ликвидни</button>
+        <button type="button" id="btnAll" aria-pressed="false">Сите</button>
       </div>
       <div class="search-wrapper">
-        <span class="material-symbols-outlined">search</span>
-        <input id="search" class="search" placeholder="Search ticker or company…" />
+        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+        <input id="search" class="search" type="search" role="searchbox" aria-label="Пребарај тикер или компанија" placeholder="Search ticker or company…" />
       </div>
     </div>
     <div class="watch-strip" id="watchStrip">
-      <button type="button" class="watch-toggle" id="watchToggle">★</button>
+      <button type="button" class="watch-toggle" id="watchToggle" aria-expanded="true" aria-controls="watchChips">★</button>
       <span class="watch-label">Листа за гледање</span>
       <div class="watch-chips" id="watchChips"></div>
     </div>
-    <div id="quotesView" class="panel-view">
+    <div id="quotesView" class="panel-view" role="tabpanel" aria-labelledby="tabQuotes" tabindex="0">
     <div class="toolbar-note hidden" id="viewNote"></div>
     <div class="table-wrap">
       <div class="table-scroll">
         <table class="quotes">
+          <caption class="sr-only">Котации на Македонската берза</caption>
           <thead>
             <tr>
-              <th data-sort="symbol">
+              <th scope="col" data-sort="symbol" tabindex="0" aria-sort="none">
                 Symbol
-                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+                <span class="material-symbols-outlined sort-icon" aria-hidden="true">arrow_upward</span>
               </th>
-              <th data-sort="name">
+              <th scope="col" data-sort="name" tabindex="0" aria-sort="none">
                 Name
-                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+                <span class="material-symbols-outlined sort-icon" aria-hidden="true">arrow_upward</span>
               </th>
-              <th class="spark-th">
-                <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:var(--md-sys-color-on-surface-variant);font-variation-settings:'FILL' 0,'wght' 300">show_chart</span>
+              <th scope="col" class="spark-th">
+                <span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px;vertical-align:middle;color:var(--md-sys-color-on-surface-variant);font-variation-settings:'FILL' 0,'wght' 300">show_chart</span>
+                <span class="sr-only">Тренд</span>
               </th>
-              <th class="num" data-sort="lastPrice">
+              <th scope="col" class="num" data-sort="lastPrice" tabindex="0" aria-sort="none">
                 Price
-                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+                <span class="material-symbols-outlined sort-icon" aria-hidden="true">arrow_upward</span>
               </th>
-              <th class="num" data-sort="changePct">
+              <th scope="col" class="num" data-sort="changePct" tabindex="0" aria-sort="none">
                 Change %
-                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+                <span class="material-symbols-outlined sort-icon" aria-hidden="true">arrow_upward</span>
               </th>
-              <th class="num" data-sort="volume">
+              <th scope="col" class="num" data-sort="volume" tabindex="0" aria-sort="none">
                 Volume
-                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+                <span class="material-symbols-outlined sort-icon" aria-hidden="true">arrow_upward</span>
               </th>
-              <th class="num" data-sort="week52Chg">
+              <th scope="col" class="num" data-sort="week52Chg" tabindex="0" aria-sort="none">
                 52 Wk %
-                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+                <span class="material-symbols-outlined sort-icon" aria-hidden="true">arrow_upward</span>
               </th>
-              <th class="wk-range" data-sort="week52Min">
+              <th scope="col" class="wk-range" data-sort="week52Min" tabindex="0" aria-sort="none">
                 52 Wk Range
-                <span class="material-symbols-outlined sort-icon">arrow_upward</span>
+                <span class="material-symbols-outlined sort-icon" aria-hidden="true">arrow_upward</span>
               </th>
             </tr>
           </thead>
@@ -192,7 +204,7 @@ window.__sparksP = fetch('/api/sparks').then(function (r) { return r.ok ? r.json
     </div>
 
     <!-- DIVIDENDS VIEW -->
-    <div id="dividendsView" class="panel-view hidden">
+    <div id="dividendsView" class="panel-view hidden" role="tabpanel" aria-labelledby="tabDividends" tabindex="0">
       <div class="table-wrap">
         <div class="table-scroll">
           <table class="quotes div-table">
@@ -212,27 +224,27 @@ window.__sparksP = fetch('/api/sparks').then(function (r) { return r.ok ? r.json
 <div id="companyModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Company details">
   <div class="modal-card">
     <button class="close" id="modalClose" aria-label="Close">
-      <span class="material-symbols-outlined">close</span>
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
     </button>
     <div id="companyContent"></div>
-    <!-- Tab bar injected by JS -->
-    <div id="finTabBar" class="fin-tab-bar hidden">
-      <button type="button" class="fin-tab active" data-tab="chart" onclick="switchFinTab('chart')">Chart</button>
-      <button type="button" class="fin-tab" data-tab="data" onclick="switchFinTab('data')">Financial Data</button>
-      <button type="button" class="fin-tab" data-tab="ratios" onclick="switchFinTab('ratios')">Financial Ratios</button>
-      <button type="button" class="fin-tab" data-tab="analysis" onclick="switchFinTab('analysis')">Analysis</button>
+    <!-- Tab bar -->
+    <div id="finTabBar" class="fin-tab-bar hidden" role="tablist" aria-label="Детали за компанијата">
+      <button type="button" id="finTabChart-tab" class="fin-tab active" data-tab="chart" role="tab" aria-selected="true" aria-controls="finTabChart">Chart</button>
+      <button type="button" id="finTabData-tab" class="fin-tab" data-tab="data" role="tab" aria-selected="false" aria-controls="finTabData" tabindex="-1">Financial Data</button>
+      <button type="button" id="finTabRatios-tab" class="fin-tab" data-tab="ratios" role="tab" aria-selected="false" aria-controls="finTabRatios" tabindex="-1">Financial Ratios</button>
+      <button type="button" id="finTabAnalysis-tab" class="fin-tab" data-tab="analysis" role="tab" aria-selected="false" aria-controls="finTabAnalysis" tabindex="-1">Analysis</button>
     </div>
     <!-- Tab panels -->
-    <div id="finTabChart" class="fin-tab-panel">
+    <div id="finTabChart" class="fin-tab-panel" role="tabpanel" aria-labelledby="finTabChart-tab">
       <div id="chartSection"></div>
     </div>
-    <div id="finTabData" class="fin-tab-panel hidden">
+    <div id="finTabData" class="fin-tab-panel hidden" role="tabpanel" aria-labelledby="finTabData-tab">
       <div id="finDataContent"></div>
     </div>
-    <div id="finTabRatios" class="fin-tab-panel hidden">
+    <div id="finTabRatios" class="fin-tab-panel hidden" role="tabpanel" aria-labelledby="finTabRatios-tab">
       <div id="finRatiosContent"></div>
     </div>
-    <div id="finTabAnalysis" class="fin-tab-panel hidden">
+    <div id="finTabAnalysis" class="fin-tab-panel hidden" role="tabpanel" aria-labelledby="finTabAnalysis-tab">
       <div id="analysisContent"></div>
     </div>
   </div>
@@ -246,9 +258,9 @@ window.__sparksP = fetch('/api/sparks').then(function (r) { return r.ok ? r.json
   Data scraped from <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — free public end-of-day data — for educational use. · <a href="/prasanja">FAQ</a> · <a href="/za-nas">About</a> · <a href="/izvor-na-podatoci">Data source</a> · <a href="/metodologija">Methodology</a> · <a href="/widgets.html">Widgets</a> · <a href="/sitemap">Sitemap</a>
 </footer>
 
-<script defer src="/logo.js?v=4"></script>
-<script defer src="/widget.js?v=11"></script>
-<script defer src="/app.js?v=9.6"></script>
+<script defer src="/logo.js?v=5"></script>
+<script defer src="/widget.js?v=12"></script>
+<script defer src="/app.js?v=9.7"></script>
 <!-- Vercel Web Analytics (serves /_vercel/insights/script.js on Vercel builds;
      harmless 404 on other hosts). -->
 <script defer src="/_vercel/insights/script.js"></script>
