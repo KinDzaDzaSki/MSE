@@ -1204,10 +1204,12 @@ table.quotes td.sym .sym-text { display: inline-block; }
   flex-direction: column;
   flex: 0 1 auto;
   min-height: 0;
-  /* Reserved height: the cards fill with data ~1s after load — without a
-     reserve everything below the strip jumps when they populate. 356px is the
-     measured content height of a populated 5-item card. */
-  min-height: 356px;
+  /* Fixed height, not min-height: the three cards stretch to the tallest card's
+     content (Најтргувани renders 10 rows, the other two 5), which pushed the
+     strip to 674px on desktop and 610px at 390px — the first quote row sat at
+     y=914 on an 844px screen. A fixed box reserves the space (no layout shift
+     when the rows arrive) and lets .side-items scroll instead of stretching. */
+  height: var(--side-card-h, 288px);
   transition: box-shadow var(--md-motion-duration-medium-1) var(--md-motion-easing-standard);
 }
 
@@ -1669,6 +1671,14 @@ table.quotes td.sym .sym-text { display: inline-block; }
 
 /* Medium: 600-839px — single column, strip becomes a swipeable row */
 @media (max-width: 839px) {
+  /* Phone-first: prices before other people's movers. The strip used to sit
+     above the panel and cost 622px at 390px — the first quote row started at
+     y=914 on an 844px screen, so no price was ever on the first screen. It now
+     follows the table as a compact swipeable band. */
+  body > .layout { order: 1; }
+  body > .side-strip { order: 2; padding: var(--md-space-xs) var(--md-space-sm) var(--md-space-sm); }
+  body > .foot { order: 3; }
+
   .layout {
     grid-template-columns: 1fr;
     min-height: 0;
@@ -1694,6 +1704,7 @@ table.quotes td.sym .sym-text { display: inline-block; }
     flex: 0 0 78%;
     min-width: 0;
     scroll-snap-align: start;
+    --side-card-h: 200px;
   }
   .side-card {
     min-width: 0;
@@ -1825,6 +1836,7 @@ table.quotes td.sym .sym-text { display: inline-block; }
 
   .side-strip .side-card {
     flex: 0 0 86%;
+    --side-card-h: 176px;
   }
 
   /* Very small screens: stack the controls full-width so labels never
@@ -2432,6 +2444,9 @@ table.quotes td.sym .sym-text { display: inline-block; }
 /* Focus rings should never be clipped by an overflow:hidden ancestor. */
 table.quotes th[data-sort]:focus-visible,
 table.quotes th[data-divsort]:focus-visible { outline-offset: -2px; }
+/* The quote row itself is a tab stop (it opens the company), so it needs the same
+   inside-the-row ring: an offset ring would be clipped by the table scroller. */
+table.quotes tbody tr[tabindex]:focus-visible { outline-offset: -2px; }
 
 /* Lock background scroll while the company dialog is open. */
 body.modal-open { overflow: hidden; }

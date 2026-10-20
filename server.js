@@ -568,8 +568,12 @@ async function handleApi(req, res, url) {
 
   if (url.pathname === '/api/history') {
     // Batch history: /api/history?symbols=ALK,ADIN,GRNT&range=1Y
+    // fields=close → sparkline mode: one number per day, no dates, no OHLCV.
+    // The batch fallback was 664 KB of the dashboard's 864 KB cold load, all of
+    // it to draw 64×24 canvases that only read `last`.
     const syms = (url.searchParams.get('symbols') || '').split(',').filter(Boolean);
     const range = url.searchParams.get('range') || '1Y';
+    const closeOnly = url.searchParams.get('fields') === 'close';
     const pairs = await Promise.all(syms.map(async (sym) => [sym, await store.getHistory(sym)]));
     const queries = {};
     for (const [sym, allRows] of pairs) {
@@ -578,9 +582,10 @@ async function handleApi(req, res, url) {
       else if (range === '3M') rows = rows.slice(-66);
       else if (range === '6M') rows = rows.slice(-132);
       else if (range === '1Y') rows = rows.slice(-252);
-      queries[sym] = rows;
+      queries[sym] = closeOnly ? rows.map((r) => ({ last: r.last })) : rows;
     }
-    return sendJson(res, { queries }, 200, req);
+    // MSE history is end-of-day, so the batch is stable within a session.
+    return sendJson(res, { queries }, 200, req, 1800, 300);
   }
 
   if (url.pathname === '/api/refresh') {

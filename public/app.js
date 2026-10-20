@@ -773,7 +773,7 @@ async function loadSparkHistory() {
     const chunks = [];
     for (let i = 0; i < syms.length; i += CHUNK) chunks.push(syms.slice(i, i + CHUNK));
     const results = await Promise.all(chunks.map((slice) =>
-      fetch(`/api/history?symbols=${slice.join(',')}&range=1Y`).then((r) => r.json()).catch(() => ({}))
+      fetch(`/api/history?symbols=${slice.join(',')}&range=1Y&fields=close`).then((r) => r.json()).catch(() => ({}))
     ));
     for (const d of results) {
       for (const [sym, rows] of Object.entries(d.queries || {})) {
@@ -979,6 +979,12 @@ function renderTable() {
   for (const r of rows) {
     const tr = document.createElement('tr');
     tr.dataset.sym = r.symbol;
+    // The row is the primary action (opens the company), so it must be reachable
+    // without a mouse: focusable, named, and activated by Enter/Space (see the
+    // keydown handler). The row keeps its `row` semantics — only the tab stop is
+    // added, so table navigation for screen readers is unchanged.
+    tr.tabIndex = 0;
+    tr.setAttribute('aria-label', `${r.symbol}${r.name ? ' — ' + r.name : ''}, ${fmt(r.lastPrice)}, ${pctStr(r.changePct)}`);
     const range = buildRangeBar(r);
     tr.innerHTML = `
       <td class="sym"><div class="sym-inner">${starBtnHTML(r.symbol)}${logoHTML(r.symbol, r.name, r.site, 22, r.fav, r.favv)}<span class="sym-text">${esc(r.symbol)}</span></div></td>
@@ -1077,7 +1083,8 @@ function sparkValues(d) {
   return (d.rows || [])
     .filter((x) => x.last != null)
     .slice()
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    // fields=close rows carry no date; a stable sort keeps their server order.
+    .sort((a, b) => (a.date && b.date) ? new Date(a.date) - new Date(b.date) : 0)
     .map((x) => x.last);
 }
 
@@ -2097,7 +2104,10 @@ document.addEventListener('click', (e) => {
 // Keyboard equivalent for the same clickable rows/cards.
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
-  const item = e.target.closest && e.target.closest('[data-sym][role="button"]');
+  // A star toggle or any other nested control keeps its own key handling —
+  // otherwise Enter on the star would also open the company modal.
+  if (e.target.closest && e.target.closest('button, a, input, select, textarea')) return;
+  const item = e.target.closest && e.target.closest('[data-sym][role="button"], tr[data-sym]');
   if (item) { e.preventDefault(); openCompany(item.dataset.sym); }
 });
 function closeModal() {
