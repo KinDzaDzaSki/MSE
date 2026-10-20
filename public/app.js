@@ -378,7 +378,11 @@ let lang = localStorage.getItem('mse_lang') || 'mk';
 // Fallback only — the footer version is refreshed from /api/version (which
 // reads package.json) at boot, so a release bump updates every footer without
 // editing this file. Keep in sync with package.json anyway.
-let APP_VERSION = '2.10.3';
+// Server injects the real version into <head> (sendHome); this literal is the
+// fallback for a statically served shell and must stay in step with
+// package.json — it sat at 2.10.3 while the app shipped 2.12.4, so any
+// environment where /api/version did not answer showed a wrong build number.
+let APP_VERSION = (typeof window !== 'undefined' && window.__APP_VERSION) || '2.12.5';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // Failure state for the quotes table: the user's language, a retry, and how old

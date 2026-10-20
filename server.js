@@ -683,6 +683,9 @@ async function sendHome(req, res) {
       const quotes = Object.values(await store.getQuotes());
       const rows = ssrQuoteRows(quotes, 13);
       if (rows) html = html.replace('<tbody id="quotesBody"></tbody>', `<tbody id="quotesBody">\n${rows}\n</tbody>`);
+      // The version the footer should show even if /api/version never answers.
+      // app.js used to carry a stale literal fallback.
+      html = html.replace('<head>', `<head>\n<script>window.__APP_VERSION=${JSON.stringify(PKG.version)};</script>`);
     } catch (e) { /* serve the shell */ }
   }
   if (!html) return sendFile(res, path.join(PUBLIC_DIR, 'index.html'), req);
