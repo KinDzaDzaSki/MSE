@@ -71,6 +71,9 @@ function refreshStars() {
     const on = isWatched(btn.dataset.star);
     btn.classList.toggle('starred', on);
     btn.title = on ? t('watch_remove') : t('watch_add');
+    // An icon-only button needs its own name, or every row announces "star".
+    btn.setAttribute('aria-label', `${btn.title} ${btn.dataset.star}`);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     const ic = btn.querySelector('.material-symbols-outlined');
     if (ic) ic.style.fontVariationSettings = on
       ? "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20"
@@ -79,7 +82,7 @@ function refreshStars() {
 }
 function starBtnHTML(sym) {
   const on = isWatched(sym);
-  return `<button type="button" class="star-btn${on ? ' starred' : ''}" data-star="${esc(sym)}" title="${esc(on ? t('watch_remove') : t('watch_add'))}"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' ${on ? 1 : 0}, 'wght' 400, 'GRAD' 0, 'opsz' 20">star</span></button>`;
+  return `<button type="button" class="star-btn${on ? ' starred' : ''}" data-star="${esc(sym)}" title="${esc(on ? t('watch_remove') : t('watch_add'))}" aria-label="${esc((on ? t('watch_remove') : t('watch_add')) + ' ' + sym)}" aria-pressed="${on ? 'true' : 'false'}"><span class="material-symbols-outlined" aria-hidden="true" style="font-variation-settings:'FILL' ${on ? 1 : 0}, 'wght' 400, 'GRAD' 0, 'opsz' 20">star</span></button>`;
 }
 
 // Company logo (favicon + monogram fallback). `site` rides on each quote from
@@ -180,6 +183,10 @@ const I18N = {
       div_show_all: 'Show all dividends',
       div_no_results: 'No results.',
       no_results: 'No results.',
+      load_failed: 'Could not load the quotes.',
+      render_failed: 'Could not render the table.',
+      retry: 'Try again',
+      stale_since: 'Showing the last data loaded at {time}.',
       chart_legend: 'Green = closed above yesterday · Red = closed below yesterday',
       analysis_sma50: '50-day SMA',
       analysis_sma200: '200-day SMA',
@@ -311,6 +318,10 @@ const I18N = {
       div_show_all: 'Прикажи сите дивиденди',
       div_no_results: 'Нема резултати.',
       no_results: 'Нема резултати.',
+      load_failed: 'Не успеа вчитувањето на котациите.',
+      render_failed: 'Не успеа прикажувањето на табелата.',
+      retry: 'Обиди се повторно',
+      stale_since: 'Прикажани се последните податоци вчитани во {time}.',
       chart_legend: 'Зелено = затворено над вчера · Црвено = затворено под вчера',
       analysis_sma50: '50-дневен ПП',
       analysis_sma200: '200-дневен ПП',
@@ -363,6 +374,22 @@ let lang = localStorage.getItem('mse_lang') || 'mk';
 // editing this file. Keep in sync with package.json anyway.
 let APP_VERSION = '2.10.3';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
+
+// Failure state for the quotes table: the user's language, a retry, and how old
+// the last good data is. Never the raw exception message — that is developer
+// copy, and on a finance page it reads as "the numbers are broken".
+function tableErrorRow(key) {
+  const last = window.__lastGoodQuotes;
+  let age = '';
+  if (last) {
+    const timeStr = new Date(last).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', {
+      timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit',
+    });
+    age = `<div class="muted" style="margin-top:6px;font-size:12px">${esc(t('stale_since').replace('{time}', timeStr))}</div>`;
+  }
+  return `<tr><td colspan="8" class="muted" style="padding:24px;text-align:center">${esc(t(key))}${age}`
+    + `<div style="margin-top:10px"><button type="button" class="retry-btn" data-retry="1">${esc(t('retry'))}</button></div></td></tr>`;
+}
 
 // EN → MK translation map for financial data / ratios labels
 const FIN_LABELS_MK = {
@@ -873,24 +900,23 @@ async function loadQuotes() {
 
   // Market open (or first load with no data yet): do the full refresh.
   quotesCache = d.quotes || [];
+  window.__lastGoodQuotes = Date.now();
   updateToggleLabels();
   renderWatchStrip();
+  const st = $('#marketStatus');
+  // #marketStatus is aria-live="polite" and this runs on every poll, so an
+  // unconditional innerHTML write re-announced the same state all session.
+  const setStatus = (html, cls) => {
+    if (st.innerHTML !== html) st.innerHTML = html;
+    if (st.className !== cls) st.className = cls;
+  };
   if (marketIsOpen) {
-    const ms = t('market_open');
-    const st = $('#marketStatus');
-    st.innerHTML = ms;
-    st.className = 'market-status open';
+    setStatus(t('market_open'), 'market-status open');
   } else {
-    const st = $('#marketStatus');
     const timeStr = new Date().toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', {
       timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true,
     });
-    if (d.lastPoll) {
-      st.innerHTML = t('market_closed_at').replace('{time}', timeStr);
-    } else {
-      st.innerHTML = t('market_closed');
-    }
-    st.className = 'market-status closed';
+    setStatus(d.lastPoll ? t('market_closed_at').replace('{time}', timeStr) : t('market_closed'), 'market-status closed');
   }
   if (d.lastPoll) {
     setUpdated(new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true }));
@@ -911,7 +937,7 @@ async function loadQuotes() {
   } catch (e) {
     console.error('loadQuotes failed:', e);
     const body = $('#quotesBody');
-    if (body) body.innerHTML = `<tr><td colspan="8" class="muted" style="padding:20px;text-align:center">Failed to load data: ${esc(e.message)}</td></tr>`;
+    if (body) body.innerHTML = tableErrorRow('load_failed');
   }
 }
 
@@ -957,8 +983,9 @@ function renderTable() {
     } else if (headerSortCol === 'name') {
       cmp = (a.name || '').localeCompare(b.name || '');
     } else if (headerSortCol === 'week52Min') {
-      const span = (r) => ((r.week52Max || 0) - (r.week52Min || 0));
-      cmp = span(a) - span(b);
+      // Sort by the value the header names. Sorting by range width made
+      // "52 Wk Range" the only control that ordered by something else.
+      cmp = (a.week52Min || 0) - (b.week52Min || 0);
     } else {
       cmp = (a[headerSortCol] || 0) - (b[headerSortCol] || 0);
     }
@@ -1009,7 +1036,7 @@ function renderTable() {
   } catch (e) {
     console.error('renderTable failed:', e);
     const body = $('#quotesBody');
-    if (body) body.innerHTML = `<tr><td colspan="8" class="muted" style="padding:20px;text-align:center">Render failed: ${esc(e.message)}</td></tr>`;
+    if (body) body.innerHTML = tableErrorRow('render_failed');
   }
 }
 
@@ -2090,6 +2117,8 @@ function syncHeaderIndicators() {
   syncSortState($$('th[data-sort]'), headerSortCol, headerSortDir);
 }
 document.addEventListener('click', (e) => {
+  // Retry from the table's failure row.
+  if (e.target.closest('[data-retry]')) { loadQuotes(); return; }
   // Star toggles (table rows, modal header) and chip ✕ removals are handled
   // BEFORE the [data-sym] modal-open check — star buttons live inside rows
   // that carry data-sym.

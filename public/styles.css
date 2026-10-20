@@ -113,7 +113,10 @@
   --md-sys-color-on-surface: #1A1D26;
   --md-sys-color-surface-variant: #EDEFF4;
   --md-sys-color-on-surface-variant: #464D5E;
-  --md-sys-color-outline: #C4C9D6;
+  /* #C4C9D6 was 1.44:1 against the page background — card edges and chip
+     outlines disappeared on white. #7C8496 measures 3.26:1, the WCAG 1.4.11
+     floor for an edge that identifies a component. */
+  --md-sys-color-outline: #7C8496;
   --md-sys-color-outline-variant: #AFB5C5;
   --md-sys-color-background: #EDEFF4;
   --md-sys-color-on-background: #1A1D26;
@@ -138,7 +141,9 @@
   --md-sys-color-on-positive: #FFFFFF;
   --md-sys-color-positive-container: #B8F0D6;
   --md-sys-color-on-positive-container: #00391E;
-  --md-sys-color-negative: #DC2626;
+  /* #DC2626 was 4.20:1 on the page background, where the MBI10 chip shows its
+     change — just under AA for 12px text. #C81E1E measures 4.99:1. */
+  --md-sys-color-negative: #C81E1E;
   --md-sys-color-on-negative: #FFFFFF;
   --md-sys-color-negative-container: #FFD6D6;
   --md-sys-color-on-negative-container: #600009;
@@ -1204,13 +1209,10 @@ table.quotes td.sym .sym-text { display: inline-block; }
   flex-direction: column;
   flex: 0 1 auto;
   min-height: 0;
-  /* Fixed height, not min-height: the three cards stretch to the tallest card's
-     content (Најтргувани renders 10 rows, the other two 5), which pushed the
-     strip to 674px on desktop and 610px at 390px — the first quote row sat at
-     y=914 on an 844px screen. A fixed box reserves the space (no layout shift
-     when the rows arrive) and lets .side-items scroll instead of stretching. */
-  height: var(--side-card-h, 288px);
-  transition: box-shadow var(--md-motion-duration-medium-1) var(--md-motion-easing-standard);
+  /* Reserve, not a cap: every mover stays visible, so the card grows to its
+     content (Најтргувани renders 10 rows). 356px is the measured height of a
+     populated 5-item card, which stops the strip jumping when rows arrive. */
+  min-height: 356px;
 }
 
 .side-title {
@@ -1296,6 +1298,24 @@ table.quotes td.sym .sym-text { display: inline-block; }
   font-size: 11px;
   font-weight: 600;
 }
+
+/* Table failure state: the only action in the row, so it has to look like a
+   control, not like body copy. 36px tall beats the 24px floor for a thumb. */
+.retry-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 18px;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-full);
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.retry-btn:hover { background: var(--md-sys-color-surface-variant); }
 
 /* ==========================================================================
    MODAL — M3 Dialog / Modal
@@ -1671,14 +1691,6 @@ table.quotes td.sym .sym-text { display: inline-block; }
 
 /* Medium: 600-839px — single column, strip becomes a swipeable row */
 @media (max-width: 839px) {
-  /* Phone-first: prices before other people's movers. The strip used to sit
-     above the panel and cost 622px at 390px — the first quote row started at
-     y=914 on an 844px screen, so no price was ever on the first screen. It now
-     follows the table as a compact swipeable band. */
-  body > .layout { order: 1; }
-  body > .side-strip { order: 2; padding: var(--md-space-xs) var(--md-space-sm) var(--md-space-sm); }
-  body > .foot { order: 3; }
-
   .layout {
     grid-template-columns: 1fr;
     min-height: 0;
@@ -1704,7 +1716,6 @@ table.quotes td.sym .sym-text { display: inline-block; }
     flex: 0 0 78%;
     min-width: 0;
     scroll-snap-align: start;
-    --side-card-h: 200px;
   }
   .side-card {
     min-width: 0;
@@ -1836,7 +1847,6 @@ table.quotes td.sym .sym-text { display: inline-block; }
 
   .side-strip .side-card {
     flex: 0 0 86%;
-    --side-card-h: 176px;
   }
 
   /* Very small screens: stack the controls full-width so labels never

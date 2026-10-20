@@ -6,6 +6,16 @@
 <title>MSE Berza — Виџети</title>
 <meta name="description" content="Креирај embeddable виџети со податоци од Македонската берза: ticker лента, картичка за компанија, мини график или дивиденди." />
 <link rel="canonical" href="https://mseberza.info/widgets.html" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="MSE Berza" />
+<meta property="og:url" content="https://mseberza.info/widgets.html" />
+<meta property="og:title" content="MSE Berza — Виџети за твојот сајт" />
+<meta property="og:description" content="Ticker лента, картичка за компанија, мини график и дивиденди — embeddable виџети со податоци од Македонската берза." />
+<meta property="og:image" content="https://mseberza.info/icon-512.png" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="MSE Berza — Виџети за твојот сајт" />
+<meta name="twitter:description" content="Ticker лента, картичка за компанија, мини график и дивиденди — embeddable виџети со податоци од Македонската берза." />
+<meta name="twitter:image" content="https://mseberza.info/icon-512.png" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
 <!-- Preconnect for font loading -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,7 +23,7 @@
 <!-- Inter font for UI — same links as the homepage so the topbar and footer
      render in Inter, not the system fallback. -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="/styles.css?v=7.11" />
+<link rel="stylesheet" href="/styles.css?v=7.13" />
 <!-- NOTE: widget.css is intentionally NOT loaded here — it is the embeds'
      stylesheet and sets html/body height:100% + overflow:hidden globally,
      which capped this builder page to the viewport and produced an inset
@@ -364,7 +374,7 @@
 
   <section class="b-step">
     <h2>4. Вгради го во твојот сајт</h2>
-    <textarea id="snippet" readonly></textarea>
+    <textarea id="snippet" readonly aria-label="Код за вградување (HTML)"></textarea>
     <div class="b-actions">
       <button type="button" class="b-copy" id="copyBtn">Копирај код</button>
       <span id="copyStatus" class="sr-only" role="status"></span>
