@@ -902,7 +902,6 @@ body.has-ad .ad-rail {
 .star-btn .material-symbols-outlined { font-size: 16px; }
 @media (hover: none) {
   .star-btn { opacity: 1; width: 32px; height: 32px; }
-  .market-status { min-height: 32px; }
 }
 table.quotes tr:hover .star-btn,
 .star-btn.starred,
@@ -1723,9 +1722,11 @@ table.quotes td.sym .sym-text { display: inline-block; }
   #mbiChip .mbi-chg { display: none; }
   #fxChip .fx-usd { display: none; }
   .market-status { padding: 4px 8px; gap: 0; }
-  /* Icon-only must not shrink the target below the 24px WCAG 2.5.8 floor —
-     it measured 32x20 before this. */
-  .market-status { min-height: 24px; }
+  /* Icon-only must not shrink the target: it measured 32x20 before this, under
+     the 24px WCAG 2.5.8 floor. 32px keeps it thumb-sized on touch (a
+     @media (hover: none) override here would lose on source order to this
+     width block). */
+  .market-status { min-height: 32px; }
   .market-status .ms-label { display: none; }
 
   .layout {
