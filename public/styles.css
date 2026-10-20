@@ -39,7 +39,10 @@
   --md-sys-color-on-surface: #E6E9EF;
   --md-sys-color-surface-variant: #1C2230;
   --md-sys-color-on-surface-variant: #A0A8B5;
-  --md-sys-color-outline: #2A3140;
+  /* #2A3140 was 1.52:1 against the dark page background — the light-theme
+     border fix never reached this theme. #556078 measures ~3.4:1, the 1.4.11
+     floor for an edge that identifies a component. */
+  --md-sys-color-outline: #556078;
   --md-sys-color-outline-variant: #434B5C;
   --md-sys-color-background: #070A0F;
   --md-sys-color-on-background: #E6E9EF;
@@ -1705,6 +1708,22 @@ table.quotes td.sym .sym-text { display: inline-block; }
 
 /* Medium: 600-839px — single column, strip becomes a swipeable row */
 @media (max-width: 839px) {
+  /* Prices before other people's movers: the strip cost 622px above the panel
+     at 390px, putting the first quote row at y=914 on an 844px screen. It now
+     follows the table; every mover is still rendered, no internal scroll. */
+  body > .layout { order: 1; }
+  body > .side-strip { order: 2; padding: var(--md-space-xs) var(--md-space-sm) var(--md-space-sm); }
+  body > .foot { order: 3; }
+
+  /* The topbar overflowed the page at 768 (document.scrollWidth 887): the
+     theme and language buttons sat off-screen. Drop the secondary link, the
+     index change, the USD rate, and collapse the market chip to its icon. */
+  .topbar-link { display: none; }
+  #mbiChip .mbi-chg { display: none; }
+  #fxChip .fx-usd { display: none; }
+  .market-status { padding: 4px 8px; gap: 0; }
+  .market-status .ms-label { display: none; }
+
   .layout {
     grid-template-columns: 1fr;
     min-height: 0;
@@ -1813,8 +1832,11 @@ table.quotes td.sym .sym-text { display: inline-block; }
   .topbar-right {
     gap: 8px;
   }
+  /* Market state stays visible on the phone — it is the one thing a quotes
+     screen must always answer. The chip is icon-only at this width (see the
+     ≤839 block); hiding it entirely removed stale-vs-live. */
   .market-status {
-    display: none;
+    display: flex;
   }
   #mbiChip {
     font-size: 10px;

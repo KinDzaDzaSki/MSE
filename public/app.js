@@ -96,9 +96,9 @@ function logoHTML(sym, name, site, size = 22, fav = false, favv = 0) {
 // ---- i18n ----
 const I18N = {
   en: {
-      market_open: '<span class="material-symbols-outlined icon-fill" aria-hidden="true" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Market Open',
-      market_closed: '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span> Market Closed',
-      market_closed_at: '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span> Market Closed · {time}',
+      market_open: '<span class="material-symbols-outlined icon-fill" aria-hidden="true" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span><span class="ms-label"> Market Open</span>',
+      market_closed: '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span><span class="ms-label"> Market Closed</span>',
+      market_closed_at: '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span><span class="ms-label"> Market Closed · {time}</span>',
       search: 'Search ticker or company…',
       sort_volume: 'Volume',
       sort_change: 'Change %',
@@ -183,6 +183,9 @@ const I18N = {
       div_show_all: 'Show all dividends',
       div_no_results: 'No results.',
       no_results: 'No results.',
+      clear_search: 'Clear search',
+      th_yield: 'Yield',
+      th_trend: 'Trend',
       load_failed: 'Could not load the quotes.',
       render_failed: 'Could not render the table.',
       retry: 'Try again',
@@ -231,9 +234,9 @@ const I18N = {
       ],
     },
     mk: {
-      market_open: '<span class="material-symbols-outlined icon-fill" aria-hidden="true" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Пазарот е отворен',
-      market_closed: '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span> Пазарот е затворен',
-      market_closed_at: '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span> Пазарот е затворен · {time}',
+      market_open: '<span class="material-symbols-outlined icon-fill" aria-hidden="true" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span><span class="ms-label"> Пазарот е отворен</span>',
+      market_closed: '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span><span class="ms-label"> Пазарот е затворен</span>',
+      market_closed_at: '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span><span class="ms-label"> Пазарот е затворен · {time}</span>',
       search: 'Пребарај тикер или компанија…',
       sort_volume: 'Волумен',
       sort_change: 'Промена %',
@@ -318,6 +321,9 @@ const I18N = {
       div_show_all: 'Прикажи сите дивиденди',
       div_no_results: 'Нема резултати.',
       no_results: 'Нема резултати.',
+      clear_search: 'Исчисти го пребарувањето',
+      th_yield: 'Принос',
+      th_trend: 'Тренд',
       load_failed: 'Не успеа вчитувањето на котациите.',
       render_failed: 'Не успеа прикажувањето на табелата.',
       retry: 'Обиди се повторно',
@@ -434,8 +440,12 @@ function applyStaticI18n() {
   setThLabel(ths[3], t('th_price'));
   setThLabel(ths[4], t('th_change_pct'));
   setThLabel(ths[5], t('th_volume'));
-  setThLabel(ths[6], t('th_52w_chg'));
+  setThLabel(ths[6], t('th_yield'));
   setThLabel(ths[7], t('th_52w_range'));
+  // The sparkline column has no visible label, only the sr-only one.
+  const trendLabel = document.querySelector('th.spark-th .sr-only');
+  if (trendLabel) trendLabel.textContent = t('th_trend');
+  paintMarketStatus();
   // index 2 = sparkline column (no label)
   $('#search').placeholder = t('search');
   const topFaq = $('#topFaq');
@@ -549,6 +559,33 @@ let dividendsCache = null;
 let divSortCol = 'yield';
 let divSortDir = 'desc';
 
+// Dividend yield per symbol, for the quotes table. /api/dividends used to load
+// only when the Dividends tab was opened, so the price table could never show
+// the one number this audience actually buys on.
+let yieldMap = {};
+
+function yieldOf(sym) {
+  const y = yieldMap[sym];
+  return (typeof y === 'number' && isFinite(y)) ? y : null;
+}
+function yieldCellHTML(sym) {
+  const y = yieldOf(sym);
+  return `<td class="num div-yield" data-yield="${esc(sym)}">${y == null ? '—' : y.toFixed(2) + '%'}</td>`;
+}
+function refreshYieldCells() {
+  $$('td[data-yield]').forEach((td) => {
+    const y = yieldOf(td.dataset.yield);
+    td.textContent = y == null ? '—' : y.toFixed(2) + '%';
+  });
+}
+function buildYieldMap() {
+  yieldMap = {};
+  for (const d of dividendsCache || []) {
+    const y = d && d.yield && d.yield[0];
+    if (typeof y === 'number' && isFinite(y)) yieldMap[d.symbol] = y;
+  }
+}
+
 function divSortVal(r, col) {
   switch (col) {
     case 'price': return r.lastPrice;
@@ -571,6 +608,8 @@ async function loadDividends() {
   try {
     const d = await fetch('/api/dividends').then((r) => r.json());
     dividendsCache = d.dividends || [];
+    buildYieldMap();
+    refreshYieldCells();
   } catch (e) {
     dividendsCache = [];
   }
@@ -866,6 +905,33 @@ function setUpdated(timeStr) {
 }
 
 // ---- MAIN TABLE ----
+// Last known market state, so the status chip can be repainted on a language
+// switch without waiting for the next poll.
+let marketState = null;
+
+function paintMarketStatus() {
+  const st = $('#marketStatus');
+  if (!st || !marketState) return;
+  let html, cls;
+  if (marketState.open) {
+    html = t('market_open');
+    cls = 'market-status open';
+  } else {
+    const timeStr = new Date().toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', {
+      timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true,
+    });
+    html = marketState.lastPoll ? t('market_closed_at').replace('{time}', timeStr) : t('market_closed');
+    cls = 'market-status closed';
+  }
+  // aria-live="polite" + a 60s poll: writing identical markup re-announced the
+  // same state all session.
+  if (st.innerHTML !== html) st.innerHTML = html;
+  if (st.className !== cls) st.className = cls;
+  // Icon-only at ≤839, so the button needs a real name of its own.
+  const plain = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (st.getAttribute('aria-label') !== plain) st.setAttribute('aria-label', plain);
+}
+
 async function loadQuotes() {
   try {
   const d = await fetch('/api/quotes').then((r) => r.json());
@@ -903,21 +969,10 @@ async function loadQuotes() {
   window.__lastGoodQuotes = Date.now();
   updateToggleLabels();
   renderWatchStrip();
-  const st = $('#marketStatus');
-  // #marketStatus is aria-live="polite" and this runs on every poll, so an
-  // unconditional innerHTML write re-announced the same state all session.
-  const setStatus = (html, cls) => {
-    if (st.innerHTML !== html) st.innerHTML = html;
-    if (st.className !== cls) st.className = cls;
-  };
-  if (marketIsOpen) {
-    setStatus(t('market_open'), 'market-status open');
-  } else {
-    const timeStr = new Date().toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', {
-      timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true,
-    });
-    setStatus(d.lastPoll ? t('market_closed_at').replace('{time}', timeStr) : t('market_closed'), 'market-status closed');
-  }
+  // Remember the state so a language switch can repaint the same chip in the
+  // new language (the closed-at time is localised).
+  marketState = { open: marketIsOpen, lastPoll: d.lastPoll };
+  paintMarketStatus();
   if (d.lastPoll) {
     setUpdated(new Date(d.lastPoll).toLocaleTimeString(lang === 'mk' ? 'mk-MK' : 'en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: true }));
   }
@@ -986,6 +1041,10 @@ function renderTable() {
       // Sort by the value the header names. Sorting by range width made
       // "52 Wk Range" the only control that ordered by something else.
       cmp = (a.week52Min || 0) - (b.week52Min || 0);
+    } else if (headerSortCol === 'divYield') {
+      // Missing yields sort as the lowest value (they carry no yield, not 0%).
+      const ya = yieldOf(a.symbol), yb = yieldOf(b.symbol);
+      cmp = (ya == null ? -1 : ya) - (yb == null ? -1 : yb);
     } else {
       cmp = (a[headerSortCol] || 0) - (b[headerSortCol] || 0);
     }
@@ -995,7 +1054,10 @@ function renderTable() {
   if (!body) { console.error('quotesBody not found'); return; }
   if (!rows.length) {
     // Empty search / filter result — otherwise the card silently goes blank.
-    body.innerHTML = `<tr><td colspan="8" class="muted" style="padding:24px;text-align:center">${esc(t('no_results'))}</td></tr>`;
+    // Empty state names the reason and offers the way out: a query with no
+    // matches is a dead end unless the user is told they can clear it.
+    body.innerHTML = `<tr><td colspan="8" class="muted" style="padding:24px;text-align:center">${esc(t('no_results'))}`
+      + `<div style="margin-top:10px"><button type="button" class="retry-btn" data-clear-search="1">${esc(t('clear_search'))}</button></div></td></tr>`;
     return;
   }
   body.innerHTML = '';
@@ -1020,7 +1082,7 @@ function renderTable() {
       <td class="num">${fmt(r.lastPrice)}</td>
       <td class="num ${pctClass(r.changePct)}"><span class="chg-pill">${pctStr(r.changePct)}</span></td>
       <td class="num">${fmtInt(r.volume)}</td>
-      <td class="num ${pctClass(r.week52Chg)}"><span class="chg-pill">${pctStr(r.week52Chg)}</span></td>
+      ${yieldCellHTML(r.symbol)}
       <td class="wk-range">${range}</td>`;
     body.appendChild(tr);
   }
@@ -2117,6 +2179,13 @@ function syncHeaderIndicators() {
   syncSortState($$('th[data-sort]'), headerSortCol, headerSortDir);
 }
 document.addEventListener('click', (e) => {
+  // Empty search state: clear the field and come back to the full table.
+  if (e.target.closest('[data-clear-search]')) {
+    const s = $('#search');
+    if (s) { s.value = ''; s.focus(); }
+    renderTable();
+    return;
+  }
   // Retry from the table's failure row.
   if (e.target.closest('[data-retry]')) { loadQuotes(); return; }
   // Star toggles (table rows, modal header) and chip ✕ removals are handled
@@ -2344,7 +2413,9 @@ $('#themeToggle').addEventListener('click', () => {
   loadMovers();
   await loadMBI();
   await loadFX();
-  await Promise.all([loadQuotes()]);
+  // Dividends load with the quotes: the yield column has to be populated on the
+  // first render, not only after the tab is opened.
+  await Promise.all([loadQuotes(), loadDividends()]);
   // Market-aware scheduler: polls fast when open, slow when closed, no
   // table re-render or sparkline rebuild when there's nothing new to show.
   scheduleNextPoll();
