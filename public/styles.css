@@ -705,6 +705,29 @@ body.has-ad .ad-rail {
   color: var(--md-sys-color-primary);
 }
 
+/* Which column the table is ordered by. Turnover is the default order and is
+   not a column, so without this the table's order is invisible. */
+.sort-note {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--md-sys-color-on-surface-variant);
+  padding: 0 2px 6px;
+}
+
+/* Row hierarchy: price is what the eye should land on, volume is reference.
+   Structure is untouched — the cells already exist, in this order. */
+table.quotes:not(.div-table) tbody td:nth-child(4) {
+  font-size: 15px;
+  font-weight: 700;
+}
+table.quotes:not(.div-table) tbody td:nth-child(6) {
+  font-size: 11px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+table.quotes:not(.div-table) tbody td.div-yield {
+  font-weight: 600;
+}
+
 .search {
   width: 100%;
   height: 52px;

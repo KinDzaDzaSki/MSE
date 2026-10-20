@@ -43,6 +43,7 @@ function setView(v) {
   const bl = $('#btnLiquid'), ba = $('#btnAll');
   if (bl) { bl.classList.toggle('active', v === 'liquid'); bl.setAttribute('aria-pressed', v === 'liquid' ? 'true' : 'false'); }
   if (ba) { ba.classList.toggle('active', v === 'all'); ba.setAttribute('aria-pressed', v === 'all' ? 'true' : 'false'); }
+  syncUrl();
   renderTable();
   if (dividendsCache) renderDivTable();
 }
@@ -183,6 +184,8 @@ const I18N = {
       div_show_all: 'Show all dividends',
       div_no_results: 'No results.',
       no_results: 'No results.',
+      sorted_by: 'Sorted by',
+      sort_turnover: 'Turnover',
       clear_search: 'Clear search',
       th_yield: 'Yield',
       th_trend: 'Trend',
@@ -321,6 +324,8 @@ const I18N = {
       div_show_all: 'Прикажи сите дивиденди',
       div_no_results: 'Нема резултати.',
       no_results: 'Нема резултати.',
+      sorted_by: 'Сортирано по',
+      sort_turnover: 'Промет',
       clear_search: 'Исчисти го пребарувањето',
       th_yield: 'Принос',
       th_trend: 'Тренд',
@@ -382,7 +387,7 @@ let lang = localStorage.getItem('mse_lang') || 'mk';
 // fallback for a statically served shell and must stay in step with
 // package.json — it sat at 2.10.3 while the app shipped 2.12.4, so any
 // environment where /api/version did not answer showed a wrong build number.
-let APP_VERSION = (typeof window !== 'undefined' && window.__APP_VERSION) || '2.12.6';
+let APP_VERSION = (typeof window !== 'undefined' && window.__APP_VERSION) || '2.12.7';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // Failure state for the quotes table: the user's language, a retry, and how old
@@ -540,8 +545,26 @@ function renderWatchStrip() {
 
 // ---- MAIN VIEW SWITCHER: Quotes | Dividends ----
 let mainView = 'quotes';
+
+// Shareable state: ?view=dividends&scope=all&sort=divYield&dir=desc
+// Restored before the first render so a link lands on the view it describes.
+const QS = new URLSearchParams(location.search);
+if (QS.get('view') === 'quotes' || QS.get('view') === 'dividends') mainView = QS.get('view');
+if (QS.get('scope') === 'liquid' || QS.get('scope') === 'all') view = QS.get('scope');
+if (QS.get('sort')) headerSortCol = QS.get('sort');
+if (QS.get('dir') === 'asc' || QS.get('dir') === 'desc') headerSortDir = QS.get('dir');
+
+function syncUrl() {
+  const p = new URLSearchParams(location.search);
+  p.set('view', mainView);
+  p.set('scope', view);
+  p.set('sort', headerSortCol);
+  p.set('dir', headerSortDir);
+  history.replaceState(null, '', '?' + p.toString());
+}
 function setMainView(v) {
   mainView = v;
+  syncUrl();
   const qv = $('#quotesView'), dv = $('#dividendsView');
   if (qv) qv.classList.toggle('hidden', v !== 'quotes');
   if (dv) dv.classList.toggle('hidden', v !== 'dividends');
@@ -2157,6 +2180,7 @@ function toggleSort(col) {
     headerSortDir = 'desc';
   }
   syncHeaderIndicators();
+  syncUrl();
   renderTable();
 }
 $$('th[data-sort]').forEach((th) => {
@@ -2179,9 +2203,21 @@ function syncSortState(ths, activeCol, activeDir) {
     if (icon) icon.textContent = (active && activeDir === 'asc') ? 'arrow_upward' : 'arrow_downward';
   });
 }
+// Which i18n key names each sortable column; turnover ('value') is not a column
+// but IS the default order, so it gets its own label.
+const SORT_LABEL_KEY = {
+  symbol: 'th_symbol', name: 'th_name', lastPrice: 'th_price',
+  changePct: 'th_change_pct', volume: 'th_volume', divYield: 'th_yield',
+  week52Min: 'th_52w_range',
+};
 function syncHeaderIndicators() {
   syncSortState($$('th[data-sort]'), headerSortCol, headerSortDir);
+  const note = $('#sortNote');
+  if (!note) return;
+  const label = t(SORT_LABEL_KEY[headerSortCol] || 'sort_turnover');
+  note.textContent = `${t('sorted_by')}: ${label} ${headerSortDir === 'asc' ? '↑' : '↓'}`;
 }
+
 document.addEventListener('click', (e) => {
   // Empty search state: clear the field and come back to the full table.
   if (e.target.closest('[data-clear-search]')) {
@@ -2407,6 +2443,14 @@ $('#themeToggle').addEventListener('click', () => {
 (async function init() {
   document.documentElement.lang = lang === 'mk' ? 'mk' : 'en';
   applyStaticI18n();
+  // Reflect state restored from the URL without an extra empty render.
+  if (view === 'all') {
+    const bl = $('#btnLiquid'), ba = $('#btnAll');
+    if (bl) { bl.classList.remove('active'); bl.setAttribute('aria-pressed', 'false'); }
+    if (ba) { ba.classList.add('active'); ba.setAttribute('aria-pressed', 'true'); }
+  }
+  if (mainView === 'dividends') setMainView('dividends');
+  syncHeaderIndicators();
   renderWatchStrip();
   registerSW();
   setupOfflineBanner();
