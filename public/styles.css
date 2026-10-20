@@ -871,21 +871,35 @@ body.has-ad .ad-rail {
 }
 .watch-chip .wc-remove:hover { color: var(--md-sys-color-negative); }
 
-/* Star button — hover-reveal inside the Symbol cell, always visible when
-   starred. Also used in the modal header (always visible there). */
+/* Star button — a persistent control inside the Symbol cell, always visible
+   when starred. It used to be opacity:0 until `tr:hover`, which made the
+   product's only retention action invisible on touch (no hover exists) and
+   invisible on desktop until the pointer happened to find it. It now sits at
+   reduced weight until hover/focus, and at full weight on touch. The box is a
+   24×24 hit target (WCAG 2.5.8 floor), 32×32 where the input is a finger. */
 .star-btn {
   background: transparent;
   border: none;
-  padding: 0 5px 0 0;
+  padding: 0;
   margin: 0;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--md-shape-full);
   cursor: pointer;
   line-height: 1;
   vertical-align: middle;
-  opacity: 0;
+  opacity: 0.7;
   color: var(--md-sys-color-on-surface-variant);
-  transition: opacity var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
+  transition: opacity var(--md-motion-duration-short-2) var(--md-motion-easing-standard),
+              color var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
 .star-btn .material-symbols-outlined { font-size: 16px; }
+@media (hover: none) {
+  .star-btn { opacity: 1; width: 32px; height: 32px; }
+}
 table.quotes tr:hover .star-btn,
 .star-btn.starred,
 .star-btn:focus-visible { opacity: 1; }
@@ -894,7 +908,7 @@ table.quotes tr:hover .star-btn,
 .star-btn.starred .material-symbols-outlined {
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
 }
-.company-head .star-btn { opacity: 1; padding: 0 2px; }
+.company-head .star-btn { opacity: 1; width: 32px; height: 32px; }
 .company-head .star-btn .material-symbols-outlined { font-size: 22px; }
 
 /* ==========================================================================
