@@ -1336,6 +1336,12 @@ async function openCompany(symbol) {
   const closeBtn = $('#modalClose');
   if (closeBtn) closeBtn.setAttribute('aria-label', lang === 'mk' ? 'Затвори' : 'Close');
   modal.classList.remove('hidden');
+  // Push a history entry so the phone's back button closes the sheet instead
+  // of leaving the page (and taking the filter + scroll position with it).
+  try {
+    if (history.state && history.state.mseModal) history.replaceState({ mseModal: symbol }, '', '#' + symbol);
+    else history.pushState({ mseModal: symbol }, '', '#' + symbol);
+  } catch (_) {}
   if (closeBtn) closeBtn.focus();
   content.innerHTML = `<div class="muted">${t('loading')}</div>`;
 
@@ -2251,11 +2257,19 @@ document.addEventListener('keydown', (e) => {
   const item = e.target.closest && e.target.closest('[data-sym][role="button"], tr[data-sym]');
   if (item) { e.preventDefault(); openCompany(item.dataset.sym); }
 });
-function closeModal() {
+function closeModal(fromPop) {
   const modal = $('#companyModal');
   if (modal.classList.contains('hidden')) return;
   modal.classList.add('hidden');
   document.body.classList.remove('modal-open');
+  // Keep the history stack in step with the sheet: a user-initiated close pops
+  // the entry pushed on open, so Back afterwards leaves the site as expected.
+  if (!fromPop) {
+    try {
+      if (history.state && history.state.mseModal) history.back();
+      else if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
+    } catch (_) {}
+  }
   // Cleanup: remove any chart stored on the modal element
   if (modal._chart) {
     try { modal._chart.remove(); } catch (_) {}
@@ -2264,9 +2278,14 @@ function closeModal() {
   if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
   lastFocused = null;
 }
-$('#modalClose').addEventListener('click', closeModal);
+$('#modalClose').addEventListener('click', () => closeModal());
 $('#companyModal').addEventListener('click', (e) => {
   if (e.target.id === 'companyModal') closeModal();
+});
+// Hardware/browser back closes the sheet — it is the entry pushed in openCompany.
+window.addEventListener('popstate', () => {
+  const modal = $('#companyModal');
+  if (modal && !modal.classList.contains('hidden')) closeModal(true);
 });
 // Escape closes; Tab is trapped inside the visible dialog.
 document.addEventListener('keydown', (e) => {

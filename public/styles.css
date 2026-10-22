@@ -2574,3 +2574,198 @@ body.modal-open { overflow: hidden; }
   .modal-card,
   .faq-a { animation: none !important; }
 }
+
+/* ==========================================================================
+   MOBILE SHELL — ≤839px only
+   Everything here is phone/tablet-portrait only; the desktop table keeps its
+   viewport-height panel and its own internal scroll.
+   ========================================================================== */
+@media (max-width: 839px) {
+  :root {
+    /* One source of truth: the topbar height (plus notch inset) that the
+       sticky toolbar and the table cap both measure against. */
+    --mob-topbar: calc(56px + env(safe-area-inset-top, 0px));
+  }
+
+  /* Safe-area aware bar. viewport-fit=cover (see index.html) hands us the
+     notch; without these insets the logo and the push button sit under it on
+     an iPhone and in the installed PWA. */
+  .topbar {
+    height: var(--mob-topbar);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: max(var(--md-space-sm), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--md-space-sm), env(safe-area-inset-right, 0px));
+  }
+
+  /* Sticky needs a clean chain: `overflow: hidden` on any ancestor turns that
+     ancestor into the scroll container and kills position: sticky below it. */
+  .layout,
+  .main-panel { overflow: visible; }
+
+  /* Search + tabs + filter stay one tap away instead of scrolling off. */
+  .panel-header {
+    position: sticky;
+    top: var(--mob-topbar);
+    z-index: 7;
+    background: var(--md-sys-color-background);
+    padding-block: 8px;
+    margin-bottom: 0;
+  }
+
+  /* ---- The table box ----------------------------------------------------
+     Was `overflow: hidden` with no height, so 163 rows grew the page to 8
+     screens, the sticky <thead> never engaged (its scroll container was the
+     page, not .table-scroll) and the symbol column scrolled out of view.
+     Capping the wrapper hands the vertical scroll back to .table-scroll. */
+  .table-wrap {
+    max-height: max(320px, calc(100dvh - var(--mob-topbar) - 140px));
+  }
+  .table-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-x pan-y;
+  }
+
+  /* Sticky header row: stick the cells, not the <thead> (Safari/Chrome both
+     honour sticky th reliably, thead is patchy). */
+  table.quotes thead { position: static; }
+  table.quotes thead th {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    background: var(--md-sys-color-surface);
+  }
+
+  /* Sticky first column: panning across 8 columns keeps the symbol (and the
+     star) in view. */
+  table.quotes thead th:first-child,
+  table.quotes tbody td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: var(--md-sys-color-surface);
+    box-shadow: 1px 0 0 var(--md-sys-color-outline-variant);
+  }
+  table.quotes thead th:first-child { z-index: 5; }
+
+  /* ---- Touch targets ---------------------------------------------------
+     Measured before: 30 of 49 controls under 44px — 24px stars, 18px chips,
+     12px-tall footer links, 35px tabs. Primary controls now clear 44px,
+     secondary bar chips 36px (WCAG 2.5.8 floor is 24). */
+  .main-tab,
+  #viewToggle button,
+  .watch-toggle {
+    min-height: 44px;
+  }
+  .main-tab,
+  #viewToggle button { padding: 10px 14px; }
+  .watch-toggle { padding: 10px 14px; }
+
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+  .market-status,
+  #mbiChip,
+  #fxChip {
+    min-height: 36px;
+    padding: 6px 10px;
+  }
+
+  /* The star is the smallest thing in the row. 40px hit area, and the cell
+     keeps it clear of the row's centre so a thumb lands on one or the other. */
+  .star-btn {
+    width: 44px;
+    height: 44px;
+    opacity: 0.9;
+  }
+  table.quotes td { padding-block: 5px; }
+  table.quotes td.sym { padding-right: 8px; }
+
+  /* Footer links were 12px tall. Each becomes a real 44px row. */
+  .foot { font-size: 12px; line-height: 1.5; }
+  .foot a {
+    display: inline-block;
+    padding: 12px 5px;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  /* iOS zooms any focused field under 16px and never zooms back cleanly. */
+  .search { font-size: 16px; }
+
+  /* 11px percentages, an 11px volume column and a 10px index value are
+     unreadable outdoors on a phone. */
+  .side-item .si-chg { font-size: 12px; }
+  .mbi-val { font-size: 11px; }
+  table.quotes:not(.div-table) tbody td:nth-child(6) { font-size: 12px; }
+
+  /* ---- Phone-shaped company sheet ---------------------------------------
+     Was a 1031px card in an 844px scroller with the close button at y=91:
+     scroll into the financials and the sheet cannot be dismissed. */
+  .modal {
+    padding: 0;
+    align-items: stretch;
+    -webkit-overflow-scrolling: touch;
+  }
+  .modal-card {
+    max-width: none;
+    min-height: 100dvh;
+    border: none;
+    border-radius: 0;
+    margin-top: 0;
+    padding-top: calc(56px + env(safe-area-inset-top, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  /* Pinned to the viewport, so it stays reachable at any scroll depth. */
+  .close {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 6px);
+    right: max(8px, env(safe-area-inset-right, 0px));
+    width: 44px;
+    height: 44px;
+    z-index: 60;
+    background: var(--md-sys-color-surface);
+    border: 1px solid var(--md-sys-color-outline);
+    box-shadow: var(--md-elevation-level-2);
+  }
+  .fin-tab { min-height: 44px; }
+  .range-btns button {
+    min-height: 40px;
+    padding: 9px 14px;
+  }
+
+  /* Footer breathing room above the home indicator. */
+  .foot { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+
+  /* A defined highlight reads as "that tap landed"; the default grey flash
+     on the sticky table cells looks like a rendering bug. */
+  * { -webkit-tap-highlight-color: rgba(0, 0, 0, 0.06); }
+
+  /* The language switch belongs in the bar, not 1200px down the page. The FX
+     chip is the cheapest thing to drop to make room at 390px. */
+  #langToggle { display: inline-flex; }
+  #fxChip { display: none; }
+
+  /* .panel-header .search (0,2,0) outranks a bare .search, so the 16px rule
+     has to match that specificity or iOS keeps zooming. */
+  .panel-header .search { font-size: 16px; }
+
+  /* A 32px tall brand link in a 56px bar is a wasted 44px target. */
+  .brand { min-height: 44px; }
+  .skip-link { min-height: 44px; }
+}
+
+/* Below 430px the bar cannot hold brand + status + index + three icon
+   buttons: it measured 402px of content in a 360px bar. The push nudge is
+   the only control that is neither navigation nor state, so it goes. */
+@media (max-width: 430px) {
+  #pushToggle { display: none; }
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+  }
+}
