@@ -1777,6 +1777,20 @@ table.quotes td.sym .sym-text { display: inline-block; }
     flex: 0 0 78%;
     min-width: 0;
     scroll-snap-align: start;
+    /* Phone: back to a capped box with an internal scroll. Letting the cards
+       grow to content made "Најтргувани" (10 rows) ~610px tall, so the strip
+       under the table became a second page. 328px = title + the 5 rows of a
+       full winners/losers card, so nothing is half-cut; only the 10-row
+       "Најтргувани" list scrolls. Desktop keeps
+       the grow-to-content reserve (min-height: 356px) above 839px. */
+    height: var(--side-card-h-mobile, 328px);
+    min-height: 0;
+  }
+  /* Vertical panning inside a card must not drag the horizontal card strip,
+     and the inner list needs its own momentum scrolling on iOS. */
+  .side-strip .side-items {
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
   }
   .side-card {
     min-width: 0;
