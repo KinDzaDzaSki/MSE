@@ -387,7 +387,7 @@ let lang = localStorage.getItem('mse_lang') || 'mk';
 // fallback for a statically served shell and must stay in step with
 // package.json — it sat at 2.10.3 while the app shipped 2.12.4, so any
 // environment where /api/version did not answer showed a wrong build number.
-let APP_VERSION = (typeof window !== 'undefined' && window.__APP_VERSION) || '2.12.8';
+let APP_VERSION = (typeof window !== 'undefined' && window.__APP_VERSION) || '2.13.0';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
 
 // Failure state for the quotes table: the user's language, a retry, and how old

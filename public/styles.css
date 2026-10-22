@@ -2612,7 +2612,10 @@ body.modal-open { overflow: hidden; }
      worth, how much moved, how much traded, what does it yield". The table
      pans sideways instead, and the symbol column is pinned so the ticker and
      the star never leave the screen while panning. */
-  .table-wrap { overflow: visible; max-height: none; }
+  /* Keep `overflow: hidden` (base rule): it is what clips the table to the
+     rounded border. The sticky first column lives inside .table-scroll, so it
+     does not need the wrapper to be visible. */
+  .table-wrap { max-height: none; }
   .table-scroll {
     overflow-x: auto;
     overflow-y: visible;
@@ -2665,13 +2668,16 @@ body.modal-open { overflow: hidden; }
   table.quotes td { padding-block: 5px; }
   table.quotes td.sym { padding-right: 8px; }
 
-  /* Footer links were 12px tall. Each becomes a real 44px row. */
-  .foot { font-size: 12px; line-height: 1.5; }
-  .foot a {
-    display: inline-block;
-    padding: 12px 5px;
-    min-height: 44px;
-    box-sizing: border-box;
+  /* The footer is one flowing sentence of links. Giving each link a 44px box
+     turned that paragraph into a wall of whitespace, because every inline
+     block lifted its own line. Keep the text flow and grow the HIT area with
+     a pseudo-element instead — same 40px touch zone, original density. */
+  .foot { font-size: 12px; line-height: 1.8; padding: 10px 12px; }
+  .foot a { position: relative; display: inline-block; }
+  .foot a::after {
+    content: '';
+    position: absolute;
+    inset: -12px -6px;
   }
 
   /* iOS zooms any focused field under 16px and never zooms back cleanly. */
