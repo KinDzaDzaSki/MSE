@@ -2606,46 +2606,28 @@ body.modal-open { overflow: hidden; }
      pinned, a third frozen band left only ~600px of live content and made the
      page feel like it was fighting the finger. */
 
-  /* ---- One scroll context only ------------------------------------------
-     This used to be a capped box with its own vertical scrollbar plus a
-     horizontal pan plus a sticky header plus a sticky first column: four
-     frozen layers and three scrollbars in 844px. The page is now the only
-     scroller. The phone shows the three columns that matter and the rest of
-     the row lives in the sheet, so nothing has to pan sideways either.
-     With no overflow ancestor left, `thead th { position: sticky }` finally
-     sticks to the viewport instead of to a box that never scrolled. */
+  /* ---- One vertical scroll, every column --------------------------------
+     The page is the only vertical scroller — no capped box, no inner
+     scrollbar. All eight columns stay, so the row still answers "what is it
+     worth, how much moved, how much traded, what does it yield". The table
+     pans sideways instead, and the symbol column is pinned so the ticker and
+     the star never leave the screen while panning. */
   .table-wrap { overflow: visible; max-height: none; }
-  .table-scroll { overflow: visible; }
-  table.quotes { min-width: 0; width: 100%; }
-
-  /* Quotes: hide company, spark, volume, yield and 52-week range. */
-  table.quotes:not(.div-table) :is(th, td):nth-child(2),
-  table.quotes:not(.div-table) :is(th, td):nth-child(3),
-  table.quotes:not(.div-table) :is(th, td):nth-child(6),
-  table.quotes:not(.div-table) :is(th, td):nth-child(7),
-  table.quotes:not(.div-table) :is(th, td):nth-child(8) { display: none; }
-
-  /* Dividends: keep ticker / DPS 2025 / yield 2025. */
-  .div-table :is(th, td):nth-child(2),
-  .div-table :is(th, td):nth-child(3),
-  .div-table :is(th, td):nth-child(6),
-  .div-table :is(th, td):nth-child(7) { display: none; }
-
-  /* Tablets have room for the volume and yield columns; the phone cuts to
-     the three that fit. */
-  @media (min-width: 600px) {
-    table.quotes:not(.div-table) :is(th, td):nth-child(6),
-    table.quotes:not(.div-table) :is(th, td):nth-child(7) { display: table-cell; }
-    .div-table :is(th, td):nth-child(3) { display: table-cell; }
+  .table-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
   }
 
-  table.quotes thead { position: static; }
-  table.quotes thead th {
+  table.quotes thead th:first-child,
+  table.quotes tbody td:first-child {
     position: sticky;
-    top: var(--mob-topbar);
-    z-index: 4;
+    left: 0;
+    z-index: 3;
     background: var(--md-sys-color-surface);
-    box-shadow: inset 0 -1px 0 var(--md-sys-color-outline-variant);
+    box-shadow: 1px 0 0 var(--md-sys-color-outline-variant);
   }
 
   /* ---- Touch targets ---------------------------------------------------
