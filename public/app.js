@@ -1174,6 +1174,10 @@ function buildRangeBar(r) {
 // Same look: 1.5px round-joined line + soft fill, colored by daily direction.
 function drawSparkPath(canvas, values, color) {
   if (!canvas || !values || values.length < 2) return;
+  // A canvas with no layout box is in a hidden column (the phone layout drops
+  // the spark column). Painting 130 invisible sparklines costs a full
+  // layout+paint pass each and made scrolling stutter on a phone.
+  if (!canvas.clientWidth || !canvas.offsetParent) return;
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth || 64, h = canvas.clientHeight || 24;
   canvas.width = Math.max(1, Math.round(w * dpr));

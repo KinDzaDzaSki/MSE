@@ -2602,51 +2602,51 @@ body.modal-open { overflow: hidden; }
   .layout,
   .main-panel { overflow: visible; }
 
-  /* Search + tabs + filter stay one tap away instead of scrolling off. */
-  .panel-header {
-    position: sticky;
-    top: var(--mob-topbar);
-    z-index: 7;
-    background: var(--md-sys-color-background);
-    padding-block: 8px;
-    margin-bottom: 0;
+  /* The toolbar is NOT sticky: with the topbar and the table header already
+     pinned, a third frozen band left only ~600px of live content and made the
+     page feel like it was fighting the finger. */
+
+  /* ---- One scroll context only ------------------------------------------
+     This used to be a capped box with its own vertical scrollbar plus a
+     horizontal pan plus a sticky header plus a sticky first column: four
+     frozen layers and three scrollbars in 844px. The page is now the only
+     scroller. The phone shows the three columns that matter and the rest of
+     the row lives in the sheet, so nothing has to pan sideways either.
+     With no overflow ancestor left, `thead th { position: sticky }` finally
+     sticks to the viewport instead of to a box that never scrolled. */
+  .table-wrap { overflow: visible; max-height: none; }
+  .table-scroll { overflow: visible; }
+  table.quotes { min-width: 0; width: 100%; }
+
+  /* Quotes: hide company, spark, volume, yield and 52-week range. */
+  table.quotes:not(.div-table) :is(th, td):nth-child(2),
+  table.quotes:not(.div-table) :is(th, td):nth-child(3),
+  table.quotes:not(.div-table) :is(th, td):nth-child(6),
+  table.quotes:not(.div-table) :is(th, td):nth-child(7),
+  table.quotes:not(.div-table) :is(th, td):nth-child(8) { display: none; }
+
+  /* Dividends: keep ticker / DPS 2025 / yield 2025. */
+  .div-table :is(th, td):nth-child(2),
+  .div-table :is(th, td):nth-child(3),
+  .div-table :is(th, td):nth-child(6),
+  .div-table :is(th, td):nth-child(7) { display: none; }
+
+  /* Tablets have room for the volume and yield columns; the phone cuts to
+     the three that fit. */
+  @media (min-width: 600px) {
+    table.quotes:not(.div-table) :is(th, td):nth-child(6),
+    table.quotes:not(.div-table) :is(th, td):nth-child(7) { display: table-cell; }
+    .div-table :is(th, td):nth-child(3) { display: table-cell; }
   }
 
-  /* ---- The table box ----------------------------------------------------
-     Was `overflow: hidden` with no height, so 163 rows grew the page to 8
-     screens, the sticky <thead> never engaged (its scroll container was the
-     page, not .table-scroll) and the symbol column scrolled out of view.
-     Capping the wrapper hands the vertical scroll back to .table-scroll. */
-  .table-wrap {
-    max-height: max(320px, calc(100dvh - var(--mob-topbar) - 140px));
-  }
-  .table-scroll {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    touch-action: pan-x pan-y;
-  }
-
-  /* Sticky header row: stick the cells, not the <thead> (Safari/Chrome both
-     honour sticky th reliably, thead is patchy). */
   table.quotes thead { position: static; }
   table.quotes thead th {
     position: sticky;
-    top: 0;
+    top: var(--mob-topbar);
     z-index: 4;
     background: var(--md-sys-color-surface);
+    box-shadow: inset 0 -1px 0 var(--md-sys-color-outline-variant);
   }
-
-  /* Sticky first column: panning across 8 columns keeps the symbol (and the
-     star) in view. */
-  table.quotes thead th:first-child,
-  table.quotes tbody td:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 3;
-    background: var(--md-sys-color-surface);
-    box-shadow: 1px 0 0 var(--md-sys-color-outline-variant);
-  }
-  table.quotes thead th:first-child { z-index: 5; }
 
   /* ---- Touch targets ---------------------------------------------------
      Measured before: 30 of 49 controls under 44px — 24px stars, 18px chips,
