@@ -119,6 +119,7 @@ const I18N = {
       losers: 'Top losers',
       active: 'Most active',
       movers_empty_winners: 'No winners today',
+      card_overview: 'Overview',
       movers_empty_losers: 'No losers today',
       movers_empty_active: 'No trades today',
       loading: 'Loading…',
@@ -266,7 +267,8 @@ const I18N = {
       gainers: 'Најголеми добитници',
       losers: 'Најголеми губитници',
       active: 'Најтргувани',
-      movers_empty_winners: 'Нема добитници',
+      movers_empty_winners: 'Нема добитници денес',
+      card_overview: 'Преглед',
       movers_empty_losers: 'Нема губитници',
       movers_empty_active: 'Нема тргување денес',
       loading: 'Вчитување…',
@@ -791,13 +793,24 @@ function buildDividendSummary(fin) {
   </div>`;
 }
 
+// mk prints 24.507,86, en prints 24,507.86. Intl cannot carry this: Chromium
+// resolves mk-MK to the en form, so the separators are placed explicitly.
+function numLocale() { return lang === 'mk' ? 'mk-MK' : 'en-GB'; }
+function groupNum(plain) {
+  const min = lang === 'mk' ? '.' : ',';
+  const dec = lang === 'mk' ? ',' : '.';
+  const neg = plain.startsWith('-');
+  const body = neg ? plain.slice(1) : plain;
+  const [int, frac] = body.split('.');
+  return (neg ? '-' : '') + int.replace(/\B(?=(\d{3})+(?!\d))/g, min) + (frac !== undefined ? dec + frac : '');
+}
 function fmt(n, dec = 2) {
   if (n === null || n === undefined || isNaN(n)) return '—';
-  return Number(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  return groupNum(Number(n).toFixed(dec));
 }
 function fmtInt(n) {
   if (n === null || n === undefined || isNaN(n)) return '—';
-  return Number(n).toLocaleString('en-US');
+  return groupNum(String(Math.round(Number(n))));
 }
 function pctClass(v) {
   if (v === null || v === undefined) return '';
@@ -1463,60 +1476,46 @@ async function openCompany(symbol) {
       /индекс|index/i.test(q.segment || '') ||
       /index/i.test(q.name || '');
 
-    // Render header + stats into companyContent (no chart section)
+    // Ledger layout: identity bar here, every number in the right-hand rail.
     content.innerHTML = `
-      <div class="company-head">
-        <h2>${logoHTML(symbol, q.name, q.site, 30, q.fav, q.favv)}${esc(symbol)}</h2>
+      <div class="c-id-row">
+        <span class="c-id-mark" aria-hidden="true">${esc(symbol.slice(0, 1))}</span>
+        <span class="c-sym">${esc(symbol)}</span>
         ${starBtnHTML(symbol)}
-        <span class="${pctClass(chg)}">
-          <span class="material-symbols-outlined icon-fill" style="font-size:20px;vertical-align:middle">${chg >= 0 ? 'trending_up' : 'trending_down'}</span>
-          ${chgStr(chgAbs)} (${pctStr(chg)})</span>
-      </div>
-      <div class="company-sub">${esc(q.name || '')} ${q.isin ? '· ISIN ' + esc(q.isin) : ''}</div>
-      ${q.seriesList && q.seriesList.length ? `<div class="series-note">${esc(t('includes_series'))} ${q.seriesList.map(esc).join(', ')}</div>` : ''}
-      <div class="as-of" id="asOf"></div>
-      ${isIndex ? '' : (() => {
-        const lo = q.minPrice, hi = q.maxPrice, lo52 = q.week52Min, hi52 = q.week52Max;
-        const pos = (cur, a, b) => (cur != null && a != null && b != null && b > a) ? Math.max(0, Math.min(100, ((cur - a) / (b - a)) * 100)) : null;
-        const dayPct = pos(q.lastPrice, lo, hi);
-        const yrPct = pos(q.lastPrice, lo52, hi52);
-        const bar = (pct, lo2, hi2) => {
-          if (pct == null) return '';
-          return `<div class="stat-bar" aria-hidden="true"><div class="stat-bar-fill" style="left:${pct.toFixed(1)}%"></div>` +
-            (lo2 != null ? `<div class="stat-bar-end stat-bar-low">${fmt(lo2, 0)}</div>` : '') +
-            (hi2 != null ? `<div class="stat-bar-end stat-bar-high">${fmt(hi2, 0)}</div>` : '') +
-            `</div>`;
-        };
-        return `
-      <div class="stat-grid stat-grid-primary">
-        <div class="stat">
-          <div class="k">${t('last_price')}</div>
-          <div class="v">${fmt(q.lastPrice)}</div>
-          <div class="u">MKD</div>
-        </div>
-        <div class="stat">
-          <div class="k" id="avgPriceLabel">${t('avg_price')}</div>
-          <div class="v" id="avgPriceVal">${fmt(q.avgPrice)}</div>
-          <div class="u">MKD</div>
-        </div>
-        <div class="stat stat-with-bar">
-          <div class="k">${t('day_range')}</div>
-          <div class="v">${fmt(lo, 0)} – ${fmt(hi, 0)}</div>
-          ${bar(dayPct)}
-        </div>
-        <div class="stat stat-with-bar">
-          <div class="k">${t('range_52w')}</div>
-          <div class="v">${yrPct == null ? '—' : yrPct.toFixed(0) + '%'}</div>
-          ${bar(yrPct, lo52, hi52)}
-        </div>
-      </div>
-      <div class="stat-grid stat-grid-secondary">
-        <div class="stat"><div class="k">${t('volume')}</div><div class="v-sm">${fmtInt(q.volume)}</div></div>
-        <div class="stat"><div class="k">${t('turnover_l')}</div><div class="v-sm">${fmtInt(q.value)}<span class="u-sm"> MKD</span></div></div>
-        <div class="stat"><div class="k">${t('trades')}</div><div class="v-sm">${fmtInt(q.trades)}</div></div>
-        <div class="stat"><div class="k">P/E</div><div class="v-sm">${q.peRatio != null ? fmt(q.peRatio) : '—'}</div></div>
+        <span class="c-name">${esc(q.name || '')}${q.isin ? ' · ISIN ' + esc(q.isin) : ''}</span>
+        ${q.seriesList && q.seriesList.length ? `<span class="c-name">· ${esc(t('includes_series'))} ${q.seriesList.map(esc).join(', ')}</span>` : ''}
+        <span class="c-price-wrap">
+          <span class="c-chg ${pctClass(chg)}">${chgStr(chgAbs)} (${pctStr(chg)})</span>
+          <span class="c-price">${fmt(q.lastPrice)}<span class="u-sm"> MKD</span></span>
+        </span>
       </div>`;
-      })()}`;
+    // Stat rail. One line per number, the 52-week slider last. Indices have no
+    // volume or range, so the rail collapses and the chart takes the full width.
+    const rail = $('#statRail');
+    const cardBody = $('#cardBody');
+    if (cardBody) cardBody.classList.toggle('no-rail', !!isIndex);
+    if (rail) {
+      if (isIndex) {
+        rail.innerHTML = '';
+      } else {
+        const lo = q.minPrice, hi = q.maxPrice;
+        const line = (k, v, cls2 = '') => `<div class="c-ln"><span class="k">${k}</span><span class="v ${cls2}">${v}</span></div>`;
+        rail.innerHTML = `
+          <div class="c-rail-tag">${t('card_overview')}</div>
+          ${line(t('last_price'), fmt(q.lastPrice))}
+          ${line(t('th_change'), pctStr(chg), pctClass(chg))}
+          ${line(t('avg_price'), `<span id="avgPriceVal">${fmt(q.avgPrice)}</span>`)}
+          ${line(t('day_range'), `${fmt(lo, 0)}–${fmt(hi, 0)}`)}
+          ${line(t('volume'), fmtInt(q.volume))}
+          ${line(t('turnover_l'), `${fmtInt(q.value)} <span class="u-sm">MKD</span>`)}
+          ${line(t('trades'), fmtInt(q.trades))}
+          ${line('P/E', q.peRatio != null ? fmt(q.peRatio) : '—')}
+          <div class="c-rail-bar">
+            ${line(t('range_52w'), q.week52Min == null || q.week52Max == null || q.lastPrice == null ? '—' : Math.round(Math.max(0, Math.min(100, ((q.lastPrice - q.week52Min) / (q.week52Max - q.week52Min)) * 100))) + '%')}
+            ${buildRangeBar(q)}
+          </div>`;
+      }
+    }
 
     // Tab bar: stocks only. An index has nothing to put in Податоци/Показатели/
     // Анализа, so it gets the chart alone with no tab strip.
@@ -1596,11 +1595,18 @@ async function openCompany(symbol) {
       }
       if (avgLb) avgLb.textContent = `${t('avg_price')} · ${t('range_' + range.toLowerCase()) || range}`;
       const rangeLabel = { '1M': t('period_1m'), '3M': t('period_3m'), '6M': t('period_6m'), '1Y': t('period_1y'), 'ALL': t('period_all') }[range] || range;
-      $('#chartPeriod').textContent = `${rangeLabel} · ${lineData.length ? fmtDate(lineData[0].time * 1000) + ' – ' + fmtDate(lineData[lineData.length - 1].time * 1000) : ''}`;
+      const periodTxt = `${rangeLabel} · ${lineData.length ? fmtDate(lineData[0].time * 1000) + ' – ' + fmtDate(lineData[lineData.length - 1].time * 1000) : ''}`;
+      $('#chartPeriod').textContent = periodTxt;
+      const footPeriod = $('#footPeriod');
+      if (footPeriod) footPeriod.textContent = periodTxt;
       if (lineData.length) {
         $('#asOf').textContent = `${t('as_of')} ${fmtDate(lineData[lineData.length - 1].time * 1000)} · ${t('eod_note')}`;
       }
     };
+
+    // Palette reader for the chart: defined above draw() because both the chart
+    // options and the last-close price line need it.
+    const tokenVar = (name, fb) => (getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb);
 
     const draw = (range) => {
       let rows = fullHistory;
@@ -1649,17 +1655,39 @@ async function openCompany(symbol) {
       }
 
       if (!chart) {
+        // Colours come from the palette tokens: the old values were the
+        // dark-theme greys, so a light-mode chart drew a heavy navy grid.
+        const chartLine = tokenVar('--md-sys-color-outline-variant', '#E3E6EE');
+        const chartText = tokenVar('--md-sys-color-on-surface-variant', '#464D5E');
+        const MONTHS = lang === 'mk'
+          ? ['јан', 'фев', 'мар', 'апр', 'мај', 'јун', 'јул', 'авг', 'сеп', 'окт', 'ное', 'дек']
+          : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         chart = LightweightCharts.createChart($('#companyChart'), {
           autoSize: true,
-          layout: { background: { color: 'transparent' }, textColor: '#a0a8b5', fontSize: 11 },
-          grid: { vertLines: { color: '#2a3140' }, horzLines: { color: '#2a3140' } },
-          rightPriceScale: { borderColor: '#2a3140' },
-          timeScale: { borderColor: '#2a3140', timeVisible: false, secondsVisible: false },
+          layout: { background: { color: 'transparent' }, textColor: chartText, fontSize: 11 },
+          grid: { vertLines: { color: 'transparent' }, horzLines: { color: chartLine } },
+          rightPriceScale: { borderColor: chartLine },
+          timeScale: {
+            borderColor: chartLine,
+            timeVisible: false,
+            secondsVisible: false,
+            tickMarkFormatter: (time) => {
+              const d = new Date(time * 1000);
+              return d.getMonth() === 0 ? String(d.getFullYear()) : MONTHS[d.getMonth()];
+            },
+          },
           crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: '#5b6478', width: 1, style: 2, labelBackgroundColor: '#f5a623' }, horzLine: { color: '#5b6478', width: 1, style: 2, labelBackgroundColor: '#f5a623' } },
           localization: { priceFormatter: (p) => fmt(p) },
           height: 360,
         });
-        volSeries = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' });
+        // Its axis label printed the last bar's volume as a floating number
+        // beside the price axis (the unexplained "866.00").
+        volSeries = chart.addHistogramSeries({
+          priceFormat: { type: 'volume' },
+          priceScaleId: '',
+          lastValueVisible: false,
+          priceLineVisible: false,
+        });
         volSeries.priceScale().applyOptions({
           scaleMargins: { top: 0.8, bottom: 0 },
         });      }
@@ -1694,7 +1722,7 @@ async function openCompany(symbol) {
       const lastClose = lineData.length ? lineData[lineData.length - 1].value : null;
       if (lastClose != null && priceLineHost) {
         lastLine = priceLineHost.createPriceLine({
-          price: lastClose, color: '#ea3943', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed,
+          price: lastClose, color: tokenVar('--md-sys-color-on-surface-variant', '#464D5E'), lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed,
           axisLabelVisible: true, title: '',
         });
       }
@@ -1705,6 +1733,7 @@ async function openCompany(symbol) {
     // Chart lib is lazy-loaded on first modal open.
     await loadLWC().catch(() => null);
     draw('1Y');
+
     $$('#rangeBtns button').forEach((b) =>
       b.addEventListener('click', () => {
         $$('#rangeBtns button').forEach((x) => x.classList.remove('active'));
