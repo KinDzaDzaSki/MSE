@@ -172,6 +172,14 @@ const I18N = {
       watch_remove: 'Remove from watchlist',
       main_tab_quotes: 'Quotes',
       main_tab_dividends: 'Dividends',
+      main_tab_active: 'Most traded',
+      at_symbol: 'Ticker',
+      at_company: 'Company',
+      at_price: 'Price',
+      at_change: 'Change %',
+      at_turnover: 'Turnover',
+      at_note: 'Official MSE homepage panel · average price, turnover in MKD (B.E.S.T.)',
+      at_empty: 'No turnover published for this session yet.',
       div_th_price: 'Price',
       div_th_dps: 'DPS {y}',
       div_th_yield: 'Yield {y}',
@@ -312,6 +320,14 @@ const I18N = {
       watch_remove: 'Отстрани од листата',
       main_tab_quotes: 'Котации',
       main_tab_dividends: 'Дивиденди',
+      main_tab_active: 'Најтргувани',
+      at_symbol: 'Тикер',
+      at_company: 'Компанија',
+      at_price: 'Цена',
+      at_change: 'Промена %',
+      at_turnover: 'Промет',
+      at_note: 'Официјален панел од mse.mk · просечна цена, промет во МКД (БЕСТ)',
+      at_empty: 'Сè уште нема објавен промет за оваа сесија.',
       div_th_price: 'Цена',
       div_th_dps: 'ДПС {y}',
       div_th_yield: 'Принос {y}',
@@ -467,7 +483,7 @@ function applyStaticI18n() {
   if (lastUpdatedTime) setUpdated(lastUpdatedTime);
   updateBell();
   // Strip titles: target the [data-i18n] span so the leading icon survives.
-  const stripTitles = [t('gainers'), t('losers'), t('active')];
+  const stripTitles = [t('gainers'), t('losers')];
   $$('.side-title [data-i18n]').forEach((el, i) => { if (stripTitles[i]) el.textContent = stripTitles[i]; });
   // Financial tab labels
   const tabBtns = $$('.fin-tab');
@@ -478,9 +494,21 @@ function applyStaticI18n() {
     tabBtns[3].textContent = t('tab_analysis');
   }
   // Main view tabs
+  const mainTabKey = { quotes: 'main_tab_quotes', dividends: 'main_tab_dividends', active: 'main_tab_active' };
   $$('#mainTabs .main-tab').forEach((b) => {
-    b.textContent = b.dataset.mtab === 'quotes' ? t('main_tab_quotes') : t('main_tab_dividends');
+    b.textContent = t(mainTabKey[b.dataset.mtab] || 'main_tab_quotes');
   });
+  // Most-traded view: header cells + the source note under the table.
+  const atHeadKeys = {
+    atSymTh: 'at_symbol', atNameTh: 'at_company', atPriceTh: 'at_price',
+    atChangeTh: 'at_change', atTurnoverTh: 'at_turnover',
+  };
+  for (const id of Object.keys(atHeadKeys)) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = t(atHeadKeys[id]);
+  }
+  const atNote = $('#activeNote');
+  if (atNote) atNote.textContent = t('at_note');
   // Dividends view re-renders with current language if data is loaded
   if (dividendsCache) {
     renderDivTable();
@@ -543,13 +571,13 @@ function renderWatchStrip() {
   chipsEl.innerHTML = chips;
 }
 
-// ---- MAIN VIEW SWITCHER: Quotes | Dividends ----
+// ---- MAIN VIEW SWITCHER: Quotes | Dividends | Most traded ----
 let mainView = 'quotes';
 
 // Shareable state: ?view=dividends&scope=all&sort=divYield&dir=desc
 // Restored before the first render so a link lands on the view it describes.
 const QS = new URLSearchParams(location.search);
-if (QS.get('view') === 'quotes' || QS.get('view') === 'dividends') mainView = QS.get('view');
+if (QS.get('view') === 'quotes' || QS.get('view') === 'dividends' || QS.get('view') === 'active') mainView = QS.get('view');
 if (QS.get('scope') === 'liquid' || QS.get('scope') === 'all') view = QS.get('scope');
 if (QS.get('sort')) headerSortCol = QS.get('sort');
 if (QS.get('dir') === 'asc' || QS.get('dir') === 'desc') headerSortDir = QS.get('dir');
@@ -565,9 +593,15 @@ function syncUrl() {
 function setMainView(v) {
   mainView = v;
   syncUrl();
-  const qv = $('#quotesView'), dv = $('#dividendsView');
+  const qv = $('#quotesView'), dv = $('#dividendsView'), av = $('#activeView');
   if (qv) qv.classList.toggle('hidden', v !== 'quotes');
   if (dv) dv.classList.toggle('hidden', v !== 'dividends');
+  if (av) av.classList.toggle('hidden', v !== 'active');
+  // The Liquid/All segmented control filters companies on the quotes (and
+  // dividend) views; on the official most-traded panel it would be a dead
+  // control, so it is removed from the layout instead of doing nothing.
+  const vt = $('#viewToggle');
+  if (vt) vt.classList.toggle('hidden', v === 'active');
   $$('#mainTabs .main-tab').forEach((b) => {
     const active = b.dataset.mtab === v;
     b.classList.toggle('active', active);
@@ -576,6 +610,7 @@ function setMainView(v) {
   });
   updateToggleLabels();
   if (v === 'dividends' && !dividendsCache) loadDividends();
+  if (v === 'active') renderActiveTable();
 }
 
 // ---- DIVIDENDS VIEW ----
@@ -1235,7 +1270,7 @@ function renderSidebar() {
   // Rendering with an empty lookup first would paint monogram tiles and blank
   // names, then swap to the real logos/names — a visible flicker.
   if (!moversCache || !quotesCache.length) {
-    for (const id of ['gainersItems', 'losersItems', 'activeItems']) {
+    for (const id of ['gainersItems', 'losersItems']) {
       const el = $(`#${id}`);
       if (el) el.innerHTML = `<div class="side-item"><div class="si-left"><span class="muted" style="font-size:12px">${esc(t('loading'))}</span></div></div>`;
     }
@@ -1243,7 +1278,8 @@ function renderSidebar() {
   }
   renderSidePanel('gainersItems', moversCache.winners || [], 'winners');
   renderSidePanel('losersItems', moversCache.losers || [], 'losers');
-  renderSidePanel('activeItems', moversCache.mostTraded || [], 'mostTraded');
+  // The Најтргувани tab may already be open when a fresh movers payload lands.
+  if (mainView === 'active') renderActiveTable();
 }
 
 // Symbol → quote lookup for name/logo enrichment of movers rows.
@@ -1310,6 +1346,49 @@ function renderSidePanel(containerId, items, kind) {
       drawSparkSide(cv, r.symbol, r.changePct);
     }
   }
+}
+
+// ---- MOST TRADED VIEW --------------------------------------------------
+// The official MSE panel, moved out of the top strip into its own tab. Rows
+// keep the quotes-table contract (tr[data-sym] + tabindex + aria-label), so the
+// existing click/keyboard delegation opens the company sheet unchanged.
+function activeRows() {
+  if (!moversCache) return [];
+  const q = ($('#search').value || '').trim().toLowerCase();
+  return (moversCache.mostTraded || []).map((r) => {
+    const quote = moversLookup[r.symbol] || {};
+    return { ...r, name: r.name || quote.name || '', quote };
+  }).filter((r) => matchesQuery(r, q));
+}
+
+function renderActiveTable() {
+  const body = $('#activeBody');
+  if (!body) return;
+  const rows = activeRows();
+  if (!rows.length) {
+    const msg = moversCache ? t('at_empty') : t('loading');
+    body.innerHTML = `<tr><td colspan="6" class="muted" style="padding:24px;text-align:center">${esc(msg)}</td></tr>`;
+    return;
+  }
+  body.innerHTML = '';
+  rows.forEach((r, i) => {
+    const q = r.quote;
+    const site = r.site || q.site;
+    const fav = r.fav != null ? r.fav : q.fav;
+    const favv = r.favv != null ? r.favv : q.favv;
+    const tr = document.createElement('tr');
+    tr.dataset.sym = r.symbol;
+    tr.tabIndex = 0;
+    tr.setAttribute('aria-label', `${r.symbol}${r.name ? ' — ' + r.name : ''}, ${fmt(r.avgPrice)}, ${pctStr(r.changePct)}${r.value != null ? ', ' + fmtInt(r.value) + ' MKD' : ''}`);
+    tr.innerHTML = `
+      <td class="num at-rank">${i + 1}</td>
+      <td class="sym"><div class="sym-inner">${starBtnHTML(r.symbol)}${logoHTML(r.symbol, r.name, site, 22, fav, favv)}<span class="sym-text">${esc(r.symbol)}</span></div></td>
+      <td class="at-name">${esc(r.name)}</td>
+      <td class="num">${fmt(r.avgPrice)}</td>
+      <td class="num ${pctClass(r.changePct)}"><span class="chg-pill">${r.changePct != null ? pctStr(r.changePct) : '—'}</span></td>
+      <td class="num">${r.value != null ? fmtInt(r.value) + '<span class="u-sm"> MKD</span>' : '—'}</td>`;
+    body.appendChild(tr);
+  });
 }
 
 async function drawSparkSide(canvas, symbol, chgPct) {
@@ -2160,7 +2239,11 @@ $('#btnAll').addEventListener('click', () => setView('all'));
 let searchDebounce = null;
 $('#search').addEventListener('input', () => {
   clearTimeout(searchDebounce);
-  searchDebounce = setTimeout(() => { renderTable(); if (dividendsCache) renderDivTable(); }, 180);
+  searchDebounce = setTimeout(() => {
+    renderTable();
+    if (dividendsCache) renderDivTable();
+    if (mainView === 'active') renderActiveTable();
+  }, 180);
 });
 // Watchlist collapse (mobile): ★ bar toggles the chips row. Default
 // collapsed on small screens; desktop ignores it via CSS.
@@ -2476,6 +2559,7 @@ $('#themeToggle').addEventListener('click', () => {
     if (ba) { ba.classList.add('active'); ba.setAttribute('aria-pressed', 'true'); }
   }
   if (mainView === 'dividends') setMainView('dividends');
+  else if (mainView === 'active') setMainView('active');
   syncHeaderIndicators();
   renderWatchStrip();
   registerSW();

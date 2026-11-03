@@ -663,16 +663,25 @@ body.has-ad .ad-rail {
   color: var(--md-sys-color-on-surface);
 }
 
-/* Movers strip — full-width row above the table. The old right rail lived in
-   the .layout grid; the strip is horizontal so the table keeps the full width. */.side-strip {
+/* Movers strip — full-width row above the table. TWO equal cards (winners,
+   losers): the same columns, the same row count and the same height, so neither
+   panel reads as more important. Најтргувани lives in its own view tab now.
+   --side-rows / --side-row-h / --side-head-h are the whole sizing contract:
+   a card is exactly head + rows × row, so it never grows to its content (which
+   is what left the old 4-row cards ~55% empty next to a 10-row neighbour). */
+.side-strip {
+  --side-head-h: 52px;
+  --side-rows: 4;
+  --side-row-h: 64px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--md-space-sm);
   padding: var(--md-space-md) var(--md-space-md) 0;
   max-width: 1600px;
   width: 100%;
   margin: 0 auto;
   flex-shrink: 0;
+  align-items: stretch;
 }
 
 /* ==========================================================================
@@ -716,11 +725,11 @@ body.has-ad .ad-rail {
 
 /* Row hierarchy: price is what the eye should land on, volume is reference.
    Structure is untouched — the cells already exist, in this order. */
-table.quotes:not(.div-table) tbody td:nth-child(4) {
+table.quotes:not(.div-table):not(.active-table) tbody td:nth-child(4) {
   font-size: 15px;
   font-weight: 700;
 }
-table.quotes:not(.div-table) tbody td:nth-child(6) {
+table.quotes:not(.div-table):not(.active-table) tbody td:nth-child(6) {
   font-size: 11px;
   color: var(--md-sys-color-on-surface-variant);
 }
@@ -1242,29 +1251,29 @@ table.quotes td.sym .sym-text { display: inline-block; }
   border: 1px solid var(--md-sys-color-outline);
   border-radius: var(--md-shape-medium);
   overflow: hidden;
-  /* Flex column so .side-items can scroll internally while the title stays
-     pinned. Cards keep natural height when there's room (no grow) but shrink
-     (scrolling items inside) when the sidebar is too short. */
+  /* Fixed box, not a reserve: head + 4 rows exactly. Both cards compute the
+     same height from the same vars, so they are pixel-identical and the strip
+     never jumps when the panels land. Longer panels scroll inside. */
   display: flex;
   flex-direction: column;
   flex: 0 1 auto;
+  height: calc(var(--side-head-h, 52px) + var(--side-rows, 4) * var(--side-row-h, 64px) + 2px);
   min-height: 0;
-  /* Reserve, not a cap: every mover stays visible, so the card grows to its
-     content (Најтргувани renders 10 rows). 356px is the measured height of a
-     populated 5-item card, which stops the strip jumping when rows arrive. */
-  min-height: 356px;
 }
 
+/* M3 list item header: 52px, 16px inset, title-small (14/500). */
 .side-title {
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.1px;
-  padding: 14px 14px 8px;
+  padding: 0 16px;
+  height: var(--side-head-h, 52px);
   color: var(--md-sys-color-on-surface);
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 .side-title .material-symbols-outlined {
   font-size: 18px;
@@ -1283,37 +1292,59 @@ table.quotes td.sym .sym-text { display: inline-block; }
 .side-items::-webkit-scrollbar { width: 6px; }
 .side-items::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline); border-radius: var(--md-shape-full); }
 
+/* M3 two-line list item: 64px (56 on phones — both clear the 48px touch
+   target), 16px inset, ticker = label-large, company = body-small, price +
+   change right-aligned with tabular figures so the columns line up between
+   the two cards. */
 .side-item {
   display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
   align-items: center;
-  padding: 10px 14px;
-  border-top: 1px solid var(--md-sys-color-outline-variant);
+  height: var(--side-row-h, 64px);
+  min-height: 56px;
+  /* Never shrink: a 5-row panel must scroll in whole rows, not squeeze to 56px
+     and clip the last one mid-line. */
+  flex: 0 0 var(--side-row-h, 64px);
+  padding: 0 16px;
   cursor: pointer;
   transition: background var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
+.side-item + .side-item {
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
 .side-item:hover {
   background: var(--md-sys-color-surface-variant);
+}
+/* Keyboard users get the same state layer as the pointer, plus a ring — the
+   rows are real buttons, so they must look focusable. */
+.side-item:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: -2px;
+  background: var(--md-sys-color-surface-variant);
+}
+@media (hover: none) {
+  .side-item:active { background: var(--md-sys-color-surface-variant); }
 }
 
 .side-item .si-left {
   min-width: 0;
 }
 .side-item .si-sym {
-  font-weight: 600;
-  color: var(--md-sys-color-primary);
-  font-size: 13px;
-  letter-spacing: 0.2px;
-}
-.side-item .si-sym {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-weight: 600;
+  color: var(--md-sys-color-primary);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
 }
 .side-item .si-name {
   color: var(--md-sys-color-on-surface-variant);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 16px;
+  margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1331,12 +1362,61 @@ table.quotes td.sym .sym-text { display: inline-block; }
 }
 .side-item .si-price {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 20px;
   font-feature-settings: 'tnum' 1;
 }
 .side-item .si-chg {
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 16px;
+  margin-top: 2px;
   font-weight: 600;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Most-traded tab: six columns in its own order (rank, ticker, company, price,
+   change, turnover), so it is excluded from the quotes nth-child rules above. */
+table.quotes.active-table {
+  min-width: 640px;
+}
+.active-table th.at-rank,
+.active-table td.at-rank {
+  width: 48px;
+  text-align: right;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.active-table td.at-name {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.active-table td .u-sm {
+  font-size: 10px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-left: 2px;
+}
+/* Phones: six columns do not fit 390px, and they do not need to. The company
+   name is redundant next to the logo + ticker (the mover cards already drop it
+   there), so it goes and price / change / turnover stay on screen instead of
+   hiding behind a horizontal scroll. */
+@media (max-width: 599px) {
+  /* Fixed layout: the ticker cell's content (star + logo + ticker) has a
+     min-content width that pushed the table 9px past 390px and produced a
+     scrollbar for a 6px sliver. Fixed widths make the columns obey the
+     viewport and let the label ellipsise instead. */
+  table.quotes.active-table { min-width: 0; width: 100%; table-layout: fixed; }
+  table.quotes.active-table th:nth-child(3),
+  table.quotes.active-table td.at-name { display: none; }
+  table.quotes.active-table th.at-rank,
+  table.quotes.active-table td.at-rank { width: 24px; }
+  table.quotes.active-table th:nth-child(2) { width: 32%; }
+  table.quotes.active-table td.sym { overflow: hidden; }
+  table.quotes.active-table .sym-text { overflow: hidden; text-overflow: ellipsis; }
+  table.quotes.active-table th,
+  table.quotes.active-table td { padding-left: 4px; padding-right: 4px; }
+  table.quotes.active-table .chg-pill { min-width: 52px; padding: 4px 6px; }
+  table.quotes.active-table td .u-sm { display: none; }
 }
 
 /* Table failure state: the only action in the row, so it has to look like a
@@ -1760,7 +1840,7 @@ table.quotes td.sym .sym-text { display: inline-block; }
     max-width: none;
   }
 
-  /* Horizontal scroll row with snap: three cards stay side by side and the
+  /* Horizontal scroll row with snap: the two cards stay side by side and the
      row pans sideways instead of stacking (keeps the table above the fold). */
   .side-strip {
     display: flex;
@@ -1771,19 +1851,16 @@ table.quotes td.sym .sym-text { display: inline-block; }
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    --side-row-h: 56px;
   }
   .side-strip::-webkit-scrollbar { display: none; }
   .side-strip .side-card {
     flex: 0 0 78%;
     min-width: 0;
     scroll-snap-align: start;
-    /* Phone: back to a capped box with an internal scroll. Letting the cards
-       grow to content made "Најтргувани" (10 rows) ~610px tall, so the strip
-       under the table became a second page. 328px = title + the 5 rows of a
-       full winners/losers card, so nothing is half-cut; only the 10-row
-       "Најтргувани" list scrolls. Desktop keeps
-       the grow-to-content reserve (min-height: 356px) above 839px. */
-    height: var(--side-card-h-mobile, 328px);
+    /* Same head + rows contract as desktop, only shorter rows (56px still
+       clears the 48px touch target). Card = 52 + 4×56 = 276px, identical for
+       both panels — the strip cannot become a second page again. */
     min-height: 0;
   }
   /* Vertical panning inside a card must not drag the horizontal card strip,
@@ -1797,22 +1874,22 @@ table.quotes td.sym .sym-text { display: inline-block; }
   }
   .side-title {
     font-size: 13px;
-    padding: 12px 12px 6px;
+    padding: 0 12px;
   }
   .side-title .material-symbols-outlined {
     font-size: 16px;
   }
   .side-item {
-    padding: 8px 12px;
+    padding: 0 12px;
   }
   .side-item .si-sym {
-    font-size: 12px;
+    font-size: 13px;
   }
   .side-item .si-name {
     display: none;
   }
   .side-item .si-price {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .search-wrapper {
