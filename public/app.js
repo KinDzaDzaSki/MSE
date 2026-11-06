@@ -1465,12 +1465,22 @@ async function openCompany(symbol) {
   try {
     const [q, hAll, fin, mbi10h] = await Promise.all([
       fetch(`/api/quote/${symbol}`).then((r) => r.json()),
-      fetch(`/api/history/${symbol}?range=ALL`).then((r) => r.json()),
+      fetch(`/api/history/${symbol}?range=1Y`).then((r) => r.json()),
       fetch(`/api/financials/${symbol}`).then((r) => r.json()),
       fetch('/api/history/MBI10?range=1Y').then((r) => r.json()),
     ]);
-    // Cache full history once per modal open; range buttons slice client-side.
+    // Cache the recent history once per modal open; the range buttons slice it
+    // client-side. «Сите» is a separate lazy fetch (ensureAll) — 25 years is
+    // month-bucketed server-side, and pulling it on every card open cost ~330KB
+    // before the user had even asked for it.
     const fullHistory = (hAll.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+    let allHistory = null;
+    const ensureAll = async () => {
+      if (allHistory) return allHistory;
+      const r = await fetch(`/api/history/${symbol}?range=ALL`).then((x) => x.json()).catch(() => ({ rows: [] }));
+      allHistory = (r.rows || []).filter((x) => x.last != null).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+      return allHistory;
+    };
     const chg = q.changePct ?? 0;
     const chgAbs = q.dailyChange ?? 0;
     // Index detection must NOT guess from missing fields: an illiquid stock can
@@ -1615,7 +1625,8 @@ async function openCompany(symbol) {
     const tokenVar = (name, fb) => (getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fb);
 
     const draw = (range) => {
-      let rows = fullHistory;
+      // ALL only exists after ensureAll(); until then draw what we have.
+      let rows = range === 'ALL' && allHistory ? allHistory : fullHistory;
       if (range === '1M') rows = rows.slice(-22);
       else if (range === '3M') rows = rows.slice(-66);
       else if (range === '6M') rows = rows.slice(-132);
@@ -1741,9 +1752,14 @@ async function openCompany(symbol) {
     draw('1Y');
 
     $$('#rangeBtns button').forEach((b) =>
-      b.addEventListener('click', () => {
+      b.addEventListener('click', async () => {
         $$('#rangeBtns button').forEach((x) => x.classList.remove('active'));
         b.classList.add('active');
+        if (b.dataset.r === 'ALL' && !allHistory) {
+          b.classList.add('loading');
+          try { await ensureAll(); } catch (e) { /* fall back to the 1Y slice */ }
+          b.classList.remove('loading');
+        }
         draw(b.dataset.r);
       })
     );

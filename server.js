@@ -115,7 +115,7 @@ function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd
 <!-- Material Symbols variable font (display=block: icon ligature text is hidden
      until the font loads, so late font loading can never reflow the layout) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
-<link rel="stylesheet" href="/styles.css?v=7.35" />
+<link rel="stylesheet" href="/styles.css?v=7.37" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${esc(canonical)}" />
@@ -332,10 +332,15 @@ async function handleApi(req, res, url) {
     else if (range === '3M') rows = rows.slice(-66);
     else if (range === '6M') rows = rows.slice(-132);
     else if (range === '1Y') rows = rows.slice(-252);
-    // ALL can now be 25 years (~6k rows, ~800KB of full records). The chart and
-    // the chart widget only read date / close / volume out of a bar, so the
-    // long view ships those three fields instead of all ten.
-    else if (range === 'ALL') rows = rows.map((r) => ({ date: r.date, last: r.last, volume: r.volume }));
+    // ALL can be 25 years (~6k daily bars). The card chart draws one line
+    // series per direction change, so a full range meant thousands of series
+    // and a frozen tab, on top of an ~800KB payload. The long view is
+    // aggregated to month-end: the same shape tells the same story in ~310
+    // points, the close is the month's last trade and volume is summed.
+    else if (range === 'ALL') {
+      rows = monthBuckets(rows);
+      return sendJson(res, { symbol: sym, rows, agg: 'month' }, 200, req, 60);
+    }
     return sendJson(res, { symbol: sym, rows }, 200, req, 60);
   }
 
@@ -729,6 +734,32 @@ async function sendHome(req, res) {
   }
   if (!html) return sendFile(res, path.join(PUBLIC_DIR, 'index.html'), req);
   return sendRaw(res, Buffer.from(html), 'text/html; charset=utf-8', req, 200, { 'Cache-Control': 'no-cache' });
+}
+
+// MSE dates are M/D/YYYY (no zero padding, so Date.parse is not an option).
+// The grouping key is YYYYMM; each bucket keeps its last trading bar's date and
+// close, and sums the volume of every bar inside it.
+function monthBuckets(rows) {
+  const keyOf = (d) => {
+    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(d || '').trim());
+    return m ? Number(m[3]) * 100 + Number(m[1]) : null;
+  };
+  const out = [];
+  let cur = null, curKey = null;
+  for (const r of rows) {
+    const k = keyOf(r.date);
+    if (k == null) continue;
+    if (k !== curKey) {
+      cur = { date: r.date, last: r.last, volume: r.volume || 0 };
+      out.push(cur);
+      curKey = k;
+    } else {
+      cur.date = r.date;
+      cur.last = r.last;
+      cur.volume = (cur.volume || 0) + (r.volume || 0);
+    }
+  }
+  return out;
 }
 
 async function renderSymbolPage(sym) {
