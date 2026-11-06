@@ -323,6 +323,10 @@ async function handleApi(req, res, url) {
     else if (range === '3M') rows = rows.slice(-66);
     else if (range === '6M') rows = rows.slice(-132);
     else if (range === '1Y') rows = rows.slice(-252);
+    // ALL can now be 25 years (~6k rows, ~800KB of full records). The chart and
+    // the chart widget only read date / close / volume out of a bar, so the
+    // long view ships those three fields instead of all ten.
+    else if (range === 'ALL') rows = rows.map((r) => ({ date: r.date, last: r.last, volume: r.volume }));
     return sendJson(res, { symbol: sym, rows }, 200, req, 60);
   }
 
@@ -371,6 +375,17 @@ async function handleApi(req, res, url) {
     const days = parseInt(url.searchParams.get('days') || '365', 10);
     const rows = await store.backfillHistory(sym, days);
     return sendJson(res, { symbol: sym, count: rows.length });
+  }
+
+  const bfDeep = url.pathname.match(/^\/api\/backfill-deep$/);
+  if (bfDeep) {
+    if (!needAdmin(url, req, res)) return;
+    // One bounded step of the one-time deep-history migration. Long scrapes do
+    // not fit a request, so this reports where the cursor stopped and the
+    // caller (or the cron below) repeats it until done:true.
+    const budget = Math.min(Math.max(parseInt(url.searchParams.get('budget') || '20000', 10) || 20000, 2000), 60000);
+    const out = await store.deepBackfillStep({ budgetMs: budget });
+    return sendJson(res, out);
   }
 
   const bfIdx = url.pathname.match(/^\/api\/backfill-index\/([^/]+)$/);
@@ -429,6 +444,20 @@ async function handleApi(req, res, url) {
     try {
       await store.moversTick();
       return sendJson(res, { ok: true, enabled: !!store.pushEnabled, subscriptions: await store.countPushSubscriptions() }, 200, req, 0);
+    } catch (e) {
+      return sendJson(res, { error: e.message }, 500);
+    }
+  }
+
+  if (url.pathname === '/api/cron/deep-history') {
+    // One-time migration to MSE's full history (see store.deepBackfillStep).
+    // Bounded per run so it fits a function timeout; it resumes from meta.
+    const secret = process.env.CRON_SECRET;
+    if (secret && req.headers['authorization'] !== `Bearer ${secret}`) {
+      return sendJson(res, { error: 'forbidden' }, 403);
+    }
+    try {
+      return sendJson(res, { ok: true, ...(await store.deepBackfillStep({ budgetMs: 20000 })) }, 200, req, 0);
     } catch (e) {
       return sendJson(res, { error: e.message }, 500);
     }
