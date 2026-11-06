@@ -1488,7 +1488,7 @@ async function openCompany(symbol) {
         <span class="c-id-mark" aria-hidden="true">${window.CoLogo ? CoLogo.icon(symbol, q.name, q.site, 30, !!q.fav, q.favv || 0) : esc(symbol.slice(0, 1))}</span>
         <span class="c-sym">${esc(symbol)}</span>
         ${starBtnHTML(symbol)}
-        <span class="c-name">${esc(q.name || '')}${q.isin ? ' · ISIN ' + esc(q.isin) : ''}</span>
+        <span class="c-name">${esc(q.name || '')}</span>
         ${q.seriesList && q.seriesList.length ? `<span class="c-name">· ${esc(t('includes_series'))} ${q.seriesList.map(esc).join(', ')}</span>` : ''}
         <span class="c-price-wrap">
           <span class="c-chg ${pctClass(chg)}">${chgStr(chgAbs)} (${pctStr(chg)})</span>
