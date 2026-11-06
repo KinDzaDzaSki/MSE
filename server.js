@@ -462,7 +462,7 @@ async function handleApi(req, res, url) {
       return sendJson(res, { error: 'forbidden' }, 403);
     }
     try {
-      return sendJson(res, { ok: true, ...(await store.deepBackfillStep({ budgetMs: 20000 })) }, 200, req, 0);
+      return sendJson(res, { ok: true, ...(await store.deepBackfillStep({ budgetMs: 9000 })) }, 200, req, 0);
     } catch (e) {
       return sendJson(res, { error: e.message }, 500);
     }
