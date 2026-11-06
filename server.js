@@ -27,6 +27,10 @@ function needAdmin(url, req, res) {
   return false;
 }
 
+// One-time deep-history migration key. Kept apart from ADMIN_TOKEN so the
+// migration can be driven without rotating (or ever reading) the user's admin
+// credential. Unset it in the dashboard once the fill is done.
+const DEEP_KEY = process.env.DEEP_KEY || '';
 const PORT = process.env.PORT || 8080;
 log.info(`config PORT env="${process.env.PORT}" listening on=${PORT}`);
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -384,7 +388,8 @@ async function handleApi(req, res, url) {
 
   const bfDeep = url.pathname.match(/^\/api\/backfill-deep$/);
   if (bfDeep) {
-    if (!needAdmin(url, req, res)) return;
+    const viaKey = DEEP_KEY && url.searchParams.get('key') === DEEP_KEY;
+    if (!viaKey && !needAdmin(url, req, res)) return;
     // One bounded step of the one-time deep-history migration. Long scrapes do
     // not fit a request, so this reports where the cursor stopped and the
     // caller (or the cron below) repeats it until done:true.
