@@ -1405,7 +1405,7 @@ table.quotes td.sym .sym-text { display: inline-block; }
    The numbers column must be a fixed width, not `auto`: its text width varies
    per row ("105.073,05" vs "466,04") and space-between would shift every
    spark by a few px from row to row. */
-@media (min-width: 1280px) {
+@media (min-width: 1024px) {
   .side-item {
     /* min(240px, 45%) keeps the identity column as narrow as the longest name
        needs on a wide card and as a share of the row on a tight one, so the
@@ -1421,6 +1421,14 @@ table.quotes td.sym .sym-text { display: inline-block; }
   .side-item .si-right { min-width: 96px; }
   .side-item .si-right .si-price,
   .side-item .si-right .si-chg { display: block; }
+}
+/* Below ~1200 the card is 480-560px wide: the 140px spark leaves 6px gutters,
+   so it steps down and the numbers column tightens with it. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .side-item { grid-template-columns: minmax(0, min(200px, 45%)) 112px 88px; }
+  .side-item .si-spark { width: 112px; }
+  .side-item .si-spark canvas { width: 108px !important; }
+  .side-item .si-right { min-width: 88px; }
 }
 
 /* Most-traded tab: six columns in its own order (rank, ticker, company, price,
