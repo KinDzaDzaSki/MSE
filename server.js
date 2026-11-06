@@ -63,7 +63,12 @@ function pctStr(v) { return v == null || isNaN(v) ? '—' : (v >= 0 ? '+' : '') 
 const TOPBAR_HTML = `<header class="topbar">
   <a class="brand" href="/">
     <div class="brand-icon">
-      <span class="material-symbols-outlined icon-fill">monitoring</span>
+      <svg class="brand-mark" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="MSE Berza" focusable="false">
+        <rect class="mark-tile" width="32" height="32" rx="8" fill="#0B2E52" />
+        <path d="M5.5 25 L10.5 12.5 L16 20 L21.5 8.5 L26.5 25" fill="none" stroke="#DCE8FF"
+              stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="21.5" cy="8.5" r="3" fill="#FFD845" stroke="#0B2E52" stroke-width="1.5" />
+      </svg>
     </div>
     <div class="brand-text">
       <span class="brand-name">MSE Berza</span>

@@ -1,1 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#003A70"/><polyline points="6,23 12,16 17,19 26,8" fill="none" stroke="#D6E3FF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="26" cy="8" r="2.2" fill="#FFD845"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="MSE Berza">
+  <rect width="32" height="32" rx="8" fill="#0B2E52"/>
+  <path d="M5.5 25 L10.5 12.5 L16 20 L21.5 8.5 L26.5 25" fill="none" stroke="#DCE8FF" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

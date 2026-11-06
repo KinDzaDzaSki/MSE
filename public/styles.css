@@ -320,14 +320,21 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--md-sys-color-primary-container);
-  border-radius: var(--md-shape-small);
-  color: var(--md-sys-color-on-primary-container);
   flex-shrink: 0;
+  /* The mark is a self-contained tile: no primary-container fill behind it.
+     Two stacked surfaces read as a badge inside a badge. */
+  background: transparent;
+  border-radius: 0;
 }
-.brand-icon .material-symbols-outlined {
-  font-size: 20px;
+.brand-mark {
+  display: block;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
 }
+/* The navy tile is 4 points off the dark surface — visible, but the edge goes
+   soft. Lift it just enough to keep the silhouette. */
+[data-theme="dark"] .brand-icon .mark-tile { fill: #16355A; }
 .brand-text {
   display: flex;
   flex-direction: column;
