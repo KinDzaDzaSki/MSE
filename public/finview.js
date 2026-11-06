@@ -724,13 +724,6 @@
     html += '</div></div>';
     html += '</div>'; // close pros/cons grid
 
-    // What to watch — actionable levels
-    if (analysis.watchItems && analysis.watchItems.length) {
-      html += '<div class="analysis-card" style="margin-top:12px"><div class="analysis-card-title">👁 ' + T('analysis_watch') + '</div><div class="analysis-verdict-text" style="padding-top:0"><ul style="margin:0;padding-left:18px;line-height:1.6">';
-      for (var w = 0; w < analysis.watchItems.length; w++) html += '<li>' + analysis.watchItems[w] + '</li>';
-      html += '</ul></div></div>';
-    }
-
     // Details collapsible — only the signals NOT already shown in the
     // pros/cons cards (those cards render the first 6 of each).
     var PROS_CONS_SHOWN = 6;

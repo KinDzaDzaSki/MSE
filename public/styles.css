@@ -313,7 +313,14 @@ a:hover {
   display: flex;
   align-items: center;
   gap: var(--md-space-sm);
+  /* The global `a:hover { text-decoration: underline }` turned the wordmark +
+     subtitle into a link and shifted the two-line block on hover. The logo is
+     the way home, not prose. */
+  text-decoration: none;
 }
+.brand:hover,
+.brand:focus,
+.brand:active { text-decoration: none; }
 .brand-icon {
   width: 32px;
   height: 32px;
