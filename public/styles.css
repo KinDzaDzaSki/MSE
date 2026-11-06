@@ -2929,6 +2929,31 @@ body.modal-open { overflow: hidden; }
   .skip-link { min-height: 44px; }
 }
 
+/* ---- Phones: the card's identity bar gets three lines --------------------
+   Five items in one 347px flex row cannot fit, so they shrank: the star fell
+   to 16px of its 44 and the company name kept 51px of its 240px ("Granit…"),
+   while "+0,00 (+0,00%)" and the price were crushed into 162px beside it.
+   Wrap instead — ticker + star, then the whole name · ISIN, then price and
+   change — so no item is shrunk below its own text. */
+@media (max-width: 599px) {
+  /* 360px of chart in a 390px card is almost the whole first screen. The
+     library writes its own height (see cardChartHeight() in app.js); this
+     keeps the box from reserving the desktop height underneath it. */
+  .chart-box { min-height: 220px; }
+  .c-id-row { flex-wrap: wrap; row-gap: 2px; }
+  .c-id-row .star-btn { flex: 0 0 auto; order: 2; margin-left: auto; }
+  .c-id-row .c-name {
+    flex: 1 1 100%; order: 3;
+    white-space: normal; overflow: visible;
+    line-height: 1.35;
+  }
+  .c-id-row .c-price-wrap {
+    flex: 1 1 100%; order: 4;
+    margin-left: 0; padding-right: 0;
+    flex-direction: row-reverse; justify-content: space-between;
+  }
+}
+
 /* Below 430px the bar cannot hold brand + status + index + three icon
    buttons: it measured 402px of content in a 360px bar. The push nudge is
    the only control that is neither navigation nor state, so it goes. */

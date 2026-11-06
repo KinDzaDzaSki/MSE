@@ -824,6 +824,12 @@ function chgStr(v) {
   if (v == null) return '—';
   return (v >= 0 ? '+' : '') + fmt(v);
 }
+// The company sheet's chart is 360px tall on desktop; on a phone that is most
+// of an 844px viewport and pushes the range buttons and the stat rail off the
+// fold, so it drops to 220. Keep in step with `.chart-box`'s min-height under
+// 600px in styles.css — the chart library writes its own height onto the
+// wrapper, so this cannot be fixed from CSS alone.
+const cardChartHeight = () => (window.innerWidth < 600 ? 220 : 360);
 function fmtDate(ts) {
   const d = new Date(ts);
   if (isNaN(d)) return '—';
@@ -1678,7 +1684,7 @@ async function openCompany(symbol) {
           },
           crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: '#5b6478', width: 1, style: 2, labelBackgroundColor: '#f5a623' }, horzLine: { color: '#5b6478', width: 1, style: 2, labelBackgroundColor: '#f5a623' } },
           localization: { priceFormatter: (p) => fmt(p) },
-          height: 360,
+          height: cardChartHeight(),
         });
         // Its axis label printed the last bar's volume as a floating number
         // beside the price axis (the unexplained "866.00").
@@ -2286,6 +2292,15 @@ $('#watchToggle').addEventListener('click', () => {
   syncWatchAria();
 });
 if (window.matchMedia('(max-width: 839px)').matches) watchStripEl.classList.add('collapsed');
+// A rotation (or a dragged window) across 600px while the sheet is open leaves
+// the chart at its creation height; re-apply it rather than keeping a 220px
+// chart in a wide card or a 360px one on a phone.
+window.addEventListener('resize', () => {
+  const modal = document.getElementById('companyModal');
+  if (modal && modal._chart) {
+    try { modal._chart.applyOptions({ height: cardChartHeight() }); } catch (_) {}
+  }
+});
 syncWatchAria();
 $('#search').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
