@@ -1374,6 +1374,39 @@ table.quotes td.sym .sym-text { display: inline-block; }
   font-feature-settings: 'tnum' 1;
 }
 
+/* ---- Desktop: the row's middle was a void -------------------------------
+   With `minmax(0, 1fr)` on the identity column the name hugged the left and
+   the spark+numbers cluster hugged the right, so at a 691px card ~320px of
+   empty row (46%, and 60% on a wide monitor) sat between them — measured
+   name-right 173 → spark-x 493 on the 1440 layout. Nothing could fill it: a
+   stretched sparkline measured 389×26 and reads as a stretched thumbnail, not
+   a chart, and leaving the numbers anywhere but the right edge ragged out the
+   column comparisons.
+   So the row is three fixed-ish bands whose leftover splits evenly around the
+   sparkline: identity 45% (a stable column, so the spark starts at the same x
+   in every row), a 140px spark, a 96px numbers column, and space-between on
+   the rest. Both gutters measured 75–79px instead of one 320px hole.
+   The numbers column must be a fixed width, not `auto`: its text width varies
+   per row ("105.073,05" vs "466,04") and space-between would shift every
+   spark by a few px from row to row. */
+@media (min-width: 1280px) {
+  .side-item {
+    /* min(240px, 45%) keeps the identity column as narrow as the longest name
+       needs on a wide card and as a share of the row on a tight one, so the
+       140 + 96px cluster can never overflow the row. */
+    grid-template-columns: minmax(0, min(240px, 45%)) 140px 96px;
+    justify-content: space-between;
+  }
+  .side-item .si-spark { width: 140px; }
+  .side-item .si-spark canvas {
+    width: 136px !important;
+    height: 24px !important;
+  }
+  .side-item .si-right { min-width: 96px; }
+  .side-item .si-right .si-price,
+  .side-item .si-right .si-chg { display: block; }
+}
+
 /* Most-traded tab: six columns in its own order (rank, ticker, company, price,
    change, turnover), so it is excluded from the quotes nth-child rules above. */
 table.quotes.active-table {
