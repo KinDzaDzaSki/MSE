@@ -1522,7 +1522,20 @@ table.quotes.active-table {
    as-of line. Replaces the two stat grids that sat above the chart. */
 .modal-card {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* One track, and it must be allowed to be *smaller* than its content.
+     The implicit single column is `auto`, which sizes to the widest child's
+     min-content — the chart canvas plus the tab row measured 575px on a phone
+     and pushed the window's price, the range buttons and the whole stat rail
+     off the right edge of a 390px screen (the sheet then scrolled sideways).
+     minmax(0, 1fr) caps the track at the card, so the children shrink instead. */
+  grid-template-columns: minmax(0, 1fr);
+  /* The middle row must be at least as tall as its content: with `minmax(0,
+     1fr)` it was capped at the sheet's max-height, the panel inside it has no
+     scroller, so an expanded "Детали" list (or a long financial table) painted
+     straight over the foot's date lines instead of pushing them down. min-content
+     keeps the row's floor at its content, and 1fr still fills the window when the
+     card is short — the sheet's own overflow-y does the scrolling. */
+  grid-template-rows: auto minmax(min-content, 1fr) auto;
   padding: 16px 18px 12px;
   /* Fit the sheet to the window; at narrow widths the rail stacks and the card
      scrolls instead of running past the fold. */
@@ -1546,6 +1559,9 @@ table.quotes.active-table {
   display: grid; grid-template-columns: minmax(0, 1fr) 214px;
   border-top: 1px solid var(--md-sys-color-outline-variant);
   min-height: 0; margin-top: 10px;
+  /* A grid item's automatic minimum is its min-content; without this the chart
+     canvas keeps the track wide even when the card above it is capped. */
+  min-width: 0;
 }
 .card-body.no-rail { grid-template-columns: minmax(0, 1fr); }
 .card-main { min-width: 0; display: flex; flex-direction: column; padding: 0 0 6px; }
@@ -2878,10 +2894,19 @@ body.modal-open { overflow: hidden; }
     box-shadow: var(--md-elevation-level-2);
   }
   .fin-tab { min-height: 44px; }
+  /* Four tab labels measured 380px of padded tabs in a 354px bar, so the tab
+     strip scrolled (65% of "Анализа" visible, no scroll affordance). Tighter
+     gutters fit all four: 4 × 32px of padding saved is most of the deficit. */
+  .fin-tab { padding-left: 10px; padding-right: 10px; }
   .range-btns button {
     min-height: 40px;
     padding: 9px 14px;
   }
+  /* The foot's two date lines sat side by side in 347px: each wrapped to three
+     ragged lines next to the other, reading as one broken sentence. Stack them
+     on phones and drop the block margin that padded the foot. */
+  .card-foot { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .card-foot .as-of { margin-bottom: 0; }
 
   /* Footer breathing room above the home indicator. */
   .foot { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
@@ -2914,4 +2939,7 @@ body.modal-open { overflow: hidden; }
     height: 40px;
     min-width: 40px;
   }
+  /* The card's four tabs still wanted 343px of a 310px bar at 342px wide
+     (they clipped at 375 too, by 1px). Smaller type and gutters buy the ~35px. */
+  .fin-tab { padding-left: 8px; padding-right: 8px; font-size: 12px; letter-spacing: 0.2px; }
 }
