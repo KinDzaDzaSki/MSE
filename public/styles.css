@@ -734,7 +734,9 @@ body.has-ad .ad-rail {
   font-size: 11px;
   line-height: 16px;
   color: var(--md-sys-color-on-surface-variant);
-  padding: 0 2px 6px;
+  /* Footer now, not header: it sat above the table with bottom padding pulling
+     the table up; under the table the space has to go above it. */
+  padding: 6px 2px 0;
 }
 
 /* Row hierarchy: price is what the eye should land on, volume is reference.
@@ -1851,6 +1853,8 @@ table.quotes.active-table {
 .range-btns button:hover {
   color: var(--md-sys-color-on-surface);
 }
+/* «Сите» may need one round-trip the first time it is pressed. */
+.range-btns button.loading { opacity: 0.5; pointer-events: none; }
 .range-btns button.active {
   background: var(--md-sys-color-surface);
   color: var(--md-sys-color-primary);
