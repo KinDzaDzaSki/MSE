@@ -1623,11 +1623,26 @@ table.quotes.active-table {
   justify-content: flex-start;
 }
 .c-rail-tag {
-  /* One type family across the card: the rail is body copy, not a terminal. */
-  font: 600 11px var(--md-ref-typeface-plain);
-  color: var(--md-sys-color-on-surface-variant); padding: 8px 12px;
-  background: var(--md-sys-color-surface-variant);
-  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  /* Reads as a sibling of the tab bar (Графикон / Податоци / Показатели /
+     Анализа) instead of a grey strip of its own: same type, same colour, same
+     hairline under it. The tabs' own bar is `--md-sys-color-outline`, so the
+     label uses that rather than outline-variant. */
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: var(--md-sys-color-on-surface-variant);
+  /* 12px, not the tab's 16px: this label sits above the rail's 12px rows and
+     has to line up with their text. */
+  padding: 10px 12px;
+  /* Same 35px band as a tab: the tabs get that from their button box, this div
+     would otherwise sit 5px taller on the body's line-height. */
+  display: flex;
+  align-items: center;
+  line-height: 15px;
+  min-height: 35px;
+  background: transparent;
+  border-bottom: 1px solid var(--md-sys-color-outline);
 }
 .c-ln { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--md-sys-color-outline-variant); }
 .c-ln .k { font-size: 12px; color: var(--md-sys-color-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -3010,4 +3025,6 @@ body.modal-open { overflow: hidden; }
   /* The card's four tabs still wanted 343px of a 310px bar at 342px wide
      (they clipped at 375 too, by 1px). Smaller type and gutters buy the ~35px. */
   .fin-tab { padding-left: 8px; padding-right: 8px; font-size: 12px; letter-spacing: 0.2px; }
+  /* The rail's Преглед label tracks the tabs it is imitating. */
+  .c-rail-tag { font-size: 12px; letter-spacing: 0.2px; }
 }
