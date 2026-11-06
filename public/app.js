@@ -1485,7 +1485,7 @@ async function openCompany(symbol) {
     // Ledger layout: identity bar here, every number in the right-hand rail.
     content.innerHTML = `
       <div class="c-id-row">
-        <span class="c-id-mark" aria-hidden="true">${esc(symbol.slice(0, 1))}</span>
+        <span class="c-id-mark" aria-hidden="true">${window.CoLogo ? CoLogo.icon(symbol, q.name, q.site, 30, !!q.fav, q.favv || 0) : esc(symbol.slice(0, 1))}</span>
         <span class="c-sym">${esc(symbol)}</span>
         ${starBtnHTML(symbol)}
         <span class="c-name">${esc(q.name || '')}${q.isin ? ' · ISIN ' + esc(q.isin) : ''}</span>

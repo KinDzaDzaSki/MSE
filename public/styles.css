@@ -1546,10 +1546,20 @@ table.quotes.active-table {
 .c-id-row { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 30px; }
 .c-id-mark {
   width: 30px; height: 30px; border-radius: var(--md-shape-small);
-  display: grid; place-items: center; font: 700 11px var(--md-ref-typeface-mono);
-  background: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);
-  border: 1px solid var(--md-sys-color-outline-variant); flex: none;
+  display: grid; place-items: center; flex: none; overflow: hidden;
+  /* The tile now carries the company's real favicon through the same chain the
+     table rows use (self-hosted /api/favicon -> Google -> coloured monogram),
+     so the old grey letter chip's frame and fill would double up on it. The
+     letter survives only as the no-logo.js fallback. */
+  font: 700 11px var(--md-ref-typeface-mono);
+  color: var(--md-sys-color-on-surface-variant);
 }
+/* .co-logo is 22px for table rows; the sheet's identity tile is 30. */
+.c-id-mark .co-logo { width: 30px; height: 30px; }
+/* A wide wordmark centred in a pale square reads as an empty tile, so a real
+   logo sits on the card's own background; the monogram fallback keeps the
+   coloured tile CoLogo gives it. */
+.c-id-mark .co-logo:not(.co-logo-plain) { background: transparent; }
 .c-sym { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
 .c-name { font-size: 13px; color: var(--md-sys-color-on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c-price-wrap { margin-left: auto; display: flex; align-items: baseline; gap: 10px; padding-right: 38px; }
