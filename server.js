@@ -490,12 +490,13 @@ async function handleApi(req, res, url) {
       return sendJson(res, { error: 'forbidden' }, 403);
     }
     try {
-      // Symbols first (the long walk back to 2001), then the index years —
-      // MBI10/OMB only had the current + previous year, which is why the index
-      // card's «Сите» started at Jan of last year.
-      const symbols = await store.deepBackfillStep({ budgetMs: 6000 });
-      const indices = await store.deepIndexBackfillStep({ budgetMs: 3000 });
-      return sendJson(res, { ok: true, symbols, indices }, 200, req, 0);
+      // Indices FIRST: 46 year-pages finish in ~300 ms, and running them after
+      // the symbol walk meant the function's time limit was already spent — the
+      // index year pages never ran and MBI10 stayed at two years. Symbols then
+      // take the rest of the budget.
+      const indices = await store.deepIndexBackfillStep({ budgetMs: 2500 });
+      const symbols = await store.deepBackfillStep({ budgetMs: 5500 });
+      return sendJson(res, { ok: true, indices, symbols }, 200, req, 0);
     } catch (e) {
       return sendJson(res, { error: e.message }, 500);
     }
