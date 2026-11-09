@@ -494,6 +494,8 @@ function applyStaticI18n() {
     tabBtns[1].textContent = t('tab_fin_data');
     tabBtns[2].textContent = t('tab_ratios');
     tabBtns[3].textContent = t('tab_analysis');
+    // «Преглед» is the rail's own tag on desktop and a fifth tab on phones.
+    if (tabBtns[4]) tabBtns[4].textContent = t('card_overview');
   }
   // Main view tabs
   const mainTabKey = { quotes: 'main_tab_quotes', dividends: 'main_tab_dividends', active: 'main_tab_active' };
@@ -1587,6 +1589,8 @@ async function openCompany(symbol) {
     tabs[0].classList.add('active');
     $$('.fin-tab-panel').forEach(p => p.classList.add('hidden'));
     $('#finTabChart').classList.remove('hidden');
+    // Put the rail where this width wants it (right column vs the fifth tab).
+    syncCardLayout();
 
     // ---- Chart logic: daily-direction line. Every segment is colored by
     // that day's close vs the previous close — green = closed above
@@ -2224,11 +2228,37 @@ function switchFinTab(tab) {
     b.tabIndex = active ? 0 : -1;
   });
   $$('.fin-tab-panel').forEach(p => p.classList.add('hidden'));
-  const panel = tab === 'chart' ? document.getElementById('finTabChart') :
-    tab === 'data' ? document.getElementById('finTabData') : tab === 'ratios' ? document.getElementById('finTabRatios') : document.getElementById('finTabAnalysis');
+  // Panel id mirrors the tab key: chart→finTabChart … overview→finTabOverview.
+  const panel = document.getElementById('finTab' + tab.charAt(0).toUpperCase() + tab.slice(1));
   if (panel) panel.classList.remove('hidden');
 }
 window.switchFinTab = switchFinTab;
+
+// ---- Rail placement -------------------------------------------------------
+// Above 820px the rail is the card's right-hand ledger and «Преглед» is its own
+// tag row. At or below it the card is a single column, where the rail used to
+// stack under the chart as a loose block — so the same element is *moved* into
+// the fifth tab instead (never duplicated: #avgPriceVal is looked up by id by
+// the chart header, and two copies would desync).
+const CARD_ONE_COL = window.matchMedia('(max-width: 820px)');
+function syncCardLayout() {
+  const rail = document.getElementById('statRail');
+  const panel = document.getElementById('finTabOverview');
+  const body = document.getElementById('cardBody');
+  if (!rail || !panel || !body) return;
+  const oneCol = CARD_ONE_COL.matches;
+  if (oneCol) {
+    if (rail.parentElement !== panel) panel.appendChild(rail);
+  } else {
+    if (rail.parentElement !== body) body.appendChild(rail);
+    // Leaving the one-column layout hides the tab, so its panel must not stay
+    // open with nothing in it.
+    if (!panel.classList.contains('hidden')) switchFinTab('chart');
+  }
+}
+window.syncCardLayout = syncCardLayout;
+if (CARD_ONE_COL.addEventListener) CARD_ONE_COL.addEventListener('change', syncCardLayout);
+else if (CARD_ONE_COL.addListener) CARD_ONE_COL.addListener(syncCardLayout);
 // One delegated handler for the financial tab bar (the markup used to also
 // carry inline onclick + a document-level handler, so a single click fired
 // switchFinTab up to three times).
