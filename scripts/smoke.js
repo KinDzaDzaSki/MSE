@@ -134,8 +134,10 @@ async function sparks() {
   const max = lens.length ? lens[lens.length - 1] : 0;
   const detail = `${keys.length} symbols, median ${median} pts, max ${max}`;
   if (IS_PREVIEW) return skip('GET /api/sparks 52-week window', `proxied to the live origin (${detail}); the window is server-side in lib/store.js`);
-  check('GET /api/sparks 52-week window', keys.length > 50 && max > 0 && max <= 60,
-    detail + (max > 60 ? ' — the lifetime series is being served' : ''), ms);
+  // A 364-day window holds ~260 trading days, so a healthy max is ~250-262.
+  // Anything in the thousands is the lifetime series (6,031 for SBT pre-fix).
+  check('GET /api/sparks 52-week window', keys.length > 50 && median >= 50 && max <= 265,
+    detail + (max > 265 ? ' — the lifetime series is being served' : ''), ms);
 }
 
 async function history(symbol, range, minRows) {
