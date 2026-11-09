@@ -1274,16 +1274,23 @@ const server = http.createServer(async (req, res) => {
   // ---- SEO / SSR routes ----
   if (url.pathname === '/sitemap.xml') {
     let xml;
+    // A degraded sitemap (fallback/static) must not stick at the edge, or a
+    // single slow DB read would hide the symbol URLs from crawlers for 30 min.
+    let cache = 'public, max-age=1800, s-maxage=3600';
     try {
-      const quotes = Object.values(await store.getQuotes());
+      // Race the DB read against a short timeout: on a cold start the pool can
+      // stall past Vercel's function limit, which kills the request before the
+      // catch below runs and shows up as "Couldn't fetch" in Search Console.
+      const quotes = Object.values(await withTimeoutMs(store.getQuotes(), 4000, 'sitemap quotes'));
       const prim = quotes.filter((q) => q.primary !== false).map((q) => q.symbol).sort();
       xml = buildSitemapXml(prim);
       sitemapCache = { xml, at: Date.now() };
     } catch (e) {
       log.warn(`sitemap build failed, serving fallback: ${e.message}`);
       xml = (sitemapCache && sitemapCache.xml) || STATIC_SITEMAP_XML;
+      cache = 'public, max-age=300, s-maxage=300';
     }
-    res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=1800, s-maxage=3600' });
+    res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': cache });
     return res.end(xml);
   }
 
