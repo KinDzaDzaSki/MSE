@@ -482,6 +482,20 @@ async function handleApi(req, res, url) {
     }
   }
 
+  if (url.pathname === '/api/cron/index-history') {
+    // Its own invocation: 44 year-pages at ~220 ms each do not fit beside the
+    // symbol walk in one function, and starving it left MBI10 at two years.
+    const secret = process.env.CRON_SECRET;
+    if (secret && req.headers['authorization'] !== `Bearer ${secret}`) {
+      return sendJson(res, { error: 'forbidden' }, 403);
+    }
+    try {
+      return sendJson(res, { ok: true, ...(await store.deepIndexBackfillStep({ budgetMs: 9000, concurrency: 2 })) }, 200, req, 0);
+    } catch (e) {
+      return sendJson(res, { error: e.message }, 500);
+    }
+  }
+
   if (url.pathname === '/api/cron/deep-history') {
     // One-time migration to MSE's full history (see store.deepBackfillStep).
     // Bounded per run so it fits a function timeout; it resumes from meta.
