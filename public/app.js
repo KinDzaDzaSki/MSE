@@ -484,9 +484,15 @@ function applyStaticI18n() {
   // "Ажурирано HH:MM" stamp (label re-translated) if we already have it.
   if (lastUpdatedTime) setUpdated(lastUpdatedTime);
   updateBell();
-  // Strip titles: target the [data-i18n] span so the leading icon survives.
-  const stripTitles = [t('gainers'), t('losers')];
-  $$('.side-title [data-i18n]').forEach((el, i) => { if (stripTitles[i]) el.textContent = stripTitles[i]; });
+  // Panel titles: target the [data-i18n] span so the leading icon survives, and
+  // read the key off the element — an index-ordered list broke the moment a
+  // fourth panel (Најтргувани) or the watchlist card joined the rail.
+  $$('.side-title [data-i18n]').forEach((el) => {
+    const key = el.getAttribute('data-i18n');
+    if (key) el.textContent = t(key);
+  });
+  const tradedNote = $('#tradedNote');
+  if (tradedNote) tradedNote.textContent = t('at_note');
   // Financial tab labels
   const tabBtns = $$('.fin-tab');
   if (tabBtns.length >= 4) {
@@ -498,21 +504,10 @@ function applyStaticI18n() {
     if (tabBtns[4]) tabBtns[4].textContent = t('card_overview');
   }
   // Main view tabs
-  const mainTabKey = { quotes: 'main_tab_quotes', dividends: 'main_tab_dividends', active: 'main_tab_active' };
+  const mainTabKey = { quotes: 'main_tab_quotes', dividends: 'main_tab_dividends' };
   $$('#mainTabs .main-tab').forEach((b) => {
     b.textContent = t(mainTabKey[b.dataset.mtab] || 'main_tab_quotes');
   });
-  // Most-traded view: header cells + the source note under the table.
-  const atHeadKeys = {
-    atSymTh: 'at_symbol', atNameTh: 'at_company', atPriceTh: 'at_price',
-    atChangeTh: 'at_change', atTurnoverTh: 'at_turnover',
-  };
-  for (const id of Object.keys(atHeadKeys)) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = t(atHeadKeys[id]);
-  }
-  const atNote = $('#activeNote');
-  if (atNote) atNote.textContent = t('at_note');
   // Dividends view re-renders with current language if data is loaded
   if (dividendsCache) {
     renderDivTable();
@@ -581,7 +576,7 @@ let mainView = 'quotes';
 // Shareable state: ?view=dividends&scope=all&sort=divYield&dir=desc
 // Restored before the first render so a link lands on the view it describes.
 const QS = new URLSearchParams(location.search);
-if (QS.get('view') === 'quotes' || QS.get('view') === 'dividends' || QS.get('view') === 'active') mainView = QS.get('view');
+if (QS.get('view') === 'quotes' || QS.get('view') === 'dividends') mainView = QS.get('view');
 if (QS.get('scope') === 'liquid' || QS.get('scope') === 'all') view = QS.get('scope');
 if (QS.get('sort')) headerSortCol = QS.get('sort');
 if (QS.get('dir') === 'asc' || QS.get('dir') === 'desc') headerSortDir = QS.get('dir');
@@ -597,15 +592,9 @@ function syncUrl() {
 function setMainView(v) {
   mainView = v;
   syncUrl();
-  const qv = $('#quotesView'), dv = $('#dividendsView'), av = $('#activeView');
+  const qv = $('#quotesView'), dv = $('#dividendsView');
   if (qv) qv.classList.toggle('hidden', v !== 'quotes');
   if (dv) dv.classList.toggle('hidden', v !== 'dividends');
-  if (av) av.classList.toggle('hidden', v !== 'active');
-  // The Liquid/All segmented control filters companies on the quotes (and
-  // dividend) views; on the official most-traded panel it would be a dead
-  // control, so it is removed from the layout instead of doing nothing.
-  const vt = $('#viewToggle');
-  if (vt) vt.classList.toggle('hidden', v === 'active');
   $$('#mainTabs .main-tab').forEach((b) => {
     const active = b.dataset.mtab === v;
     b.classList.toggle('active', active);
@@ -614,7 +603,6 @@ function setMainView(v) {
   });
   updateToggleLabels();
   if (v === 'dividends' && !dividendsCache) loadDividends();
-  if (v === 'active') renderActiveTable();
 }
 
 // ---- DIVIDENDS VIEW ----
@@ -1291,7 +1279,7 @@ function renderSidebar() {
   // Rendering with an empty lookup first would paint monogram tiles and blank
   // names, then swap to the real logos/names — a visible flicker.
   if (!moversCache || !quotesCache.length) {
-    for (const id of ['gainersItems', 'losersItems']) {
+    for (const id of ['gainersItems', 'losersItems', 'tradedItems']) {
       const el = $(`#${id}`);
       if (el) el.innerHTML = `<div class="side-item"><div class="si-left"><span class="muted" style="font-size:12px">${esc(t('loading'))}</span></div></div>`;
     }
@@ -1299,8 +1287,7 @@ function renderSidebar() {
   }
   renderSidePanel('gainersItems', moversCache.winners || [], 'winners');
   renderSidePanel('losersItems', moversCache.losers || [], 'losers');
-  // The Најтргувани tab may already be open when a fresh movers payload lands.
-  if (mainView === 'active') renderActiveTable();
+  renderSidePanel('tradedItems', moversCache.mostTraded || [], 'traded');
 }
 
 // Symbol → quote lookup for name/logo enrichment of movers rows.
@@ -1323,93 +1310,50 @@ async function loadMovers() {
 
 function renderSidePanel(containerId, items, kind) {
   const el = $(`#${containerId}`);
+  if (!el) return;
   el.innerHTML = '';
-  if (!items.length) {
+  // The rail shows the panel's head, not a scrollable copy of it: four rows fit
+  // a 320px column beside the table, and the card then has no inner scroller to
+  // fight the rail's own.
+  const RAIL_ROWS = 4;
+  const shown = items.slice(0, RAIL_ROWS);
+  if (!shown.length) {
     const emptyTxt = kind === 'winners' ? t('movers_empty_winners')
       : kind === 'losers' ? t('movers_empty_losers')
         : t('movers_empty_active');
     el.innerHTML = `<div class="side-item"><div class="si-left"><span class="muted" style="font-size:12px">${esc(emptyTxt)}</span></div></div>`;
     return;
   }
-  for (const r of items) {
+  for (const r of shown) {
     const q = moversLookup[r.symbol] || {};
     const name = r.name || q.name || '';
     const site = r.site || q.site;
     const fav = r.fav != null ? r.fav : q.fav;
     const favv = r.favv != null ? r.favv : q.favv;
-    const price = r.avgPrice != null ? r.avgPrice : r.lastPrice;
+    // Winners/losers quote the official panel's average price; the most-traded
+    // panel is about size, so its number is the turnover and the change sits
+    // under it.
+    const big = kind === 'traded'
+      ? (r.value != null ? `${fmtInt(r.value)}<span class="u-sm"> MKD</span>` : '—')
+      : fmt(r.avgPrice != null ? r.avgPrice : r.lastPrice);
     const div = document.createElement('div');
     div.className = 'side-item';
     div.dataset.sym = r.symbol;
     div.setAttribute('role', 'button');
     div.setAttribute('tabindex', '0');
-    div.setAttribute('aria-label', `${r.symbol}${name ? ' — ' + name : ''}`);
+    div.setAttribute('aria-label', `${r.symbol}${name ? ' — ' + name : ''}, ${kind === 'traded' ? fmtInt(r.value) + ' MKD' : fmt(r.avgPrice)}`
+      + (r.changePct != null ? ', ' + pctStr(r.changePct) : ''));
     div.innerHTML = `
       <div class="si-left">
         <div class="si-sym">${logoHTML(r.symbol, name, site, 22, fav, favv)}<span>${esc(r.symbol)}</span></div>
         <div class="si-name">${esc(name)}</div>
       </div>
-      <div class="si-spark"><canvas data-spark-side="${esc(r.symbol)}"></canvas></div>
       <div class="si-right">
-        <div class="si-price">${fmt(price)}</div>
+        <div class="si-price">${big}</div>
         <div class="si-chg ${pctClass(r.changePct)}">${r.changePct != null ? pctStr(r.changePct) : ''}</div>
       </div>`;
     el.appendChild(div);
   }
-  // Draw from THIS panel's canvases only. A document-wide lookup would always
-  // find the first panel's canvas, leaving the same symbol blank in the other
-  // panel (e.g. ТНБ in both "Најголеми добитници" and "Најтргувани").
-  // Uncached symbols are drawn later by redrawSparklines() once the batch
-  // history request lands.
-  for (const r of items) {
-    const cv = el.querySelector(`canvas[data-spark-side="${esc(r.symbol)}"]`);
-    if (cv && !cv.dataset.drawn && historyCache[r.symbol]) {
-      drawSparkSide(cv, r.symbol, r.changePct);
-    }
-  }
-}
-
-// ---- MOST TRADED VIEW --------------------------------------------------
-// The official MSE panel, moved out of the top strip into its own tab. Rows
-// keep the quotes-table contract (tr[data-sym] + tabindex + aria-label), so the
-// existing click/keyboard delegation opens the company sheet unchanged.
-function activeRows() {
-  if (!moversCache) return [];
-  const q = ($('#search').value || '').trim().toLowerCase();
-  return (moversCache.mostTraded || []).map((r) => {
-    const quote = moversLookup[r.symbol] || {};
-    return { ...r, name: r.name || quote.name || '', quote };
-  }).filter((r) => matchesQuery(r, q));
-}
-
-function renderActiveTable() {
-  const body = $('#activeBody');
-  if (!body) return;
-  const rows = activeRows();
-  if (!rows.length) {
-    const msg = moversCache ? t('at_empty') : t('loading');
-    body.innerHTML = `<tr><td colspan="6" class="muted" style="padding:24px;text-align:center">${esc(msg)}</td></tr>`;
-    return;
-  }
-  body.innerHTML = '';
-  rows.forEach((r, i) => {
-    const q = r.quote;
-    const site = r.site || q.site;
-    const fav = r.fav != null ? r.fav : q.fav;
-    const favv = r.favv != null ? r.favv : q.favv;
-    const tr = document.createElement('tr');
-    tr.dataset.sym = r.symbol;
-    tr.tabIndex = 0;
-    tr.setAttribute('aria-label', `${r.symbol}${r.name ? ' — ' + r.name : ''}, ${fmt(r.avgPrice)}, ${pctStr(r.changePct)}${r.value != null ? ', ' + fmtInt(r.value) + ' MKD' : ''}`);
-    tr.innerHTML = `
-      <td class="num at-rank">${i + 1}</td>
-      <td class="sym"><div class="sym-inner">${starBtnHTML(r.symbol)}${logoHTML(r.symbol, r.name, site, 22, fav, favv)}<span class="sym-text">${esc(r.symbol)}</span></div></td>
-      <td class="at-name">${esc(r.name)}</td>
-      <td class="num">${fmt(r.avgPrice)}</td>
-      <td class="num ${pctClass(r.changePct)}"><span class="chg-pill">${r.changePct != null ? pctStr(r.changePct) : '—'}</span></td>
-      <td class="num">${r.value != null ? fmtInt(r.value) + '<span class="u-sm"> MKD</span>' : '—'}</td>`;
-    body.appendChild(tr);
-  });
 }
 
 async function drawSparkSide(canvas, symbol, chgPct) {
@@ -2317,7 +2261,6 @@ $('#search').addEventListener('input', () => {
   searchDebounce = setTimeout(() => {
     renderTable();
     if (dividendsCache) renderDivTable();
-    if (mainView === 'active') renderActiveTable();
   }, 180);
 });
 // Watchlist collapse (mobile): ★ bar toggles the chips row. Default
@@ -2332,6 +2275,28 @@ $('#watchToggle').addEventListener('click', () => {
   syncWatchAria();
 });
 if (window.matchMedia('(max-width: 839px)').matches) watchStripEl.classList.add('collapsed');
+
+// ---- RAIL PLACEMENT -------------------------------------------------------
+// From 1320px (the width the rail column appears at) the watchlist is the first
+// card of the right rail; below it the
+// same strip stays above the table, where a phone user looks for their own
+// tickers. One element moved, never duplicated — renderWatchStrip writes into
+// whichever container the strip currently lives in.
+const RAIL_MQ = window.matchMedia('(min-width: 1320px)');
+function syncRailLayout() {
+  const body = document.getElementById('watchBody');
+  const main = document.querySelector('.main-panel');
+  const header = document.querySelector('.main-panel .panel-header');
+  if (!watchStripEl || !body || !main) return;
+  if (RAIL_MQ.matches) {
+    if (watchStripEl.parentElement !== body) body.appendChild(watchStripEl);
+  } else if (watchStripEl.parentElement !== main) {
+    main.insertBefore(watchStripEl, header ? header.nextSibling : main.firstChild);
+  }
+}
+if (RAIL_MQ.addEventListener) RAIL_MQ.addEventListener('change', syncRailLayout);
+else if (RAIL_MQ.addListener) RAIL_MQ.addListener(syncRailLayout);
+syncRailLayout();
 // A rotation (or a dragged window) across 600px while the sheet is open leaves
 // the chart at its creation height; re-apply it rather than keeping a 220px
 // chart in a wide card or a 360px one on a phone.
@@ -2643,7 +2608,6 @@ $('#themeToggle').addEventListener('click', () => {
     if (ba) { ba.classList.add('active'); ba.setAttribute('aria-pressed', 'true'); }
   }
   if (mainView === 'dividends') setMainView('dividends');
-  else if (mainView === 'active') setMainView('active');
   syncHeaderIndicators();
   renderWatchStrip();
   registerSW();

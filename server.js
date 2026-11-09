@@ -79,8 +79,10 @@ const TOPBAR_HTML = `<header class="topbar">
       <span class="brand-sub">Македонска берза во живо</span>
     </div>
   </a>
-  <div class="topbar-right">
+  <nav class="topnav" aria-label="Главна навигација">
     <a class="topbar-link" href="/prasanja">Прашања</a>
+  </nav>
+  <div class="topbar-right">
     <button type="button" class="market-status" id="marketStatus" aria-live="polite">—</button>
     <button type="button" id="mbiChip">MBI10</button>
     <button type="button" id="fxChip">€ — · <span class="fx-usd">$ —</span></button>
@@ -115,7 +117,7 @@ function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd
 <!-- Material Symbols variable font (display=block: icon ligature text is hidden
      until the font loads, so late font loading can never reflow the layout) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
-<link rel="stylesheet" href="/styles.css?v=7.38" />
+<link rel="stylesheet" href="/styles.css?v=7.43" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${esc(canonical)}" />
