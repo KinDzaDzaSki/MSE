@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "preview": "node scripts/preview.js",
+    "smoke": "node scripts/smoke.js",
     "cleanup": "node scripts/cleanup-noprice.js",
     "icons": "node scripts/gen-icons.js"
   },
