@@ -1312,11 +1312,12 @@ function renderSidePanel(containerId, items, kind) {
   const el = $(`#${containerId}`);
   if (!el) return;
   el.innerHTML = '';
-  // The rail shows the panel's head, not a scrollable copy of it: four rows fit
-  // a 320px column beside the table, and the card then has no inner scroller to
-  // fight the rail's own.
-  const RAIL_ROWS = 4;
-  const shown = items.slice(0, RAIL_ROWS);
+  // Winners/losers are short by nature (MSE publishes 4 and 3 today), so four
+  // slots cover them. The most-traded panel has ten and we were showing four —
+  // all ten are rendered now, and the card scrolls inside itself (see
+  // .rail #tradedItems) so the rail keeps its own height.
+  const RAIL_ROWS = { winners: 4, losers: 4, traded: 10 };
+  const shown = items.slice(0, RAIL_ROWS[kind] || 4);
   if (!shown.length) {
     const emptyTxt = kind === 'winners' ? t('movers_empty_winners')
       : kind === 'losers' ? t('movers_empty_losers')

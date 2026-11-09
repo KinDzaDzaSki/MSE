@@ -738,6 +738,19 @@ body.has-ad .ad-rail {
 }
 .rail .side-items { overflow: visible; }
 .rail .side-item { grid-template-columns: minmax(0, 1fr) auto; min-height: 44px; }
+/* The most-traded panel renders all ten rows; five fit the column and the rest
+   scroll here instead of pushing the rail past the fold. */
+.rail #tradedItems {
+  max-height: calc(var(--side-row-h) * 5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.rail #tradedItems::-webkit-scrollbar { width: 6px; }
+.rail #tradedItems::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline-variant);
+  border-radius: 3px;
+}
 .rail .side-item .si-spark { display: none; }
 .rail .rail-note {
   margin: 0;

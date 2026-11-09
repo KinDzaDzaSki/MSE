@@ -117,7 +117,7 @@ function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd
 <!-- Material Symbols variable font (display=block: icon ligature text is hidden
      until the font loads, so late font loading can never reflow the layout) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
-<link rel="stylesheet" href="/styles.css?v=7.43" />
+<link rel="stylesheet" href="/styles.css?v=7.44" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${esc(canonical)}" />
@@ -466,6 +466,22 @@ async function handleApi(req, res, url) {
     }
   }
 
+  if (url.pathname === '/api/cron/backfill') {
+    // The daily bars. Nothing scheduled this before, so every symbol's history
+    // froze at the last manual run while quotes kept polling — the cards drew a
+    // chart weeks behind their own price. Budgeted + cursor in meta: one run
+    // usually covers all symbols, a slow one resumes on the next invocation.
+    const secret = process.env.CRON_SECRET;
+    if (secret && req.headers['authorization'] !== `Bearer ${secret}`) {
+      return sendJson(res, { error: 'forbidden' }, 403);
+    }
+    try {
+      return sendJson(res, { ok: true, ...(await store.dailyBackfillStep({ budgetMs: 9000 })) }, 200, req, 0);
+    } catch (e) {
+      return sendJson(res, { error: e.message }, 500);
+    }
+  }
+
   if (url.pathname === '/api/cron/deep-history') {
     // One-time migration to MSE's full history (see store.deepBackfillStep).
     // Bounded per run so it fits a function timeout; it resumes from meta.
@@ -474,7 +490,12 @@ async function handleApi(req, res, url) {
       return sendJson(res, { error: 'forbidden' }, 403);
     }
     try {
-      return sendJson(res, { ok: true, ...(await store.deepBackfillStep({ budgetMs: 9000 })) }, 200, req, 0);
+      // Symbols first (the long walk back to 2001), then the index years —
+      // MBI10/OMB only had the current + previous year, which is why the index
+      // card's «Сите» started at Jan of last year.
+      const symbols = await store.deepBackfillStep({ budgetMs: 6000 });
+      const indices = await store.deepIndexBackfillStep({ budgetMs: 3000 });
+      return sendJson(res, { ok: true, symbols, indices }, 200, req, 0);
     } catch (e) {
       return sendJson(res, { error: e.message }, 500);
     }
