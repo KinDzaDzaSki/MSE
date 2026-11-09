@@ -3034,6 +3034,13 @@ body.modal-open { overflow: hidden; }
    Wrap instead — ticker + star, then the whole name · ISIN, then price and
    change — so no item is shrunk below its own text. */
 @media (max-width: 599px) {
+  /* The sheet's top band was 56px of nothing but clearance for the fixed ✕ —
+     measured 63px from the sheet edge to the logo on a 390px screen. On phones
+     the identity row's first line is only mark + ticker + ★, so the ✕ can float
+     beside it instead of above it: 34px of padding, and the ★ keeps 64px clear
+     on its right so the two tap targets sit 12px apart. */
+  .modal-card { padding-top: calc(34px + env(safe-area-inset-top, 0px)); }
+  .c-id-row .star-btn { margin-left: auto; margin-right: 64px; }
   /* 360px of chart in a 390px card is almost the whole first screen. The
      library writes its own height (see cardChartHeight() in app.js); this
      keeps the box from reserving the desktop height underneath it. */
