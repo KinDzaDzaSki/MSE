@@ -3038,6 +3038,40 @@ body.modal-open { overflow: hidden; }
      library writes its own height (see cardChartHeight() in app.js); this
      keeps the box from reserving the desktop height underneath it. */
   .chart-box { min-height: 220px; }
+  /* The sheet is `min-height: 100dvh` with a `1fr` middle row, so a 220px chart
+     left ~200px of the card pooled as blank space under the legend while the
+     date lines stayed pinned to the screen bottom (REPL: chart ends at 551,
+     the foot at 761). Give that height to the chart instead — the panel, its
+     section and the box grow, the foot returns to sitting under the content,
+     and the box is capped so a phone never gets a desk-sized plot. */
+  .card-main { flex: 1 1 auto; min-height: 0; }
+  #finTabChart:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  #finTabChart #chartSection {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  #finTabChart #companyChart { flex: 1 1 auto; max-height: 480px; }
+  /* …but the slack only belongs to the chart. On every other tab (the ledger,
+     the financial tables) a stretched middle row is just a hole: the rail ends
+     at 568 and the foot sits at 761. So the card is compact by default — rows
+     sized to their content, `align-content: start` or the auto rows stretch
+     back — and only the chart turns the 1fr row on, via :has() (no parent
+     selector otherwise). Without :has() the card stays compact everywhere,
+     which degrades to a shorter chart, not to a hole. */
+  .modal-card {
+    grid-template-rows: auto min-content auto;
+    align-content: start;
+  }
+  .modal-card:has(#finTabChart:not(.hidden)) {
+    grid-template-rows: auto minmax(min-content, 1fr) auto;
+  }
   .c-id-row { flex-wrap: wrap; row-gap: 2px; }
   .c-id-row .star-btn { flex: 0 0 auto; order: 2; margin-left: auto; }
   .c-id-row .c-name {
