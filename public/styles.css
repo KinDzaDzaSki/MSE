@@ -846,7 +846,6 @@ body.has-ad .ad-rail {
   #watchCard { display: flex; }
 }
 
-
 /* ==========================================================================
    TOOLBAR
    ========================================================================== */
@@ -2021,39 +2020,6 @@ table.quotes.active-table {
   letter-spacing: 0.3px;
   transition: all var(--md-motion-duration-short-2) var(--md-motion-easing-standard);
 }
-/* Range control + the real/nominal toggle sit on one line above the chart. */
-.chart-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
-.chart-tools .range-btns { margin-bottom: 0; }
-.real-btn {
-  border: 1px solid var(--md-sys-color-outline);
-  background: transparent;
-  color: var(--md-sys-color-on-surface-variant);
-  padding: 7px 13px;
-  border-radius: var(--md-shape-small);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  cursor: pointer;
-  transition: background-color 120ms linear, color 120ms linear, border-color 120ms linear;
-}
-.real-btn:hover { background: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface); }
-.real-btn.active {
-  background: var(--md-sys-color-primary);
-  border-color: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
-}
-.real-btn.loading { opacity: 0.6; pointer-events: none; }
-/* The explanation for Реално, shown under the chart tools while it is on. */
-.real-hint {
-  margin: 10px 0 14px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--md-sys-color-on-surface-variant);
-  border-left: 2px solid var(--md-sys-color-primary);
-  padding-left: 8px;
-}
-
 
 .range-btns button:hover {
   color: var(--md-sys-color-on-surface);
