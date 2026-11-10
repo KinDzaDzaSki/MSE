@@ -1196,7 +1196,7 @@ function macroCard(sp) {
   const l = sp.latest || {};
   const chg = l.chg == null ? null : (l.chg >= 0 ? '+' : '') + mkNum(l.chg, sp.decimals);
   const dir = l.chg == null ? '' : l.chg >= 0 ? 'up' : 'down';
-  const unit = sp.unit === 'MKD' ? 'ден.' : '%';
+  const unit = sp.unit === 'MKD' ? ' ден.' : ' %';
   return '<article class="mcard">'
     + '<div class="mcard-head"><h2>' + esc(sp.label) + '</h2><span class="mcard-freq">' + (sp.freq === 'Q' ? 'тримесечно' : 'месечно') + '</span></div>'
     + '<div class="mcard-val">' + mkNum(l.v, sp.decimals) + '<span class="mcard-unit">' + unit + '</span></div>'
@@ -1208,36 +1208,69 @@ function macroCard(sp) {
     + '</article>';
 }
 
-// Nominal vs real: MBI10 over the last 12 months, deflated by CPI. `levels` is
-// anchored at the first published month, so only the ratio inside that window
-// matters.
-function realReturn(mbiRows, levels) {
-  if (!mbiRows || mbiRows.length < 30 || !levels.size) return null;
-  const rows = mbiRows.slice().sort((a, b) => (a.date < b.date ? -1 : 1));
-  const last = rows[rows.length - 1];
-  const lastTs = new Date(last.date).getTime();
-  let base = null;
-  for (let i = rows.length - 1; i >= 0; i--) {
-    if (lastTs - new Date(rows[i].date).getTime() >= 360 * 24 * 3600 * 1000) { base = rows[i]; break; }
-  }
-  if (!base || !base.last) return null;
-  const nominal = last.last / base.last - 1;
-  const monthKey = (d) => {
-    const dt = new Date(d);
-    return dt.getUTCFullYear() + 'M' + String(dt.getUTCMonth() + 1).padStart(2, '0');
-  };
-  const mLast = monthKey(last.date);
-  const bits = mLast.split('M');
-  const lNow = levels.get(mLast);
-  const lPrev = levels.get((Number(bits[0]) - 1) + 'M' + bits[1]);
-  if (lNow == null || lPrev == null) return null;
-  const infl = lNow / lPrev - 1;
-  return { from: base.date, to: last.date, nominal, infl, real: (1 + nominal) / (1 + infl) - 1 };
+// MSE history dates arrive as M/D/YYYY; CPI periods are YYYYMmm. Both are
+// handled here once, because guessing wrong silently produced a broken
+// "— → —" note and an inflation figure from the wrong month.
+function parseDay(value) {
+  const str = String(value || '').trim();
+  let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str);
+  if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(str);
+  if (m) return new Date(Date.UTC(+m[3], +m[1] - 1, +m[2]));
+  m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(str);
+  if (m) return new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
 }
 
-function dmy(iso) {
-  const p = String(iso || '').split('-');
-  return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : '—';
+function periodOf(dateStr) {
+  const d = parseDay(dateStr);
+  return d ? d.getUTCFullYear() + 'M' + String(d.getUTCMonth() + 1).padStart(2, '0') : null;
+}
+
+// CPI is published a month or two behind the exchange. Walk back to the newest
+// month that actually exists rather than returning nothing.
+function levelAt(levels, period) {
+  if (!period) return null;
+  const parts = period.split('M');
+  let y = Number(parts[0]);
+  let m = Number(parts[1]);
+  for (let i = 0; i < 36; i++) {
+    const hit = levels.get(y + 'M' + String(m).padStart(2, '0'));
+    if (hit != null) return hit;
+    m -= 1;
+    if (m === 0) { m = 12; y -= 1; }
+  }
+  return null;
+}
+
+function dmy(value) {
+  const d = parseDay(value);
+  if (!d) return '—';
+  return String(d.getUTCDate()).padStart(2, '0') + '.' + String(d.getUTCMonth() + 1).padStart(2, '0') + '.' + d.getUTCFullYear();
+}
+
+function realReturn(mbiRows, levels) {
+  if (!mbiRows || mbiRows.length < 30 || !levels.size) return null;
+  const rows = mbiRows.slice().sort((a, b) => (String(a.date) < String(b.date) ? -1 : 1));
+  const last = rows[rows.length - 1];
+  const lastTs = parseDay(last.date);
+  if (!lastTs) return null;
+  let base = null;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const ts = parseDay(rows[i].date);
+    if (ts && lastTs - ts >= 360 * 24 * 3600 * 1000) { base = rows[i]; break; }
+  }
+  if (!base || !base.last || !last.last) return null;
+
+  const nominal = last.last / base.last - 1;
+  const nowPeriod = periodOf(last.date);
+  const thenPeriod = periodOf(base.date);
+  const lNow = levelAt(levels, nowPeriod);
+  const lThen = levelAt(levels, thenPeriod);
+  if (lNow == null || lThen == null) return null;
+  const infl = lNow / lThen - 1;
+  return { from: base.date, to: last.date, nominal, infl, real: (1 + nominal) / (1 + infl) - 1, cpiPeriod: nowPeriod };
 }
 
 async function renderMacroPage() {
@@ -1259,7 +1292,7 @@ async function renderMacroPage() {
     + '<div class="mh-item"><span>Инфлација (CPI)</span><strong>' + sign(rr.infl * 100) + '</strong></div>'
     + '<div class="mh-item mh-real"><span>Реален принос</span><strong class="' + (rr.real >= 0 ? 'up' : 'down') + '">' + sign(rr.real * 100) + '</strong></div>'
     + '</div>'
-    + '<p class="macro-hero-note">' + dmy(rr.from) + ' → ' + dmy(rr.to) + ' · индексот и CPI, двете во истиот период</p>'
+    + '<p class="macro-hero-note">' + dmy(rr.from) + ' → ' + dmy(rr.to) + ' · CPI за ' + periodLabel(rr.cpiPeriod) + ' (последен објавен)</p>'
     + '</section>' : '';
 
   const cards = ['cpi', 'gdp', 'ipi', 'wage']
