@@ -26,6 +26,11 @@ let quotesCache = [];
 let moversCache = null;    // { winners, losers, mostTraded } — official MSE homepage panels
 let sparkCache = {};
 let historyCache = {};    // symbol -> {rows, range}
+// Real/nominal chart state — module scope so it survives closing the modal
+// and the CPI level map is fetched once per page load, not per card.
+let realMode = false;
+let cpiLevels = null;
+let realBase = null;
 let headerSortCol = 'value';
 let headerSortDir = 'desc';
 
@@ -139,6 +144,8 @@ const I18N = {
       range_6m: '6M',
       range_1y: '1Y',
       range_all: 'All',
+      real: 'Real',
+      real_suffix: 'real, CPI {x}%',
       range_52w: '52w Position',
       as_of: 'As of',
       eod_note: 'end-of-day data (latest trading session)',
@@ -288,6 +295,8 @@ const I18N = {
       range_6m: '6М',
       range_1y: '1Г',
       range_all: 'Сите',
+      real: 'Реално',
+      real_suffix: 'реално, инфлација {x}%',
       range_52w: '52н Позиција',
       as_of: 'За',
       eod_note: 'податоци на крај на ден (последната трговска сесија)',
@@ -1491,12 +1500,15 @@ async function openCompany(symbol) {
         <div class="chart-chg" id="chartChg"></div>
         <div class="chart-period" id="chartPeriod"></div>
       </div>
-      <div class="range-btns" id="rangeBtns">
-        <button data-r="1M">${t('range_1m')}</button>
-        <button data-r="3M">${t('range_3m')}</button>
-        <button data-r="6M">${t('range_6m')}</button>
-        <button class="active" data-r="1Y">${t('range_1y')}</button>
-        <button data-r="ALL">${t('range_all')}</button>
+      <div class="chart-tools">
+        <div class="range-btns" id="rangeBtns">
+          <button data-r="1M">${t('range_1m')}</button>
+          <button data-r="3M">${t('range_3m')}</button>
+          <button data-r="6M">${t('range_6m')}</button>
+          <button class="active" data-r="1Y">${t('range_1y')}</button>
+          <button data-r="ALL">${t('range_all')}</button>
+        </div>
+        <button class="real-btn" id="realToggle" type="button" aria-pressed="false" title="${t('real')}">${t('real')}</button>
       </div>
       <div class="chart-box" id="companyChart"></div>
       <div class="chart-legend-note" id="chartLegend"></div>`;
@@ -1543,6 +1555,43 @@ async function openCompany(symbol) {
     // explains everything. Data is daily EOD bars (one point per session).
     let chart, volSeries, runSeries = [], priceLineHost = null, lastLine;
 
+    // ---- real (inflation-adjusted) chart -----------------------------------
+    // /api/macro carries CPI as year-on-year, so the price level is chained the
+    // same way the server does it: level[m] = level[m-12] × (1 + yoy/100), then
+    // rebased to 100 at the first published month. A date outside that window
+    // (CPI starts 2015) simply stays nominal.
+    const ensureCpiLevels = async () => {
+      if (cpiLevels) return cpiLevels;
+      try {
+        const res = await fetch('/api/macro');
+        const d = await res.json();
+        const rows = d && d.series && d.series.cpi && d.series.cpi.rows;
+        if (!rows || rows.length < 13) return null;
+        const lv = new Map();
+        for (const r of rows) {
+          const parts = String(r.p).split('M');
+          const prev = lv.get((Number(parts[0]) - 1) + 'M' + parts[1]);
+          lv.set(r.p, prev == null ? 100 : prev * (1 + r.v / 100));
+        }
+        const base = lv.get(rows[0].p) || 100;
+        for (const [k, v] of lv) lv.set(k, (v / base) * 100);
+        cpiLevels = lv;
+      } catch (e) { cpiLevels = null; }
+      return cpiLevels;
+    };
+
+    const cpiAt = (dateLike) => {
+      if (!cpiLevels) return null;
+      const d = new Date(dateLike);
+      let y = d.getUTCFullYear(), m = d.getUTCMonth() + 1;
+      for (let i = 0; i < 36; i++) {
+        const hit = cpiLevels.get(y + 'M' + String(m).padStart(2, '0'));
+        if (hit != null) return hit;
+        m -= 1; if (m === 0) { m = 12; y -= 1; }
+      }
+      return null;
+    };
+
     // Header + period stats — rendered even when the chart lib is unavailable.
     const renderChartHeader = (range, lineData) => {
       const lastClose = lineData.length ? lineData[lineData.length - 1].value : null;
@@ -1561,7 +1610,16 @@ async function openCompany(symbol) {
       if (avgLb) avgLb.textContent = `${t('avg_price')} · ${t('range_' + range.toLowerCase()) || range}`;
       const rangeLabel = { '1M': t('period_1m'), '3M': t('period_3m'), '6M': t('period_6m'), '1Y': t('period_1y'), 'ALL': t('period_all') }[range] || range;
       const periodTxt = `${rangeLabel} · ${lineData.length ? fmtDate(lineData[0].time * 1000) + ' – ' + fmtDate(lineData[lineData.length - 1].time * 1000) : ''}`;
-      $('#chartPeriod').textContent = periodTxt;
+      let periodOut = periodTxt;
+      if (realMode && cpiLevels && lineData.length) {
+        const l0 = cpiAt(lineData[0].time * 1000);
+        const l1 = cpiAt(lineData[lineData.length - 1].time * 1000);
+        if (l0 && l1) {
+          const infl = (l1 / l0 - 1) * 100;
+          periodOut += ' · ' + t('real_suffix').replace('{x}', (infl >= 0 ? '+' : '') + infl.toFixed(1));
+        }
+      }
+      $('#chartPeriod').textContent = periodOut;
       const footPeriod = $('#footPeriod');
       if (footPeriod) footPeriod.textContent = periodTxt;
       if (lineData.length) {
@@ -1582,16 +1640,28 @@ async function openCompany(symbol) {
       else if (range === '1Y') rows = rows.slice(-252);
       const histLast = rows.length ? rows[rows.length - 1].last : null;
       const factor = (histLast && q.lastPrice && histLast !== q.lastPrice) ? q.lastPrice / histLast : 1;
+      realBase = null;
 
       const lineData = [];
       const volData = [];
       for (let i = 0; i < rows.length; i++) {
         const x = rows[i];
         const ts = Math.floor(new Date(x.date).getTime() / 1000);
-        const close = (x.last != null ? x.last : 0) * factor;
-        const open = (i === 0 ? close : (rows[i - 1].last != null ? rows[i - 1].last : 0) * factor);
+        const nominal = (x.last != null ? x.last : 0) * factor;
+        const open = (i === 0 ? nominal : (rows[i - 1].last != null ? rows[i - 1].last : 0) * factor);
         const prevClose = i > 0 ? rows[i - 1].last : null;
         const ref = prevClose != null ? prevClose * factor : open;
+        // In real mode every close is expressed in the money of the range's
+        // first month, so the line answers "what did the price do after
+        // inflation", not "what did the basket cost".
+        let close = nominal;
+        if (realMode && cpiLevels) {
+          const lv = cpiAt(x.date);
+          if (lv != null) {
+            if (realBase == null) realBase = lv;
+            close = nominal * (realBase / lv);
+          }
+        }
         lineData.push({ time: ts, value: close });
         volData.push({ time: ts, value: x.volume || 0, color: close >= ref ? 'rgba(22,199,132,0.5)' : 'rgba(234,57,67,0.5)' });
       }
@@ -1712,6 +1782,25 @@ async function openCompany(symbol) {
         draw(b.dataset.r);
       })
     );
+
+    const realBtn = $('#realToggle');
+    if (realBtn) {
+      realBtn.classList.toggle('active', realMode);
+      realBtn.setAttribute('aria-pressed', String(realMode));
+      realBtn.addEventListener('click', async () => {
+        realMode = !realMode;
+        realBtn.classList.toggle('active', realMode);
+        realBtn.setAttribute('aria-pressed', String(realMode));
+        if (realMode) {
+          realBtn.classList.add('loading');
+          await ensureCpiLevels();
+          realBtn.classList.remove('loading');
+          if (!cpiLevels) realBtn.title = 'CPI unavailable';
+        }
+        const on = $('#rangeBtns button.active');
+        draw(on ? on.dataset.r : '1Y');
+      });
+    }
     modal._chart = chart;
   } catch (e) {
     content.innerHTML = `<div class="down">${t('failed')}</div>`;

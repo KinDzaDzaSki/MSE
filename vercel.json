@@ -13,6 +13,10 @@
       "schedule": "0 17 * * 1-5"
     },
     {
+      "path": "/api/cron/macro",
+      "schedule": "0 5 * * 1"
+    },
+    {
       "path": "/api/cron/deep-history",
       "schedule": "0 3 * * *"
     },

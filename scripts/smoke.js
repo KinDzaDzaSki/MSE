@@ -205,10 +205,21 @@ async function crawl() {
     `${hasSitemap ? 'Sitemap line' : 'NO Sitemap line'}, ${blocksApi ? 'blocks /api/' : 'does not block /api/'}`, robots.ms);
 }
 
+async function macroSeries() {
+  const { res, body, ms } = await get('/api/macro');
+  let d = null;
+  try { d = JSON.parse(body); } catch (e) { /* handled below */ }
+  const s = (d && d.series) || {};
+  const keys = ['cpi', 'gdp', 'ipi', 'wage'];
+  const have = keys.filter((k) => s[k] && s[k].rows && s[k].rows.length > 12);
+  const latest = have.length ? have.map((k) => `${k} ${s[k].latest.p}=${s[k].latest.v}`).join(', ') : 'no series';
+  check('GET /api/macro', res.status === 200 && have.length >= 3, latest, ms);
+}
+
 async function pages() {
   for (const [path, needle] of [
     ['/prasanja', 'Прашања'], ['/za-nas', null], ['/metodologija', null], ['/izvor-na-podatoci', null],
-    ['/kursna-lista', null], ['/sitemap', null], ['/widgets.html', null], ['/s/KMB', 'Komercijalna'],
+    ['/kursna-lista', null], ['/makro', 'Макро показатели'], ['/sitemap', null], ['/widgets.html', null], ['/s/KMB', 'Komercijalna'],
   ]) {
     const { res, body, ms } = await get(path);
     if (res.status === 404 && IS_PREVIEW) { skip(`GET ${path}`, 'the preview proxies pages to the live origin'); continue; }
@@ -258,7 +269,7 @@ async function negatives() {
   const t0 = Date.now();
   const steps = [version, shell, quotes, indices, movers, sparks,
     () => history('KMB', '1Y', 20), () => history('KMB', 'ALL', 60), indexDepth,
-    miscApi, crawl, pages, assets, negatives];
+    miscApi, macroSeries, crawl, pages, assets, negatives];
   for (const step of steps) {
     try { await step(); } catch (e) { fail('check threw', e.message); }
   }

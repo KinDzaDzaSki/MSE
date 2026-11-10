@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const store = require('./lib/store');
+const macroLib = require('./lib/macro');
 const db = require('./lib/db');
 const log = require('./lib/logger');
 const { getFX, getFXList } = require('./lib/fx');
@@ -80,6 +81,7 @@ const TOPBAR_HTML = `<header class="topbar">
     </div>
   </a>
   <nav class="topnav" aria-label="Главна навигација">
+    <a class="topbar-link" href="/makro">Макро</a>
     <a class="topbar-link" href="/prasanja">Прашања</a>
   </nav>
   <div class="topbar-right">
@@ -117,7 +119,7 @@ function pageShell({ title, description, canonical, h1, h1Html, bodyHtml, jsonLd
 <!-- Material Symbols variable font (display=block: icon ligature text is hidden
      until the font loads, so late font loading can never reflow the layout) -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
-<link rel="stylesheet" href="/styles.css?v=7.45" />
+<link rel="stylesheet" href="/styles.css?v=7.46" />
 <meta property="og:site_name" content="MSE Berza" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${esc(canonical)}" />
@@ -150,6 +152,34 @@ ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script
      .cta on specificity and would recolor the button text link-blue — nearly
      identical to the primary bg in both themes, i.e. unreadable. */
   .cta:hover { color: var(--md-sys-color-on-primary); text-decoration: none; }
+  /* ---- /makro ---- */
+  .macro-hero { border: 1px solid var(--md-sys-color-outline-variant); border-radius: 14px; padding: 16px 18px; background: var(--md-sys-color-surface-variant); display: flex; flex-direction: column; gap: 10px; }
+  .macro-hero h2 { margin: 0; font-size: 15px; letter-spacing: .01em; }
+  .macro-hero-lead { margin: 0; font-size: 13px; line-height: 1.5; color: var(--md-sys-color-on-surface-variant); max-width: 62ch; }
+  .macro-hero-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .mh-item { display: flex; flex-direction: column; gap: 4px; }
+  .mh-item > span { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--md-sys-color-on-surface-variant); }
+  .mh-item > strong { font-size: 24px; line-height: 1.1; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .mh-real { border-left: 2px solid var(--md-sys-color-outline-variant); padding-left: 14px; }
+  .macro-hero-note { margin: 0; font-size: 11px; color: var(--md-sys-color-on-surface-variant); }
+  /* Two up on narrow screens, four across from 760px — auto-fit gave 3+1
+     and left a hole under the last card at the page's real content width. */
+  .macro-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 4px; }
+  @media (min-width: 760px) { .macro-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .mcard { border: 1px solid var(--md-sys-color-outline-variant); border-radius: 14px; padding: 13px 15px 12px; display: flex; flex-direction: column; gap: 5px; }
+  .mcard-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .mcard-head h2 { margin: 0; font-size: 13px; font-weight: 700; line-height: 1.3; }
+  .mcard-freq { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--md-sys-color-on-surface-variant); }
+  .mcard-val { font-size: 25px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .mcard-unit { font-size: 12px; font-weight: 600; margin-left: 3px; color: var(--md-sys-color-on-surface-variant); }
+  .mcard-sub { font-size: 11px; color: var(--md-sys-color-on-surface-variant); font-variant-numeric: tabular-nums; }
+  .mcard-spark { width: 100%; height: 38px; color: var(--md-sys-color-primary); opacity: .85; }
+  .mcard-desc { margin: 0; font-size: 11px; line-height: 1.45; color: var(--md-sys-color-on-surface-variant); }
+  .macro-source { font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+  @media (max-width: 560px) {
+    .macro-hero-grid { grid-template-columns: 1fr 1fr; }
+    .mh-real { border-left: 0; padding-left: 0; }
+  }
 </style>
 
 <!-- Google tag (gtag.js) -->
@@ -168,7 +198,7 @@ ${TOPBAR_HTML}
 <h1>${h1Html || esc(h1)}</h1>
 ${bodyHtml}
 </main>
-<footer class="foot"><span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · <a href="/sitemap">Мапа на сајтот</a> · v${esc(PKG.version)}</footer>
+<footer class="foot"><span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/makro">Макро</a> · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · <a href="/sitemap">Мапа на сајтот</a> · v${esc(PKG.version)}</footer>
 <script src="/widget.js?v=12"></script>
 <script>if (window.W && W.initTopbar) W.initTopbar();</script>
 <!-- Vercel Web Analytics -->
@@ -496,6 +526,21 @@ async function handleApi(req, res, url) {
     }
   }
 
+  if (url.pathname === '/api/cron/macro') {
+    // Weekly: four MakStat tables, ~8s apart because the API 429s on bursts.
+    // The result is cached in meta['macro']; /api/macro and /makro read it.
+    const secret = process.env.CRON_SECRET;
+    if (secret && req.headers['authorization'] !== 'Bearer ' + secret) {
+      return sendJson(res, { error: 'forbidden' }, 403);
+    }
+    try {
+      const m = await store.refreshMacro();
+      return sendJson(res, { ok: true, series: Object.keys(m.series), errors: m.errors }, 200, req, 0);
+    } catch (e) {
+      return sendJson(res, { error: e.message }, 500);
+    }
+  }
+
   if (url.pathname === '/api/cron/deep-history') {
     // One-time migration to MSE's full history (see store.deepBackfillStep).
     // Bounded per run so it fits a function timeout; it resumes from meta.
@@ -576,6 +621,18 @@ async function handleApi(req, res, url) {
   if (url.pathname === '/api/market') {
     // Trading session state + hours + next non-trading day (for the popover).
     return sendJson(res, marketInfo(), 200, req, 300);
+  }
+
+  if (url.pathname === '/api/macro') {
+    // Macro series from MakStat, refreshed weekly by /api/cron/macro. Cached hard:
+    // the office publishes once a month, the client only needs it for the CPI
+    // deflation toggle and the /makro page.
+    try {
+      const m = await store.getMacro();
+      return sendJson(res, m || { series: {}, updatedAt: null }, 200, req, 3600, 1800);
+    } catch (e) {
+      return sendJson(res, { error: e.message }, 500);
+    }
   }
 
   if (url.pathname === '/api/version') {
@@ -1084,6 +1141,141 @@ async function renderFxListPage() {
   });
 }
 
+
+// ---- macro page (/makro) ---------------------------------------------------
+// The four MakStat series that make the exchange numbers mean something, plus
+// the one number nobody else in MK publishes: MBI10's return after inflation.
+const MK_MONTHS = ['јан.', 'фев.', 'мар.', 'апр.', 'мај', 'јун.', 'јул.', 'авг.', 'сеп.', 'окт.', 'ноем.', 'дек.'];
+
+function mkNum(n, dec = 1) {
+  if (n == null || isNaN(n)) return '—';
+  const neg = n < 0;
+  const parts = Math.abs(Number(n)).toFixed(dec).split('.');
+  return (neg ? '−' : '') + parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (dec ? ',' + parts[1] : '');
+}
+
+function periodLabel(p) {
+  const m = /^(\d{4})M(\d{2})$/.exec(String(p || ''));
+  if (m) return MK_MONTHS[Number(m[2]) - 1] + ' ' + m[1];
+  const q = /^(\d{4})T(\d)$/.exec(String(p || ''));
+  if (q) return ['I', 'II', 'III', 'IV'][Number(q[2]) - 1] + ' кв. ' + q[1];
+  return String(p || '—');
+}
+
+function macroSpark(rows) {
+  const pts = rows.slice(-60).map((r) => r.v);
+  if (pts.length < 2) return '';
+  const w = 132, h = 38, pad = 3;
+  const min = Math.min.apply(null, pts), max = Math.max.apply(null, pts);
+  const span = (max - min) || 1;
+  const d = pts.map((v, i) => {
+    const x = pad + (i * (w - 2 * pad)) / (pts.length - 1);
+    const y = h - pad - ((v - min) / span) * (h - 2 * pad);
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  });
+  return '<svg class="mcard-spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-hidden="true">'
+    + '<path d="M' + d.join(' L') + '" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" /></svg>';
+}
+
+function macroCard(sp) {
+  const l = sp.latest || {};
+  const chg = l.chg == null ? null : (l.chg >= 0 ? '+' : '') + mkNum(l.chg, sp.decimals);
+  const dir = l.chg == null ? '' : l.chg >= 0 ? 'up' : 'down';
+  const unit = sp.unit === 'MKD' ? 'ден.' : '%';
+  return '<article class="mcard">'
+    + '<div class="mcard-head"><h2>' + esc(sp.label) + '</h2><span class="mcard-freq">' + (sp.freq === 'Q' ? 'тримесечно' : 'месечно') + '</span></div>'
+    + '<div class="mcard-val">' + mkNum(l.v, sp.decimals) + '<span class="mcard-unit">' + unit + '</span></div>'
+    + '<div class="mcard-sub">' + periodLabel(l.p)
+    + (chg ? ' · <span class="' + dir + '">' + chg + (sp.unit === 'MKD' ? ' ден.' : ' п.п.') + '</span>' : '')
+    + '</div>'
+    + macroSpark(sp.rows)
+    + '<p class="mcard-desc">' + esc(sp.sub) + '</p>'
+    + '</article>';
+}
+
+// Nominal vs real: MBI10 over the last 12 months, deflated by CPI. `levels` is
+// anchored at the first published month, so only the ratio inside that window
+// matters.
+function realReturn(mbiRows, levels) {
+  if (!mbiRows || mbiRows.length < 30 || !levels.size) return null;
+  const rows = mbiRows.slice().sort((a, b) => (a.date < b.date ? -1 : 1));
+  const last = rows[rows.length - 1];
+  const lastTs = new Date(last.date).getTime();
+  let base = null;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    if (lastTs - new Date(rows[i].date).getTime() >= 360 * 24 * 3600 * 1000) { base = rows[i]; break; }
+  }
+  if (!base || !base.last) return null;
+  const nominal = last.last / base.last - 1;
+  const monthKey = (d) => {
+    const dt = new Date(d);
+    return dt.getUTCFullYear() + 'M' + String(dt.getUTCMonth() + 1).padStart(2, '0');
+  };
+  const mLast = monthKey(last.date);
+  const bits = mLast.split('M');
+  const lNow = levels.get(mLast);
+  const lPrev = levels.get((Number(bits[0]) - 1) + 'M' + bits[1]);
+  if (lNow == null || lPrev == null) return null;
+  const infl = lNow / lPrev - 1;
+  return { from: base.date, to: last.date, nominal, infl, real: (1 + nominal) / (1 + infl) - 1 };
+}
+
+function dmy(iso) {
+  const p = String(iso || '').split('-');
+  return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : '—';
+}
+
+async function renderMacroPage() {
+  let macro = null;
+  try { macro = await store.getMacro(); } catch (e) { log.warn('macro page: ' + e.message); }
+  const series = (macro && macro.series) || {};
+  const cpi = series.cpi || null;
+  const levels = cpi ? macroLib.cpiLevels(cpi.rows) : new Map();
+
+  let rr = null;
+  try { rr = realReturn((await store.getHistory('MBI10')) || [], levels); } catch (e) { log.warn('macro real return: ' + e.message); }
+
+  const sign = (v) => (v >= 0 ? '+' : '') + mkNum(v, 1) + '%';
+  const hero = rr ? '<section class="macro-hero" aria-label="MBI10 наспроти инфлацијата">'
+    + '<h2>MBI10 по инфлација</h2>'
+    + '<p class="macro-hero-lead">Колку вредел приносот на индексот откако ќе се одземе растот на цените — последните 12 месеци.</p>'
+    + '<div class="macro-hero-grid">'
+    + '<div class="mh-item"><span>Номинален принос</span><strong class="' + (rr.nominal >= 0 ? 'up' : 'down') + '">' + sign(rr.nominal * 100) + '</strong></div>'
+    + '<div class="mh-item"><span>Инфлација (CPI)</span><strong>' + sign(rr.infl * 100) + '</strong></div>'
+    + '<div class="mh-item mh-real"><span>Реален принос</span><strong class="' + (rr.real >= 0 ? 'up' : 'down') + '">' + sign(rr.real * 100) + '</strong></div>'
+    + '</div>'
+    + '<p class="macro-hero-note">' + dmy(rr.from) + ' → ' + dmy(rr.to) + ' · индексот и CPI, двете во истиот период</p>'
+    + '</section>' : '';
+
+  const cards = ['cpi', 'gdp', 'ipi', 'wage']
+    .map((k) => (series[k] && series[k].latest ? macroCard(series[k]) : ''))
+    .filter(Boolean)
+    .join('');
+
+  let updated = null;
+  if (macro && macro.updatedAt) {
+    const d = new Date(macro.updatedAt);
+    updated = d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
+  }
+
+  const bodyHtml = hero
+    + (cards
+      ? '<section class="macro-grid" aria-label="Макро показатели">' + cards + '</section>'
+      : '<p>Податоците од Државниот завод за статистика сè уште не се вчитани — освежувањето е еднаш неделно.</p>')
+    + '<p class="macro-source">Извор: <a href="https://makstat.stat.gov.mk/PXWeb/pxweb/mk/MakStat/" target="_blank" rel="noopener">Државен завод за статистика (MakStat)</a>'
+    + (updated ? ' · ажурирано ' + updated : '')
+    + ' · серијата се освежува неделно, објавувањето е месечно.</p>'
+    + '<p>Инфлацијата е годишна промена на трошоците на животот (ECOICOP, вкупно). БДП е реален раст по волуменски индекс. Индустриското производство е годишна промена на индексот (2021 = 100). Платата е просечна месечна нето-плата по вработен, во денари.</p>';
+
+  return pageShell({
+    title: 'Макро показатели: инфлација, БДП, плати | MSE Berza',
+    description: 'Инфлација, реален раст на БДП, индустриско производство и просечна нето-плата во Северна Македонија — и колку изнесува приносот на MBI10 по инфлација.',
+    canonical: SITE_URL + '/makro',
+    h1: 'Макро показатели',
+    bodyHtml,
+  });
+}
+
 const TRUST_PAGES = {
   '/za-nas': {
     title: 'За нас | MSE Berza',
@@ -1283,7 +1475,7 @@ function needsDb(pathname) {
 // Sitemap XML builder + cache. On a DB failure we serve the last good sitemap
 // (or the static pages) with a 200 — a crawler must never see an error here.
 function buildSitemapXml(symbols) {
-  const urls = ['/', '/widgets.html', '/prasanja', '/kursna-lista', '/za-nas', '/izvor-na-podatoci', '/metodologija', '/sitemap']
+  const urls = ['/', '/widgets.html', '/makro', '/prasanja', '/kursna-lista', '/za-nas', '/izvor-na-podatoci', '/metodologija', '/sitemap']
     .concat(symbols.map((s) => `/s/${s}`));
   return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     + urls.map((u) => `  <url><loc>${SITE_URL}${u}</loc></url>`).join('\n')
@@ -1366,6 +1558,18 @@ const server = http.createServer(async (req, res) => {
       return res.end(html);
     } catch (e) {
       log.error(`/kursna-lista: ${e.message}`);
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+      return res.end('error');
+    }
+  }
+
+  if (url.pathname === '/makro') {
+    try {
+      const html = await renderMacroPage();
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, s-maxage=1800' });
+      return res.end(html);
+    } catch (e) {
+      log.error('/makro: ' + e.message);
       res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
       return res.end('error');
     }
