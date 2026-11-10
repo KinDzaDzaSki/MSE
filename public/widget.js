@@ -21,10 +21,21 @@
     return r.json();
   };
 
-  // mk-MK everywhere: the dashboard and the server render 8.921,06 / -0,03%,
-  // and the topbar chips are shared by both, so en-US here read as a different
-  // number on every page that is not the dashboard.
-  W.fmt = (n, dec = 2) => (n == null || isNaN(n)) ? '—' : Number(n).toLocaleString('mk-MK', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  // Macedonian format (8.921,06 / -0,03%) built by hand. toLocaleString('mk-MK')
+  // looked right but is a trap: a browser without mk locale data (some Chrome
+  // builds, Android WebViews) silently falls back to en-US and prints
+  // 8,921.06 / -0.03%, which is exactly what the chips showed on content pages
+  // while the dashboard showed 8.921,06.
+  W.fmt = (n, dec = 2) => {
+    if (n == null || isNaN(n)) return '—';
+    const v = Number(n);
+    const fixed = Math.abs(v).toFixed(dec);
+    const dot = fixed.indexOf('.');
+    const int = dot < 0 ? fixed : fixed.slice(0, dot);
+    const frac = dot < 0 ? '' : fixed.slice(dot + 1);
+    const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return (v < 0 ? '-' : '') + grouped + (dec > 0 ? ',' + frac : '');
+  };
   W.pctStr = (v) => (v == null || isNaN(v)) ? '—' : (v >= 0 ? '+' : '') + W.fmt(v) + '%';
   W.pctClass = (v) => (v == null || isNaN(v)) ? '' : v > 0 ? 'up' : v < 0 ? 'down' : '';
 
@@ -204,7 +215,7 @@
           } else {
             // Current Skopje time, matching the dashboard — never the lastPoll
             // capture time (that would read "затворен · 13:57" hours later).
-            const time = new Date().toLocaleTimeString('mk-MK', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit' });
+            const time = new Date().toLocaleTimeString('en-GB', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit', hour12: false });
             st.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span><span class="ms-label"> Пазарот е затворен · ' + time + '</span>';
             st.className = 'market-status closed';
           }
