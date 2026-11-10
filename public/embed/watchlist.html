@@ -65,8 +65,39 @@
   .mo-row:hover { background: var(--md-sys-color-surface-variant); }
   .mo-row:focus-visible { outline: 2px solid var(--md-sys-color-primary); outline-offset: -2px; border-radius: 4px; }
 
-  .mo-sym { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .mo-logo { flex-shrink: 0; display: inline-flex; }
+  .mo-sym { display: flex; align-items: center; gap: 8px; min-width: 0; --mo-logo: 18px; }
+  /* Logos must all be ONE size. The source favicons are 42x50, 60x60, 101x37 …
+     and `.co-logo`'s own rules live in styles.css, which this embed never
+     loads — so without this the <img> fell back to its natural pixel size and
+     every row's tile was a different shape. Pin the tile, letterbox the image,
+     and reserve the same slot for index rows (no favicon) so the symbol column
+     still lines up. */
+  .mo-logo {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--mo-logo);
+    height: var(--mo-logo);
+  }
+  .mo-logo .co-logo,
+  .mo-logo .co-logo-mono {
+    width: var(--mo-logo) !important;
+    height: var(--mo-logo) !important;
+    border-radius: 4px;
+    flex: 0 0 auto;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--md-sys-color-surface-variant);
+  }
+  .mo-logo .co-logo img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
+    display: block;
+  }
   .mo-sym-txt { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
   .mo-sym-code {
     font-weight: 800;
@@ -173,8 +204,33 @@ function gridFor(cols) {
   return 'minmax(0, 1fr) ' + cols.map((c) => COL[c].w).join(' ');
 }
 
+// ---- uniform logo tiles ---------------------------------------------------
+// Source favicons are wildly non-square — AUMK is 50x7, TNB 101x37, OKTA/STB
+// 50x18 — so letterboxed into an 18px square they collapse to a 2-7px tall
+// sliver and the column reads as "every logo a different size". Square-ish
+// marks keep their artwork; wordmark-shaped ones reveal the coloured monogram
+// that logo.js already renders hidden behind the <img>. Every tile then ends
+// up a single filled 18x18 square.
+const LOGO_MAX_ASPECT = 1.6;
+function uniformLogo(img) {
+  const swap = () => {
+    if (!img.naturalWidth || !img.naturalHeight) return;
+    if (img.naturalWidth / img.naturalHeight <= LOGO_MAX_ASPECT) return;
+    img.style.display = 'none';
+    const mono = img.nextElementSibling;
+    if (mono && mono.classList.contains('co-logo-mono')) mono.style.display = 'inline-flex';
+  };
+  if (img.complete) swap();
+  else img.addEventListener('load', swap, { once: true });
+}
+function uniformLogos(root) {
+  (root || document).querySelectorAll('.mo-logo img').forEach(uniformLogo);
+}
+
 function logoFor(r) {
-  if (r.noLogo) return '';
+  // Indices have no favicon: keep an empty tile the same size so their symbol
+  // codes line up with the stocks' instead of starting 26px to the left.
+  if (r.noLogo) return '<span class="mo-logo" aria-hidden="true"></span>';
   return '<span class="mo-logo">' + W.companyIcon(r.symbol, r.name, r.site, LOGO_SIZE, r.fav, r.favv) + '</span>';
 }
 
@@ -269,6 +325,7 @@ async function load() {
       const qmap = {};
       if (q && Array.isArray(q.quotes)) for (const x of q.quotes) qmap[x.symbol] = x;
       box.innerHTML = renderMovers(d, qmap);
+      uniformLogos(box);
     } else {
       const [idx, q] = await Promise.all([
         W.fetchJSON('/api/indices').catch(() => null),
@@ -276,6 +333,7 @@ async function load() {
       ]);
       if (!idx && !q) throw new Error('no data');
       box.innerHTML = renderMarket(idx, q);
+      uniformLogos(box);
     }
     state.rendered = true;
   } catch (e) {
