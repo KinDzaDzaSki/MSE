@@ -2044,6 +2044,16 @@ table.quotes.active-table {
   color: var(--md-sys-color-on-primary);
 }
 .real-btn.loading { opacity: 0.6; pointer-events: none; }
+/* The explanation for Реално, shown under the chart tools while it is on. */
+.real-hint {
+  margin: 10px 0 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--md-sys-color-on-surface-variant);
+  border-left: 2px solid var(--md-sys-color-primary);
+  padding-left: 8px;
+}
+
 
 .range-btns button:hover {
   color: var(--md-sys-color-on-surface);

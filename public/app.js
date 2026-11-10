@@ -144,8 +144,11 @@ const I18N = {
       range_6m: '6M',
       range_1y: '1Y',
       range_all: 'All',
-      real: 'Real',
+      real: 'Real (CPI)',
       real_suffix: 'real, CPI {x}%',
+      real_title: 'Show the price after inflation (CPI, State Statistical Office). Excludes dividends, tax and commission.',
+      real_hint: 'Prices are deflated by headline CPI; values are in the dinars of the period\'s first month.',
+      real_unavailable: 'Inflation data is unavailable right now — the chart stays nominal.',
       range_52w: '52w Position',
       as_of: 'As of',
       eod_note: 'end-of-day data (latest trading session)',
@@ -295,8 +298,11 @@ const I18N = {
       range_6m: '6М',
       range_1y: '1Г',
       range_all: 'Сите',
-      real: 'Реално',
+      real: 'Реално (CPI)',
       real_suffix: 'реално, инфлација {x}%',
+      real_title: 'Прикажи го движењето на цената по одбиена инфлација (CPI, ДЗС). Не вклучува дивиденди, данок или провизија.',
+      real_hint: 'Цената е намалена за инфлацијата — вредностите се во денари од почетокот на периодот.',
+      real_unavailable: 'Податоците за инфлација во моментов не се достапни — графиконот останува номинален.',
       range_52w: '52н Позиција',
       as_of: 'За',
       eod_note: 'податоци на крај на ден (последната трговска сесија)',
@@ -1508,8 +1514,10 @@ async function openCompany(symbol) {
           <button class="active" data-r="1Y">${t('range_1y')}</button>
           <button data-r="ALL">${t('range_all')}</button>
         </div>
-        <button class="real-btn" id="realToggle" type="button" aria-pressed="false" title="${t('real')}">${t('real')}</button>
+        <button class="real-btn" id="realToggle" type="button" aria-pressed="false"
+                title="${t('real_title')}" aria-label="${t('real_title')}">${t('real')}</button>
       </div>
+      <p class="real-hint" id="realHint" hidden></p>
       <div class="chart-box" id="companyChart"></div>
       <div class="chart-legend-note" id="chartLegend"></div>`;
     $('#chartLegend').textContent = t('chart_legend');
@@ -1784,19 +1792,30 @@ async function openCompany(symbol) {
     );
 
     const realBtn = $('#realToggle');
+    const realHint = $('#realHint');
+    const paintHint = (text) => {
+      if (!realHint) return;
+      realHint.textContent = text || '';
+      realHint.hidden = !text;
+    };
     if (realBtn) {
       realBtn.classList.toggle('active', realMode);
       realBtn.setAttribute('aria-pressed', String(realMode));
+      if (realMode) paintHint(t('real_hint'));
       realBtn.addEventListener('click', async () => {
-        realMode = !realMode;
-        realBtn.classList.toggle('active', realMode);
-        realBtn.setAttribute('aria-pressed', String(realMode));
-        if (realMode) {
+        const next = !realMode;
+        if (next) {
           realBtn.classList.add('loading');
           await ensureCpiLevels();
           realBtn.classList.remove('loading');
-          if (!cpiLevels) realBtn.title = 'CPI unavailable';
         }
+        // Never leave the button pressed over a nominal line: if CPI could not
+        // be fetched, say so and stay off.
+        if (next && !cpiLevels) { paintHint(t('real_unavailable')); return; }
+        realMode = next;
+        realBtn.classList.toggle('active', realMode);
+        realBtn.setAttribute('aria-pressed', String(realMode));
+        paintHint(realMode ? t('real_hint') : '');
         const on = $('#rangeBtns button.active');
         draw(on ? on.dataset.r : '1Y');
       });
