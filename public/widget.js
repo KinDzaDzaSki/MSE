@@ -21,7 +21,10 @@
     return r.json();
   };
 
-  W.fmt = (n, dec = 2) => (n == null || isNaN(n)) ? '—' : Number(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  // mk-MK everywhere: the dashboard and the server render 8.921,06 / -0,03%,
+  // and the topbar chips are shared by both, so en-US here read as a different
+  // number on every page that is not the dashboard.
+  W.fmt = (n, dec = 2) => (n == null || isNaN(n)) ? '—' : Number(n).toLocaleString('mk-MK', { minimumFractionDigits: dec, maximumFractionDigits: dec });
   W.pctStr = (v) => (v == null || isNaN(v)) ? '—' : (v >= 0 ? '+' : '') + W.fmt(v) + '%';
   W.pctClass = (v) => (v == null || isNaN(v)) ? '' : v > 0 ? 'up' : v < 0 ? 'down' : '';
 
@@ -196,13 +199,13 @@
         const st = document.getElementById('marketStatus');
         if (st && q) {
           if (q.marketOpen) {
-            st.innerHTML = '<span class="material-symbols-outlined icon-fill" aria-hidden="true" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span> Пазарот е отворен';
+            st.innerHTML = '<span class="material-symbols-outlined icon-fill" aria-hidden="true" style="font-size:14px;color:var(--md-sys-color-on-positive-container)">signal_cellular_alt</span><span class="ms-label"> Пазарот е отворен</span>';
             st.className = 'market-status open';
           } else {
             // Current Skopje time, matching the dashboard — never the lastPoll
             // capture time (that would read "затворен · 13:57" hours later).
             const time = new Date().toLocaleTimeString('mk-MK', { timeZone: 'Europe/Skopje', hour: '2-digit', minute: '2-digit' });
-            st.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span> Пазарот е затворен · ' + time;
+            st.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px">block</span><span class="ms-label"> Пазарот е затворен · ' + time + '</span>';
             st.className = 'market-status closed';
           }
         }

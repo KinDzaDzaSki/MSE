@@ -202,7 +202,7 @@ ${TOPBAR_HTML}
 ${bodyHtml}
 </main>
 <footer class="foot"><span class="material-symbols-outlined" aria-hidden="true" style="font-size:14px;margin-right:6px;opacity:0.6">database</span>Податоци преземени од <a href="https://www.mse.mk" target="_blank" rel="noopener">mse.mk</a> — бесплатни јавни податоци — за едукативна намена. · <a href="/makro">Макро</a> · <a href="/prasanja">Прашања</a> · <a href="/za-nas">За нас</a> · <a href="/izvor-na-podatoci">Извор на податоци</a> · <a href="/metodologija">Методологија</a> · <a href="/widgets.html">Виџети</a> · <a href="/sitemap">Мапа на сајтот</a> · v${esc(PKG.version)}</footer>
-<script src="/widget.js?v=12"></script>
+<script src="/widget.js?v=13"></script>
 <script>if (window.W && W.initTopbar) W.initTopbar();</script>
 <!-- Vercel Web Analytics -->
 <script defer src="/_vercel/insights/script.js"></script>
