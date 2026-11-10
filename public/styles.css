@@ -363,6 +363,26 @@ a:hover {
   margin-top: 1px;
 }
 
+/* The market chips must not move when the page changes. The dashboard topbar
+   carries three icon buttons (notifications, theme, language) and content
+   pages carry one, so an auto-sized cluster shifted «Пазарот е отворен ·
+   MBI10 · € / $» sideways by an icon width on every navigation. The slot is
+   fixed instead, and the icons right-align inside it. */
+.topbar-icons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--md-space-md);
+  flex: 0 0 auto;
+}
+@media (min-width: 600px) {
+  .topbar-icons { width: calc(3 * 44px + 2 * var(--md-space-md)); }
+}
+/* Digits keep their width, so a new quote never resizes the chip. */
+.topbar-right #mbiChip,
+.topbar-right #fxChip,
+.market-status { font-variant-numeric: tabular-nums; }
+
 .topbar-right {
   display: flex;
   align-items: center;

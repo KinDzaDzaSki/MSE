@@ -9,7 +9,7 @@
  *
  * Bump CACHE_VERSION on any change so `activate` purges the old caches.
  */
-const CACHE_VERSION = 'mse-berza-v21';
+const CACHE_VERSION = 'mse-berza-v22';
 const PRECACHE = CACHE_VERSION + '-precache';
 const RUNTIME = CACHE_VERSION + '-runtime';
 const OFFLINE_URL = '/offline.html';
