@@ -1616,7 +1616,7 @@ async function openCompany(symbol) {
         const l1 = cpiAt(lineData[lineData.length - 1].time * 1000);
         if (l0 && l1) {
           const infl = (l1 / l0 - 1) * 100;
-          periodOut += ' · ' + t('real_suffix').replace('{x}', (infl >= 0 ? '+' : '') + infl.toFixed(1));
+          periodOut += ' · ' + t('real_suffix').replace('{x}', (infl >= 0 ? '+' : '') + infl.toFixed(1).replace('.', ','));
         }
       }
       $('#chartPeriod').textContent = periodOut;
