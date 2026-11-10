@@ -1229,19 +1229,29 @@ function periodOf(dateStr) {
 }
 
 // CPI is published a month or two behind the exchange. Walk back to the newest
-// month that actually exists rather than returning nothing.
-function levelAt(levels, period) {
+// month that actually exists, and report which month was used so the page can
+// say so instead of claiming a month that has not been published.
+function resolveLevel(levels, period) {
   if (!period) return null;
   const parts = period.split('M');
   let y = Number(parts[0]);
   let m = Number(parts[1]);
   for (let i = 0; i < 36; i++) {
-    const hit = levels.get(y + 'M' + String(m).padStart(2, '0'));
-    if (hit != null) return hit;
+    const key = y + 'M' + String(m).padStart(2, '0');
+    const hit = levels.get(key);
+    if (hit != null) return { level: hit, period: key };
     m -= 1;
     if (m === 0) { m = 12; y -= 1; }
   }
   return null;
+}
+
+function shiftMonths(period, delta) {
+  const parts = String(period).split('M');
+  let total = Number(parts[0]) * 12 + (Number(parts[1]) - 1) + delta;
+  const y = Math.floor(total / 12);
+  const m = (total % 12) + 1;
+  return y + 'M' + String(m).padStart(2, '0');
 }
 
 function dmy(value) {
@@ -1268,13 +1278,16 @@ function realReturn(mbiRows, levels) {
   if (!base || !base.last || !last.last) return null;
 
   const nominal = last.last / base.last - 1;
-  const nowPeriod = periodOf(last.date);
-  const thenPeriod = periodOf(base.date);
-  const lNow = levelAt(levels, nowPeriod);
-  const lThen = levelAt(levels, thenPeriod);
-  if (lNow == null || lThen == null) return null;
-  const infl = lNow / lThen - 1;
-  return { from: base.date, to: last.date, nominal, infl, real: (1 + nominal) / (1 + infl) - 1, cpiPeriod: nowPeriod };
+  // Inflation must be the published year-on-year figure: the resolved month
+  // against the same month a year earlier. Comparing the resolved month with
+  // whatever month the base row happened to fall in mixes two different yoy
+  // rates and produced a 3,0% that matched no published number.
+  const nowRes = resolveLevel(levels, periodOf(last.date));
+  if (!nowRes) return null;
+  const prevRes = resolveLevel(levels, shiftMonths(nowRes.period, -12));
+  if (!prevRes) return null;
+  const infl = nowRes.level / prevRes.level - 1;
+  return { from: base.date, to: last.date, nominal, infl, real: (1 + nominal) / (1 + infl) - 1, cpiPeriod: nowRes.period };
 }
 
 async function renderMacroPage() {
