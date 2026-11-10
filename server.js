@@ -4,6 +4,7 @@ const path = require('path');
 const zlib = require('zlib');
 const store = require('./lib/store');
 const macroLib = require('./lib/macro');
+let macroRefreshInFlight = null; // shared so ten readers trigger one refresh
 const db = require('./lib/db');
 const log = require('./lib/logger');
 const { getFX, getFXList } = require('./lib/fx');
@@ -244,6 +245,12 @@ function isEmptyPayload(obj) {
   if ('eur' in obj || 'usd' in obj) return obj.eur == null && obj.usd == null;
   for (const key of ['quotes', 'symbols', 'dividends', 'list', 'rows']) {
     if (Array.isArray(obj[key])) return obj[key].length === 0;
+  }
+  // Macro: { series: { cpi, gdp, … } } — an empty map is an empty payload, and
+  // caching it at the edge for 30 min is exactly how the first version served
+  // 'no series' long after the cron had filled them in.
+  if (obj.series && typeof obj.series === 'object' && !Array.isArray(obj.series)) {
+    if (Object.keys(obj.series).length === 0) return true;
   }
   return false;
 }
@@ -624,11 +631,19 @@ async function handleApi(req, res, url) {
   }
 
   if (url.pathname === '/api/macro') {
-    // Macro series from MakStat, refreshed weekly by /api/cron/macro. Cached hard:
-    // the office publishes once a month, the client only needs it for the CPI
-    // deflation toggle and the /makro page.
+    // Macro series from MakStat, refreshed weekly by /api/cron/macro. Cached
+    // hard: the office publishes once a month. If nothing is stored yet the
+    // request refreshes it itself (one shared promise, never parallel) — the
+    // page must not wait a week for the cron, and an empty payload is never
+    // cached (see isEmptyPayload).
     try {
-      const m = await store.getMacro();
+      let m = await store.getMacro();
+      if (!m || !m.series || !Object.keys(m.series).length) {
+        if (!macroRefreshInFlight) {
+          macroRefreshInFlight = store.refreshMacro().finally(() => { macroRefreshInFlight = null; });
+        }
+        try { m = await macroRefreshInFlight; } catch (e) { log.warn('macro self-heal: ' + e.message); }
+      }
       return sendJson(res, m || { series: {}, updatedAt: null }, 200, req, 3600, 1800);
     } catch (e) {
       return sendJson(res, { error: e.message }, 500);
