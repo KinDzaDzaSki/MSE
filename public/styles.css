@@ -816,8 +816,12 @@ body.has-ad .ad-rail {
   .layout { grid-template-columns: minmax(0, 1fr) 320px; }
   /* The rail makes the page taller than the window unless the shell is bounded
      (body is `min-height:100vh`, so nothing limits the layout). One screen:
-     header + layout + footer, the table and the rail scroll inside themselves. */
-  html, body { height: 100dvh; overflow: hidden; }
+     header + layout + footer, the table and the rail scroll inside themselves.
+     SCOPED TO `html.dash` (set in index.html): the dashboard is the only page
+     that wants this. Unscoped it froze /widgets.html, /prasanja and every other
+     SSR page at 100dvh with overflow:hidden, so everything below the fold was
+     unreachable. */
+  html.dash, html.dash body { height: 100dvh; overflow: hidden; }
   .layout { flex: 1 1 auto; min-height: 0; overflow: hidden; }
   .rail { min-height: 0; }
   /* One bounded row: without this the implicit `auto` row grows to the tallest
