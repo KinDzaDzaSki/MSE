@@ -1252,7 +1252,11 @@ function dmy(value) {
 
 function realReturn(mbiRows, levels) {
   if (!mbiRows || mbiRows.length < 30 || !levels.size) return null;
-  const rows = mbiRows.slice().sort((a, b) => (String(a.date) < String(b.date) ? -1 : 1));
+  // MSE history dates are M/D/YYYY, so a string sort puts 9/9/2026 after
+  // 11/10/2026 ('9' > '1'). Sort on the parsed day or the window ends in
+  // September no matter what month it is.
+  const day = (r) => { const d = parseDay(r.date); return d ? d.getTime() : 0; };
+  const rows = mbiRows.slice().sort((a, b) => day(a) - day(b));
   const last = rows[rows.length - 1];
   const lastTs = parseDay(last.date);
   if (!lastTs) return null;
